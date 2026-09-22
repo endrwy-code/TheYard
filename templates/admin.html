@@ -350,6 +350,20 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 .qrbox img{ width:200px; height:200px; image-rendering:pixelated; display:block }
 .side-note{ font-size:12px; line-height:1.5; color:#3C4654 }
 .paybox{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:12px }
+.mapping{ background:#fff; border-radius:14px; padding:18px; display:flex;
+  flex-direction:column; gap:10px; box-shadow:inset 0 0 0 1px #10101014 }
+.mapping .t{ font-weight:700; letter-spacing:.02em }
+.mapping .p{ font-size:12px; line-height:1.5; color:#3C4654 }
+.maprow{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);
+  gap:10px; align-items:center }
+.mapname{ font-size:13px; font-weight:600 }
+.mapname b{ color:#A8231B }
+.maprow select{ min-height:40px; border-radius:9px; border:0; font:inherit; font-size:13px;
+  padding:0 10px; background:#F2EFE8; color:#101010; box-shadow:inset 0 0 0 1px #10101022 }
+.mapsample{ display:flex; flex-direction:column; gap:6px; margin-top:4px }
+.samplerow{ display:grid; grid-template-columns:70px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr);
+  gap:8px; font-size:12px; color:#3C4654; align-items:baseline }
+.samplerow .row{ font-variant-numeric:tabular-nums; color:#A8A29B }
 .receiptrow{ display:flex; gap:12px }
 .receiptthumb{
   flex:none; width:96px; height:130px; background:#3C4654; border-radius:14px;
@@ -1733,13 +1747,37 @@ SCREENS.roster = function(){
     <div class="roster">
       <div style="display:flex;flex-direction:column;gap:18px">
         <div class="drop" id="drop">
-          <div class="t">Upload the Paperform export</div>
-          <div class="p">Export from Paperform, then drop the <code>.xlsx</code> here or choose it. Nothing is written until you press Commit, and re-importing the same file changes nothing.</div>
+          <div class="t">Upload the sign-up export</div>
+          <div class="p">Export from Paperform, then drop the <code>.xlsx</code> or <code>.csv</code> here or choose it. The columns are matched by name and you can correct them below. Nothing is written until you press Commit, and re-importing the same file changes nothing.</div>
           <button class="smallbtn" id="pickfile" style="min-height:48px;font-size:12px">Choose a file</button>
           ${p ? `<div class="p" style="color:#101010;font-weight:600">${esc(p.file_name)}</div>` : ''}
         </div>
 
-        ${p ? `
+        ${p && p.headers && p.headers.length ? `
+        <div class="mapping">
+          <div class="t">Which column is which</div>
+          <div class="p">Matched from the header row. Change any that came out wrong — nothing is written until you commit. A column left at <em>Not in this file</em> is left alone on everyone it touches, rather than emptied.</div>
+          ${p.fields.map(f => `
+          <label class="maprow">
+            <span class="mapname">${esc(f.label)}${f.required ? ' <b>·</b>' : ''}</span>
+            <select data-field="${esc(f.key)}">
+              <option value=""${p.mapping[f.key] ? '' : ' selected'}>Not in this file</option>
+              ${p.headers.map(h => `<option value="${esc(h)}"${p.mapping[f.key] === h ? ' selected' : ''}>${esc(h)}${(p.examples || {})[h] ? ' — ' + esc(p.examples[h]) : ''}</option>`).join('')}
+            </select>
+          </label>`).join('')}
+          <button class="smallbtn" id="remap" style="min-height:44px;font-size:12px">Use these columns</button>
+          ${p.sample && p.sample.length ? `
+          <div class="mapsample">
+            <div class="p" style="margin:0">First ${esc(p.sample.length)} row${p.sample.length === 1 ? '' : 's'}, read the way they are matched now:</div>
+            ${p.sample.map(r => `<div class="samplerow"><span class="row">row ${esc(r.row)}</span><span>${esc(r.name || '—')}</span><span class="mono">@${esc(r.handle || '?')}</span><span>${r.receipt ? 'screenshot' : 'no screenshot'}</span></div>`).join('')}
+          </div>` : ''}
+        </div>` : ''}
+        ${p && p.needs_mapping ? `
+        <div class="problems">
+          <div class="t">Match the columns before this can be read</div>
+          <div class="problem"><span>${esc(p.message || '')}</span></div>
+        </div>` : ''}
+        ${p && !p.needs_mapping ? `
         <div class="counts">
           <div class="count"><div class="v">${esc(p.counts.new)}</div><div class="l">New</div></div>
           <div class="count"><div class="v">${esc(p.counts.changed)}</div><div class="l">Changed</div></div>
@@ -1747,14 +1785,15 @@ SCREENS.roster = function(){
           <div class="count"><div class="v">${esc(p.counts.missing)}</div><div class="l">Missing here</div></div>
           <div class="count ${p.counts.no_receipt ? 'bad' : ''}"><div class="v">${esc(p.counts.no_receipt)}</div><div class="l">No receipt</div></div>
         </div>
-        ${p.problems.length ? `
+        ${p && !p.needs_mapping && p.problems.length ? `
         <div class="problems">
           <div class="t">${esc(p.problems.length)} problem${p.problems.length === 1 ? '' : 's'} — nothing has been written</div>
           ${p.problems.map(x => `<div class="problem"><span class="row">row ${esc(x.row)}</span><span>${esc(x.message)}</span></div>`).join('')}
           <div style="font-size:12px;line-height:1.45;color:#3C4654">Fix them in Paperform, export again, and upload the new file.</div>
         </div>` : ''}
-        ${p.missing && p.missing.length ? `
+        ${p && !p.needs_mapping && p.missing && p.missing.length ? `
         <div class="staffnote">Not in this file, so they become inactive: ${p.missing.map(m => esc(m.name) + ' (@' + esc(m.handle) + ')').join(', ')}.</div>` : ''}
+        ${p.needs_mapping ? '' : `
         <div class="commitbar">
           <button class="commit" id="commit" ${p.problems.length ? 'disabled' : ''}>Commit ${esc(p.counts.new + p.counts.changed)} change${(p.counts.new + p.counts.changed) === 1 ? '' : 's'}</button>
           <span style="font-size:13px;line-height:1.45;color:#3C4654">
@@ -1762,7 +1801,7 @@ SCREENS.roster = function(){
               : p.counts.missing ? esc(p.counts.missing) + ' missing from this file become inactive. Their bookings and claims are kept.'
               : 'Missing nobody. Safe to commit.'}
           </span>
-        </div>` : `
+        </div>`}` : `
         <div style="font-size:13px;line-height:1.5;color:#3C4654">
           The ~1,000 blank rows Paperform leaves at the end of the sheet are skipped silently.
           Handles written as <code>@Name</code>, <code>name&nbsp;</code> or a <code>t.me/</code> link all match the same person.
@@ -2297,6 +2336,8 @@ function wire(){
       if (f) previewRoster(f);
     };
   }
+  const remap = document.getElementById('remap');
+  if (remap) remap.onclick = remapRoster;
   const commit = document.getElementById('commit');
   if (commit) commit.onclick = commitRoster;
   const addW = document.getElementById('addWalkin');
@@ -2448,7 +2489,7 @@ async function doMove(){
 function pickRosterFile(){
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  input.accept = '.xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   input.onchange = () => { const f = input.files && input.files[0]; if (f) previewRoster(f); };
   input.click();
 }
@@ -2460,6 +2501,24 @@ async function previewRoster(file){
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
   S.rosterPreview = r.data;
   render();
+}
+
+/* Price the same upload up again with the columns matched differently. The
+   file stays on the server, so this costs no second upload — and it makes a
+   new run, leaving the one on screen untouched if the admin changes back. */
+async function remapRoster(){
+  const p = S.rosterPreview;
+  if (!p) return;
+  const mapping = {};
+  document.querySelectorAll('.mapping select[data-field]').forEach(sel => {
+    mapping[sel.dataset.field] = sel.value || null;
+  });
+  const r = await api('POST /admin/api/roster/remap',
+    { path:'/admin/api/roster/preview/' + p.run_id + '/mapping', json:{ mapping } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  S.rosterPreview = r.data;
+  render();
+  toast('Matched again.', 'good');
 }
 
 async function commitRoster(){

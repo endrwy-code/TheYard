@@ -1043,7 +1043,22 @@ def admin_roster():
 
 @app.route("/admin/api/roster/preview", methods=["POST"])
 def admin_roster_preview():
-    return _run(lambda: console.roster_preview(g.db, request.files.get("file"), g.console["name"]))
+    # The mapping rides along as a JSON string, because the file makes this a
+    # multipart form and there is nowhere else to put an object.
+    mapping = request.form.get("mapping")
+    try:
+        mapping = json.loads(mapping) if mapping else None
+    except ValueError:
+        mapping = None
+    return _run(lambda: console.roster_preview(g.db, request.files.get("file"),
+                                               g.console["name"], mapping=mapping))
+
+
+@app.route("/admin/api/roster/preview/<int:run_id>/mapping", methods=["POST"])
+def admin_roster_remap(run_id):
+    body = request.get_json(silent=True) or {}
+    return _run(lambda: console.roster_remap(g.db, run_id, body.get("mapping"),
+                                             g.console["name"]))
 
 
 @app.route("/admin/api/roster/commit/<int:run_id>", methods=["POST"])

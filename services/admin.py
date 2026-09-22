@@ -9,6 +9,7 @@ before and after values.
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import config
 import db
@@ -400,25 +401,76 @@ def roster_view(conn):
             "runs": runs}
 
 
-def roster_preview(conn, upload, by):
-    if upload is None or not upload.filename:
-        raise ClaimError("VALIDATION_FAILED", "Choose the Paperform .xlsx export.")
-    if not upload.filename.lower().endswith(".xlsx"):
-        raise ClaimError("VALIDATION_FAILED", "That isn't an .xlsx file. Export the sheet from Paperform.")
-    config.IMPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    path = config.IMPORTS_DIR / f"upload-{stamp}.xlsx"
-    upload.save(path)
+UPLOAD_KINDS = (".xlsx", ".csv")
+
+
+def _read_and_preview(conn, path, file_name, mapping, by):
+    """Read the saved file with `mapping` (or a guess) and price up the import."""
     try:
-        rows = roster.read_export(path)
+        headers, rows = roster.read_table(path)
     except ValueError as exc:
         raise ClaimError("VALIDATION_FAILED", str(exc))
     except Exception:  # noqa: BLE001 - a corrupt file is the admin's to fix
-        raise ClaimError("VALIDATION_FAILED", "That file couldn't be read. Export it from Paperform again.")
-    out = roster.preview(conn, rows, upload.filename)
+        raise ClaimError("VALIDATION_FAILED", "That file couldn't be read. Export it again.")
+    mapping = mapping or roster.guess_mapping(headers)
+    try:
+        roster.check_mapping(mapping)
+    except ValueError as exc:
+        # Not an error to bounce back: this is the file the matching exists
+        # for, so hand back the columns and let the admin say which is which.
+        return roster.unmatched_run(conn, file_name, path, headers, rows, mapping, str(exc))
+    mapped = roster.map_rows(headers, rows, mapping)
+    out = roster.preview(conn, mapped, file_name, source_path=path, headers=headers,
+                         mapping=mapping)
+    out["examples"] = roster.first_values(headers, rows)
     db.audit(conn, "admin", "Roster previewed", actor_name=by, entity="import_run",
              entity_id=out["run_id"], details=out["counts"])
     return out
+
+
+def roster_preview(conn, upload, by, mapping=None):
+    if upload is None or not upload.filename:
+        raise ClaimError("VALIDATION_FAILED", "Choose the sign-up export.")
+    suffix = next((k for k in UPLOAD_KINDS if upload.filename.lower().endswith(k)), None)
+    if suffix is None:
+        raise ClaimError("VALIDATION_FAILED",
+                         "That isn't an .xlsx or .csv file. Export the sheet from Paperform.")
+    config.IMPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    path = config.IMPORTS_DIR / f"upload-{stamp}{suffix}"
+    upload.save(path)
+    return _read_and_preview(conn, path, upload.filename, _clean_mapping(mapping), by)
+
+
+def _clean_mapping(mapping):
+    """Only the six fields, only real strings — it arrives from the browser."""
+    if not isinstance(mapping, dict):
+        return None
+    out = {}
+    for field in roster.FIELDS:
+        value = mapping.get(field)
+        out[field] = value.strip() if isinstance(value, str) and value.strip() else None
+    return out if any(out.values()) else None
+
+
+def roster_remap(conn, run_id, mapping, by):
+    """Price the same upload up again with the columns matched differently."""
+    run = conn.execute("SELECT * FROM import_runs WHERE id = ?", (run_id,)).fetchone()
+    if run is None:
+        raise ClaimError("NOT_FOUND", f"No import run {run_id}.")
+    if run["committed_at"]:
+        raise ClaimError("VALIDATION_FAILED", "That import was already committed.")
+    report = json.loads(run["report"] or "{}")
+    path = report.get("source_path")
+    if not path or not Path(path).exists():
+        raise ClaimError("VALIDATION_FAILED",
+                         "The uploaded file is no longer on the server. Upload it again.")
+    cleaned = _clean_mapping(mapping)
+    if cleaned is None:
+        raise ClaimError("VALIDATION_FAILED", "Match at least one column.")
+    # The audit only wants the runs that said something; a half-matched
+    # attempt on the way to the right answer is noise.
+    return _read_and_preview(conn, Path(path), run["file_name"], cleaned, by)
 
 
 def roster_commit(conn, run_id, by):

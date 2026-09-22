@@ -8,6 +8,7 @@ receipt link, and the last four columns empty because we fill them in.
 Nothing is written until commit().
 """
 
+import csv
 import json
 import re
 from datetime import datetime
@@ -21,6 +22,26 @@ SHEET = "Registrations"
 COLUMNS = ["Submitted At", "Unique", "Name", "Telegram", "Email",
            "Submission Receipt", "Checked-in", "Checked in at",
            "Redeemed", "Redemmed At"]
+
+# The six things an import needs out of a file, and what the column is most
+# likely called. The first alias is the label the console shows.
+#
+# Paperform is not the only shape this has to read: a form gets rebuilt, a
+# question gets renamed, somebody exports a .csv out of a spreadsheet with the
+# columns in another order. Rather than refuse anything unfamiliar, guess from
+# the header row and let the admin correct the guess before committing.
+FIELD_ALIASES = {
+    "submitted_at": ("Submitted At", "submitted", "date", "timestamp", "created at"),
+    "paperform_id": ("Unique", "submission id", "id", "reference"),
+    "name": ("Name", "full name", "your name"),
+    "telegram": ("Telegram", "telegram username", "telegram handle", "username", "handle"),
+    "email": ("Email", "email address", "e-mail"),
+    "receipt": ("Submission Receipt", "Upload a screenshot of the payment!",
+                "payment screenshot", "screenshot", "receipt", "proof of payment"),
+}
+FIELDS = tuple(FIELD_ALIASES)
+# Without these two there is no person to add; the other four may be absent.
+REQUIRED_FIELDS = ("name", "telegram")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -52,40 +73,171 @@ def _paperform_id(value):
     return s
 
 
-def read_export(path):
-    """Rows from the sheet, blank rows skipped, every text cell trimmed."""
-    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
-    if SHEET not in wb.sheetnames:
-        raise ValueError(
-            f'This file has no "{SHEET}" sheet — it has {", ".join(wb.sheetnames)}. '
-            "Export the Registrations sheet from Paperform."
-        )
-    ws = wb[SHEET]
-    rows = []
-    header = None
-    for n, raw in enumerate(ws.iter_rows(values_only=True), start=1):
-        if all(c is None or str(c).strip() == "" for c in raw):
-            continue                                   # rule 10: skip blank rows
-        if header is None:
-            header = [_text(c) for c in raw]
+def _blank(cells):
+    return all(c is None or str(c).strip() == "" for c in cells)
+
+
+def read_table(path):
+    """(headers, rows) from a .xlsx or .csv, blank rows skipped (rule 10).
+
+    Each row is (line number, cells) so a problem can name the line the admin
+    sees in their spreadsheet, whichever format the file is in.
+    """
+    name = str(path).lower()
+    if name.endswith(".csv"):
+        # utf-8-sig: a sheet exported from Excel starts with a BOM, which would
+        # otherwise glue itself to the first column's name and stop it matching.
+        with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
+            raw_rows = list(csv.reader(fh))
+    else:
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        if SHEET not in wb.sheetnames:
+            wb.close()
+            raise ValueError(
+                f'This file has no "{SHEET}" sheet — it has {", ".join(wb.sheetnames)}. '
+                "Export the Registrations sheet from Paperform."
+            )
+        raw_rows = list(wb[SHEET].iter_rows(values_only=True))
+        wb.close()
+
+    headers, rows = None, []
+    for n, cells in enumerate(raw_rows, start=1):
+        if _blank(cells):
             continue
-        cell = {header[i]: raw[i] for i in range(min(len(header), len(raw)))}
-        rows.append({
+        if headers is None:
+            headers = [_text(c) for c in cells]
+            continue
+        rows.append((n, list(cells)))
+    if headers is None:
+        raise ValueError("That file has no header row in it.")
+    return headers, rows
+
+
+def _key(label):
+    return "".join(ch for ch in str(label or "").lower() if ch.isalnum())
+
+
+def guess_mapping(headers):
+    """{field: header} worked out from the header row.
+
+    Exact names win, so the real Paperform export maps the way it always has.
+    A column is only ever used once: two fields cannot both claim "Name".
+    """
+    by_key = {}
+    for header in headers:
+        by_key.setdefault(_key(header), header)
+    mapping, taken = {}, set()
+    for field, aliases in FIELD_ALIASES.items():
+        mapping[field] = None
+        for alias in aliases:
+            header = by_key.get(_key(alias))
+            if header is not None and header not in taken:
+                mapping[field] = header
+                taken.add(header)
+                break
+    return mapping
+
+
+def map_rows(headers, rows, mapping):
+    """The mapped rows, in the shape the preview and the webhook both use."""
+    index = {h: i for i, h in enumerate(headers)}
+
+    def cell(cells, field):
+        header = mapping.get(field)
+        if header is None:
+            return None
+        i = index.get(header)
+        return cells[i] if i is not None and i < len(cells) else None
+
+    # A column nobody matched is a column the file is silent about, which is
+    # not the same as a column the file says is empty. Remember the difference
+    # here, so importing a two-column .csv cannot wipe everybody's email and
+    # payment screenshot on its way past.
+    present = sorted(f for f in FIELDS if mapping.get(f))
+    out = []
+    for n, cells in rows:
+        handle_raw = cell(cells, "telegram")
+        out.append({
             "row": n,
-            "submitted_at": _text(cell.get("Submitted At")),
-            "paperform_id": _paperform_id(cell.get("Unique")),
-            "name": _text(cell.get("Name")),
-            "handle_raw": _text(cell.get("Telegram")),
-            "handle": normalise_handle(cell.get("Telegram")),
-            "email": _text(cell.get("Email")),
-            "receipt_url": _text(cell.get("Submission Receipt")),
+            "present": present,
+            "submitted_at": _text(cell(cells, "submitted_at")),
+            "paperform_id": _paperform_id(cell(cells, "paperform_id")),
+            "name": _text(cell(cells, "name")),
+            "handle_raw": _text(handle_raw),
+            "handle": normalise_handle(handle_raw),
+            "email": _text(cell(cells, "email")),
+            "receipt_url": _text(cell(cells, "receipt")),
         })
-    wb.close()
-    return rows
+    return out
 
 
-def preview(conn, rows, file_name):
-    """Work out what committing would do. Writes only the import_runs row."""
+def first_values(headers, rows, limit=40):
+    """{header: its first value that isn't blank} — what each column holds.
+
+    Shown beside the column's name when matching, because "Q3_ans" means
+    nothing and "Q3_ans — @ada_lovelace" means everything.
+    """
+    out = {}
+    for i, header in enumerate(headers):
+        for _, cells in rows:
+            if i < len(cells):
+                text = _text(cells[i])
+                if text:
+                    out[header] = text[:limit]
+                    break
+    return out
+
+
+def field_list():
+    return [{"key": f, "label": FIELD_ALIASES[f][0], "required": f in REQUIRED_FIELDS}
+            for f in FIELDS]
+
+
+def unmatched_run(conn, file_name, source_path, headers, rows, mapping, message):
+    """A file whose columns nobody could guess.
+
+    It still gets a run, because the admin has to be able to match it up and
+    ask again — refusing the upload outright would leave them with the one
+    file the matching exists for and no way to reach the matching.
+    """
+    report = {"plan": [], "missing": [], "problems": [],
+              "source_path": str(source_path), "headers": headers, "mapping": mapping}
+    cur = conn.execute(
+        "INSERT INTO import_runs (at, source, file_name, counts, report) VALUES (?,?,?,?,?)",
+        (db.utcnow(), "upload", file_name, json.dumps({}), json.dumps(report)),
+    )
+    return {"run_id": cur.lastrowid, "file_name": file_name, "counts": None,
+            "problems": [], "missing": [], "needs_mapping": True, "message": message,
+            "headers": headers, "mapping": mapping, "fields": field_list(),
+            "examples": first_values(headers, rows), "sample": []}
+
+
+def check_mapping(mapping):
+    missing = [f for f in REQUIRED_FIELDS if not mapping.get(f)]
+    if missing:
+        words = " and ".join(FIELD_ALIASES[f][0] for f in missing)
+        raise ValueError(f"Say which column holds {words}. Without it there is nobody to add.")
+
+
+def read_export(path, mapping=None):
+    """Rows from the file, blank rows skipped, every text cell trimmed.
+
+    With no mapping the columns are guessed from the header row, which is how
+    the real Paperform export has always been read.
+    """
+    headers, rows = read_table(path)
+    mapping = mapping or guess_mapping(headers)
+    check_mapping(mapping)
+    return map_rows(headers, rows, mapping)
+
+
+def preview(conn, rows, file_name, source_path=None, headers=None, mapping=None):
+    """Work out what committing would do. Writes only the import_runs row.
+
+    `source_path`, `headers` and `mapping` are remembered on the run so the
+    admin can change which column feeds which field and see the answer again
+    without uploading the file a second time.
+    """
     problems = []
     seen_handles = {}
     plan = []
@@ -143,14 +295,15 @@ def preview(conn, rows, file_name):
                            "already linked to a Telegram account. Unlink it first."})
             continue
 
+        has = set(r.get("present") or FIELDS)
         changes = {}
         if match["name"] != r["name"]:
             changes["name"] = [match["name"], r["name"]]
         if match["handle"] != r["handle"]:
             changes["handle"] = [match["handle"], r["handle"]]
-        if (match["email"] or "") != r["email"]:
+        if "email" in has and (match["email"] or "") != r["email"]:
             changes["email"] = [match["email"], r["email"]]
-        if (match["paperform_receipt_url"] or "") != r["receipt_url"]:
+        if "receipt" in has and (match["paperform_receipt_url"] or "") != r["receipt_url"]:
             changes["receipt"] = ["set" if r["receipt_url"] else "cleared"]
         if match["status"] != "active":
             changes["status"] = [match["status"], "active"]
@@ -177,7 +330,9 @@ def preview(conn, rows, file_name):
         "missing": len(missing),
         "no_receipt": sum(1 for p in plan if not p["row"]["receipt_url"]),
     }
-    report = {"plan": plan, "missing": missing, "problems": problems}
+    report = {"plan": plan, "missing": missing, "problems": problems,
+              "source_path": str(source_path) if source_path else None,
+              "headers": headers or [], "mapping": mapping or {}}
 
     cur = conn.execute(
         "INSERT INTO import_runs (at, source, file_name, counts, report) VALUES (?,?,?,?,?)",
@@ -185,7 +340,12 @@ def preview(conn, rows, file_name):
     )
     run_id = cur.lastrowid
     return {"run_id": run_id, "file_name": file_name, "counts": counts,
-            "problems": problems, "missing": missing}
+            "problems": problems, "missing": missing,
+            "headers": headers or [], "mapping": mapping or {},
+            "fields": field_list(), "needs_mapping": False,
+            "sample": [{"row": r["row"], "name": r["name"], "handle": r["handle"],
+                        "email": r["email"], "receipt": bool(r["receipt_url"])}
+                       for r in rows[:5]]}
 
 
 def commit(conn, run_id, actor="admin"):
@@ -232,12 +392,19 @@ def commit(conn, run_id, actor="admin"):
                 )
                 written += 1
             elif item["action"] == "changed":
+                has = set(r.get("present") or FIELDS)
+                # COALESCE(?, column) with None keeps what is already there —
+                # which is what a column the file never had has to mean.
                 conn.execute(
                     "UPDATE attendees SET paperform_id=COALESCE(?, paperform_id), name=?, "
-                    "email=?, handle=?, handle_raw=?, paperform_receipt_url=?, "
-                    "submitted_at_text=?, status='active', updated_at=? WHERE id=?",
-                    (r["paperform_id"] or None, r["name"], r["email"], r["handle"],
-                     r["handle_raw"], r["receipt_url"] or None, r["submitted_at"],
+                    "email=COALESCE(?, email), handle=?, handle_raw=?, "
+                    "paperform_receipt_url=COALESCE(?, paperform_receipt_url), "
+                    "submitted_at_text=COALESCE(?, submitted_at_text), "
+                    "status='active', updated_at=? WHERE id=?",
+                    (r["paperform_id"] or None, r["name"],
+                     r["email"] if "email" in has else None, r["handle"], r["handle_raw"],
+                     (r["receipt_url"] or None) if "receipt" in has else None,
+                     r["submitted_at"] if "submitted_at" in has else None,
                      now, item["id"]),
                 )
                 # Rule 14 again — only lift 'missing' to 'submitted', never downgrade
