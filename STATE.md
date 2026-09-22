@@ -1323,6 +1323,18 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        slate rather than red. The Mini App's "We haven't spotted your
        payment" strip is gone for the same reason — it now follows whether
        payment actually blocks them, not their payment status.
+     - **And the step itself is gone** (asked for straight after, same
+       evening): the person page shows no verdict card asking for a decision,
+       no transaction-reference box and no Verify / No reference / Reject /
+       Change verdict buttons — it says what was recorded at sign-up, that
+       nothing needs checking, and where to switch it back on. The booth's
+       green card says **On the list** rather than claiming "Payment
+       verified" about someone nobody checked, and Help drops "You haven't
+       seen my payment", which would have sent people to queue at the desk
+       over something nobody is looking at. A `payment_required` flag on the
+       person payload and in the `event` block drives all of it, so setting
+       **Verified** brings the whole workflow back. The screenshot itself is
+       untouched: same place, same admin-only rule (§9 r31).
 
 ### Endpoints added beyond §12
 

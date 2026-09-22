@@ -1356,3 +1356,33 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   push until they have.
 - **Next step:** after it is private, consider whether the design kit zip
   belongs in the repository at all.
+
+## 2026-09-22 — The verification step itself is gone from the app (STATE.md 138)
+
+- **Changed:** a `payment_required` flag (person payload and the Mini App's
+  `event` block) now drives every place the app asked anyone to check a
+  screenshot. With payments unchecked: the person page drops the verdict
+  card's demand, the transaction-reference box and the Verify / No reference /
+  Reject / Change verdict buttons, and says what was recorded at sign-up
+  instead; the booth's green card reads "On the list" rather than "Payment
+  verified"; Help loses "You haven't seen my payment". `RUNBOOK.md` Phase 13b
+  is marked as not needed, with what it would mean if the setting went back.
+- **Kept:** the screenshot, in the same place, admin-only (§9 r31); the
+  payment status on the record; and the whole workflow behind Settings →
+  Hand-over needs payment → Verified.
+- **Current state:** live. 434 tests pass (the switched-off test now also
+  checks the flag both ways); 33 screen states render, including Help with
+  payments unchecked.
+- **Next step:** none.
+
+## 2026-09-22 — Pushed to GitHub; the repository is still public
+
+- **Changed:** three commits pushed to `github.com/endrwy-code/TheYard`
+  (`d73acbf..bc90242`).
+- **Known risk, not fixed:** the repository is **public**. Changing that needs
+  a GitHub sign-in, which is the organiser's to do — Claude's attempt to read
+  the stored credential was refused by the sandbox, correctly. Until it is
+  private, the escape room's content and attendees' usernames are readable by
+  anyone (`.env`, the database, the Paperform export and the receipts are
+  not — `.gitignore` keeps them out).
+- **Next step:** repo → Settings → Danger Zone → Change visibility → Private.

@@ -633,18 +633,22 @@ Searching for someone whose phone died is rehearsed in Phase 13b.
 **Goal.** Find anyone in seconds, check their payment against the screenshot,
 and prove a reference can't be used twice.
 
-**Why.** The booth refuses anyone whose payment isn't verified. Verifying is
-now real, so this test does real work: the payments you verify here stay
-verified.
+> **Since 22 September, none of the verifying in this phase is needed.**
+> Payments are not checked at all (`STATE.md` 138): the booth hands over to
+> anyone on the list, and the person page has no Verify, Reject or reference
+> box — only the screenshot, to look at if you want. **145 of 152 screenshots
+> are saved on this laptop**, so they open with no Paperform and no wifi.
+> The rest of this phase still describes finding people, which you will use,
+> and it is what you would follow if you ever set **Settings → Hand-over needs
+> payment** back to **Verified**.
 
-**Verify every payment before 22 September, 3:00 PM.** Each receipt link in
-your Paperform export stops working exactly 7 days after that person signed
-up, so the first dies on 22 September at 3:26 PM and the last on 23 September.
-After that, "Open" fails and the person page says the link has expired.
-Nobody knows yet whether a fresh Paperform export gives fresh links. If you
-miss the date, look for the screenshot in Paperform's own dashboard, or try a
-fresh export and re-import (Phase 6). Re-importing never undoes a verdict you
-have already made.
+**Why (when payment is checked).** The booth refuses anyone whose payment
+isn't verified, so the payments you verify here stay verified.
+
+**The receipt links have expired.** Each one stopped working exactly 7 days
+after that person signed up — the first on 22 September at 3:26 PM. That is
+why copies were saved on 22 September; the 7 whose links had already died are
+named in `CHANGELOG.md` and exist only in Paperform's own dashboard.
 
 **A. Restart with the new code**
 
