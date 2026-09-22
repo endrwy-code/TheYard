@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:opsz,wght@14..32,400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #6F6B64; }
+  a { color: #AE7338; text-underline-offset: 2px; }
+  a:hover { color: #101010; }
+  @keyframes vIn { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+  @keyframes pop { from { opacity: 0; transform: scale(.96) } to { opacity: 1; transform: none } }
+  @keyframes flash { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes tick { from { opacity: .5 } to { opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+</style>
+</helmet>
+
+<section style="padding: 48px; font-family: Inter, sans-serif; color: #F2EFE8; display: flex; gap: 36px; align-items: flex-start">
+
+  <div style="width: 290px; flex: none; background: #F2EFE8; color: #101010; padding: 24px; border-radius: 26px; display: flex; flex-direction: column; gap: 20px">
+    <div>
+      <div style="background: #101010; color: #F2EFE8; display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px">Round 3 · demo controls</div>
+      <div style="font-family: Anton, sans-serif; font-size: 30px; text-transform: uppercase; margin-top: 10px; line-height: 1">Admin<br>console</div>
+      <div style="font-size: 13px; line-height: 1.45; color: #3C4654; margin-top: 8px">A normal browser, not Telegram. Booth and GM at 390, admin at 1440.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Signed in as</div>
+      <sc-for list="{{ roles }}" as="r" hint-placeholder-count="3">
+        <button onClick="{{ r.pick }}" style="{{ r.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ r.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Screen</div>
+      <sc-for list="{{ screens }}" as="c" hint-placeholder-count="5">
+        <button onClick="{{ c.pick }}" style="{{ c.style }}" style-hover="opacity:.88" style-active="transform:scale(.97)">{{ c.label }}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isBooth }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Scan result</div>
+        <sc-for list="{{ scans }}" as="x" hint-placeholder-count="6">
+          <button onClick="{{ x.pick }}" style="{{ x.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ x.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPerson }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Entrance payment</div>
+        <sc-for list="{{ payStates }}" as="x" hint-placeholder-count="5">
+          <button onClick="{{ x.pick }}" style="{{ x.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ x.label }}</button>
+        </sc-for>
+        <div style="font-size: 12px; color: #3C4654; line-height: 1.4">Verify from the person page, not just the review queue — this is where you'll be sitting when someone turns up unverified.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isReviews }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Receipt case</div>
+        <sc-for list="{{ reviewCases }}" as="x" hint-placeholder-count="4">
+          <button onClick="{{ x.pick }}" style="{{ x.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ x.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isGm }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Elapsed</div>
+          <div style="font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{ elapsedLabel }}</div>
+        </div>
+        <input type="range" min="0" max="900" step="15" value="{{ elapsed }}" onInput="{{ onElapsed }}" style="width: 100%; accent-color: #AE7338">
+        <div style="font-size: 12px; color: #3C4654; line-height: 1.4">Drag through a game to watch the hint lines and the forced merge come due.</div>
+      </div>
+    </sc-if>
+
+    <div style="font-size: 12px; line-height: 1.45; color: #3C4654; border-top: 1px solid #10101022; padding-top: 14px">{{ roleNote }}</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 10px; align-items: baseline">
+      <span style="background: #101010; color: #F2EFE8; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px">3a</span>
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{ screenLabel }}</span>
+    </div>
+
+    <sc-if value="{{ isBooth }}" hint-placeholder-val="{{ true }}">
+      <div style="width: 390px; height: 844px; overflow: hidden; border-radius: 42px; box-shadow: 0 30px 70px #0007, inset 0 0 0 1px #ffffff14; background: #F2EFE8; color: #101010; display: flex; flex-direction: column">
+        <div style="flex: none; background: #101010; color: #F2EFE8; padding: 34px 20px 14px; display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">{{ station }}</span>
+          <span style="font-family: 'Space Mono', monospace; font-size: 12px">7:16 PM</span>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 22px">
+          <div style="flex: none; background: #0D0D0F; border-radius: 22px; aspect-ratio: 4/3; position: relative; overflow: hidden; display: grid; place-items: center">
+            <div style="position: absolute; width: 190px; height: 190px; border-radius: 26px; box-shadow: inset 0 0 0 3px #AE7338"></div>
+            <div style="position: absolute; width: 190px; height: 2px; background: #AE7338; animation: tick 1.4s ease-in-out infinite alternate"></div>
+            <div style="position: absolute; bottom: 12px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #C9C5BD">Point at the pass</div>
+          </div>
+
+          <div style="display: flex; gap: 8px">
+            <div style="flex: 1; background: #fff; box-shadow: inset 0 0 0 2px #101010; border-radius: 16px; display: flex; align-items: center; padding: 0 14px; min-height: 54px; font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; letter-spacing: .08em">7K3M-Q9XT</div>
+            <button style="flex: none; min-width: 84px; background: #101010; color: #F2EFE8; border: 0; border-radius: 16px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#AE7338;color:#101010" style-active="transform:scale(.96)">Look up</button>
+          </div>
+
+          <div style="{{ resultCard }}">
+            <div style="display: flex; gap: 14px; align-items: center">
+              <div style="{{ resultMarkStyle }}">{{ resultMark }}</div>
+              <div style="display: flex; flex-direction: column; gap: 2px">
+                <div style="font-family: Anton, sans-serif; font-size: 34px; line-height: .95; text-transform: uppercase">{{ resultTitle }}</div>
+                <div style="font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{ resultKicker }}</div>
+              </div>
+            </div>
+            <div style="font-size: 14px; line-height: 1.45">{{ resultBody }}</div>
+          </div>
+
+          <sc-if value="{{ showPerson }}" hint-placeholder-val="{{ true }}">
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; animation: rise .36s .04s cubic-bezier(.2,.8,.2,1) both">
+              <div style="font-family: Anton, sans-serif; font-size: 30px; line-height: 1; text-transform: uppercase">Nadia Rahim</div>
+              <div style="font-family: 'Space Mono', monospace; font-size: 15px">@nadiarhm · Telegram: Nadia</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px">
+                <span style="background: #101010; color: #F2EFE8; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px">Checked in 6:41 PM</span>
+                <span style="background: #1C2024; color: #C8CFC7; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px">Esc 7:30 · half B — desk</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ canHand }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 10px; animation: rise .36s .08s cubic-bezier(.2,.8,.2,1) both">
+              <button style="width: 100%; min-height: 98px; background: #101010; color: #F2EFE8; border: 0; border-radius: 20px; font-family: Anton, sans-serif; font-size: 32px; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#1F7A4C" style-active="transform:scale(.98)">
+                <span>Hand over matcha</span><span style="font-size: 26px">›</span>
+              </button>
+              <button style="width: 100%; min-height: 56px; background: #fff; color: #101010; border: 0; border-radius: 18px; box-shadow: inset 0 0 0 2px #101010; font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .2s" style-hover="background:#8FA65B" style-active="transform:scale(.98)">
+                <span>Call matcha — ping their Telegram</span><span style="font-size: 20px">›</span>
+              </button>
+              <div style="background: #A8231B; color: #fff; padding: 16px 18px; border-radius: 18px; display: flex; gap: 12px; align-items: flex-start">
+                <span style="font-size: 20px; line-height: 1">✕</span>
+                <div>
+                  <div style="font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase; line-height: 1.05">Panini already collected</div>
+                  <div style="font-family: 'Space Mono', monospace; font-size: 13px; margin-top: 4px">7:14 PM · Booth 1 · Wei</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display: flex; gap: 8px; margin-top: auto">
+            <button style="flex: 1; min-height: 52px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #101010; color: #101010; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">Check in</button>
+            <button style="flex: 1; min-height: 52px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #101010; color: #101010; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">Scan next</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isGm }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 390px; height: 844px; overflow: hidden; border-radius: 42px; box-shadow: 0 30px 70px #0007, inset 0 0 0 1px #ffffff14; background: #0D0D0F; color: #F2EFE8; display: flex; flex-direction: column">
+        <div style="flex: none; padding: 34px 20px 12px; display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #9AA4A8">GM · Ryan</span>
+          <span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #A8A29B">Game 7 of 14</span>
+        </div>
+        <div style="flex: 1; overflow-y: auto; padding: 0 16px 24px; display: flex; flex-direction: column; gap: 12px">
+          <div style="background: #16161A; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #A8A29B">7:30 PM · halves locked</span>
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: {{ phoneTone }}">{{ phoneState }}</span>
+            </div>
+            <div style="font-family: 'Space Mono', monospace; font-size: 78px; font-weight: 700; line-height: .86; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: {{ timerTone }}">{{ remaining }}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+              <button style="min-height: 56px; background: #C8CFC7; color: #16181B; border: 0; border-radius: 16px; font-family: Anton, sans-serif; font-size: 20px; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#F2EFE8" style-active="transform:scale(.97)">Pause</button>
+              <button style="min-height: 56px; background: transparent; color: #F2EFE8; border: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px #FFFFFF44; font-family: Anton, sans-serif; font-size: 20px; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#F2EFE8;color:#0D0D0F" style-active="transform:scale(.97)">+1 min</button>
+              <button style="min-height: 52px; background: transparent; color: #C8CFC7; border: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px #C8CFC7; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#C8CFC7;color:#16181B" style-active="transform:scale(.97)">Lock phone</button>
+              <button style="min-height: 52px; background: transparent; color: #C4A98A; border: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px #C4A98A; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#C4A98A;color:#101010" style-active="transform:scale(.97)">In-app: on</button>
+            </div>
+            <button style="min-height: 56px; background: #A8231B; color: #fff; border: 0; border-radius: 16px; font-family: Anton, sans-serif; font-size: 20px; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), filter .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="filter:brightness(1.15)" style-active="transform:scale(.98)">End game</button>
+          </div>
+
+          <div style="background: #16161A; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #A8A29B">The script · scaled to 15 minutes</div>
+            <sc-for list="{{ cues }}" as="c" hint-placeholder-count="4">
+              <div style="{{ c.row }}">
+                <span style="font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700; flex: none; width: 58px; font-variant-numeric: tabular-nums">{{ c.at }}</span>
+                <span style="flex: 1; font-size: 13px; line-height: 1.4">{{ c.line }}</span>
+                <span style="{{ c.pill }}">{{ c.action }}</span>
+              </div>
+            </sc-for>
+            <div style="font-size: 11px; line-height: 1.5; color: #A8A29B">Deck minutes 6, 9 and 14 scaled to 4:30, 6:45 and 10:30; the forced merge from minute 10 to 7:30. Editable in Settings.</div>
+          </div>
+
+          <div style="background: #16161A; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline">
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #A8A29B">The split · 12 booked, 11 in</span>
+              <button style="background: transparent; color: #C8CFC7; border: 0; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; box-shadow: inset 0 0 0 2px #101010">Re-balance</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <div style="font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase">A — flat</div>
+                <sc-for list="{{ halfA }}" as="p" hint-placeholder-count="6">
+                  <div style="{{ p.row }}">{{ p.name }}</div>
+                </sc-for>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <div style="font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase; color: #C8CFC7">B — desk</div>
+                <sc-for list="{{ halfB }}" as="p" hint-placeholder-count="6">
+                  <div style="{{ p.row }}">{{ p.name }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="font-size: 11px; line-height: 1.5; color: #A8A29B">Tap a name to swap sides. Halves locked at start — every swap after that is logged against you.</div>
+          </div>
+
+          <div style="background: #16161A; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #A8A29B">Changeover · 5 minutes</div>
+            <sc-for list="{{ reset }}" as="r" hint-placeholder-count="6">
+              <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.4">
+                <span style="width: 20px; height: 20px; flex: none; border-radius: 6px; box-shadow: inset 0 0 0 2px #FFFFFF44"></span>
+                <span>{{ r }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 1440px; background: #F2EFE8; color: #101010; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 70px #0007; animation: vIn .3s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #101010; color: #F2EFE8; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center">
+          <div style="display: flex; gap: 22px; align-items: center">
+            <img src="assets/yard-logo.png" alt="The Yard" style="height: 30px; filter: invert(1)">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Overview</span>
+            <span style="font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #A8A29B">People · Reviews · Schedules · Roster · Settings · Audit</span>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center">
+            <span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #A8A29B">refreshed 7:16:04 PM</span>
+            <span style="background: #1F7A4C; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px">Event-day mode</span>
+          </div>
+        </div>
+        <div style="padding: 26px 28px 30px; display: flex; flex-direction: column; gap: 18px">
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px">
+            <sc-for list="{{ stats }}" as="k" hint-placeholder-count="6">
+              <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 18px; padding: 18px; animation: rise .34s cubic-bezier(.2,.8,.2,1) both">
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">{{ k.label }}</div>
+                <div style="font-family: 'Space Mono', monospace; font-size: 40px; font-weight: 700; line-height: 1.05; margin-top: 6px; font-variant-numeric: tabular-nums">{{ k.value }}</div>
+                <div style="font-size: 12px; color: {{ k.tone }}">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px">
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+              <div style="font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Escape room · seats by game</div>
+              <div style="display: flex; gap: 6px; align-items: flex-end; height: 150px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="14">
+                  <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; height: 100%">
+                    <div style="{{ b.bar }}"></div>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 10px; text-align: center; color: #3C4654">{{ b.time }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size: 12px; color: #3C4654">Orange is the game running now. 12 seats a game, 168 tonight.</div>
+            </div>
+            <div style="background: #0D0D0F; color: #F2EFE8; border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+              <div style="font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #AE7338">Needs you now</div>
+              <sc-for list="{{ queue }}" as="q" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #FFFFFF1A">
+                  <span style="font-size: 14px; line-height: 1.35">{{ q.what }}</span>
+                  <span style="{{ q.pill }}">{{ q.count }}</span>
+                </div>
+              </sc-for>
+              <div style="font-size: 12px; line-height: 1.5; color: #A8A29B; margin-top: auto">Polls every 30 seconds, and only while this tab is in front. Everything else is push.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPerson }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 1440px; background: #F2EFE8; color: #101010; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 70px #0007; animation: vIn .3s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #101010; color: #F2EFE8; padding: 16px 28px; display: flex; gap: 18px; align-items: center">
+          <img src="assets/yard-logo.png" alt="The Yard" style="height: 26px; filter: invert(1)">
+          <div style="flex: 1; background: #16161A; border-radius: 14px; display: flex; align-items: center; padding: 0 16px; min-height: 46px; gap: 10px">
+            <span style="font-family: 'Space Mono', monospace; font-weight: 700; color: #AE7338">@</span>
+            <span style="font-family: 'Space Mono', monospace; font-size: 15px">nadiarhm</span>
+            <span style="margin-left: auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #A8A29B">name · email · code · booking ref</span>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 300px 1fr 360px">
+          <div style="border-right: 1px solid #10101018; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">17 results · filters on</div>
+            <sc-for list="{{ people }}" as="p" hint-placeholder-count="8">
+              <button style="{{ p.row }}">
+                <span style="display: block; font-size: 14px; font-weight: 600">{{ p.name }}</span>
+                <span style="{{ p.subStyle }}">{{ p.sub }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px">
+              <div>
+                <div style="font-family: Anton, sans-serif; font-size: 46px; line-height: .95; text-transform: uppercase">Nadia Rahim</div>
+                <div style="font-family: 'Space Mono', monospace; font-size: 15px; margin-top: 4px">@nadiarhm · tg 5512847 · paperform 1789457183000</div>
+              </div>
+              <div style="display: flex; gap: 8px">
+                <span style="{{ payPill }}">{{ payPillLabel }}</span>
+                <span style="background: #101010; color: #F2EFE8; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px">Checked in 6:41 PM</span>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+              <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">Claims</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px"><span>Matcha</span><span style="font-family: 'Space Mono', monospace; color: #3C4654">not collected</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px"><span>Panini</span><span style="font-family: 'Space Mono', monospace">7:14 PM · Booth 1 · Wei</span></div>
+                <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+                  <button style="align-self: flex-start; min-height: 40px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #A8231B; color: #A8231B; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 14px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#A8231B;color:#fff" style-active="transform:scale(.96)">Void panini — reason required</button>
+                </sc-if>
+              </div>
+              <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">Bookings</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px"><span>ESC-4H7K · 7:30 PM</span><span style="background: #1C2024; color: #C8CFC7; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px">Half B</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px"><span>JAM-4QK7 · 8:30 PM</span><span style="background: #AE7338; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px">Pending</span></div>
+                <button style="align-self: flex-start; min-height: 40px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #101010; color: #101010; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 14px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.96)">Move to another game</button>
+              </div>
+            </div>
+
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">Audit trail</div>
+              <sc-for list="{{ audit }}" as="a" hint-placeholder-count="4">
+                <div style="display: flex; gap: 14px; font-size: 13px; line-height: 1.4; padding-bottom: 8px; border-bottom: 1px solid #10101012">
+                  <span style="font-family: 'Space Mono', monospace; flex: none; width: 74px; color: #3C4654">{{ a.at }}</span>
+                  <span style="flex: 1">{{ a.what }}</span>
+                  <span style="font-family: 'Space Mono', monospace; color: #3C4654">{{ a.who }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="border-left: 1px solid #10101018; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">Pass · 7K3M-Q9XT</div>
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 18px; display: grid; place-items: center">
+              <img src="assets/qr-demo.png" alt="Pass QR code" style="width: 200px; height: 200px; image-rendering: pixelated; display: block">
+            </div>
+            <div style="font-size: 12px; line-height: 1.5; color: #3C4654">For phones that died. Reading it out is the same code.</div>
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654; margin-top: 6px">Entrance payment</div>
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+
+              <div style="display: flex; gap: 12px">
+                <div style="flex: none; width: 96px; height: 130px; background: #3C4654; border-radius: 14px; box-shadow: inset 0 0 0 2px #101010; display: grid; place-items: center; cursor: zoom-in; transition: transform .16s cubic-bezier(.2,.8,.2,1)" style-hover="transform:scale(1.03)">
+                  <span style="font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #C9C5BD">Open</span>
+                </div>
+                <div style="min-width: 0; display: flex; flex-direction: column; gap: 5px; font-size: 12px; line-height: 1.4">
+                  <span style="font-weight: 700">Paperform receipt · 6 Sep</span>
+                  <span style="font-family: 'Space Mono', monospace; color: #3C4654; overflow-wrap: anywhere">sha256 c41f9a…</span>
+                  <span style="{{ dupTone }}">{{ dupNote }}</span>
+                </div>
+              </div>
+
+              <div style="{{ payVerdict }}">
+                <div style="font-family: Anton, sans-serif; font-size: 20px; line-height: 1.05; text-transform: uppercase">{{ payTitle }}</div>
+                <div style="font-size: 12.5px; line-height: 1.45; margin-top: 5px">{{ payBody }}</div>
+              </div>
+
+              <sc-if value="{{ payOpen }}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; flex-direction: column; gap: 10px; animation: rise .3s cubic-bezier(.2,.8,.2,1) both">
+                  <div>
+                    <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654; margin-bottom: 6px">Transaction reference</div>
+                    <input type="text" value="{{ txn }}" onInput="{{ onTxn }}" placeholder="read it off the screenshot" autocapitalize="off" autocorrect="off" spellcheck="false" style="width: 100%; box-sizing: border-box; min-height: 44px; border: 0; outline: none; border-radius: 14px; background: #F2EFE8; box-shadow: inset 0 0 0 2px #101010; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; padding: 0 13px; color: #101010">
+                    <div style="{{ txnTone }}">{{ txnNote }}</div>
+                  </div>
+                  <button onClick="{{ verifyTap }}" style="{{ verifyStyle }}" style-active="transform:scale(.97)">{{ verifyLabel }}</button>
+                  <div style="display: flex; gap: 8px">
+                    <button onClick="{{ skipTap }}" style="flex: 1; min-height: 40px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #3C4654; color: #3C4654; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#3C4654;color:#fff" style-active="transform:scale(.96)">No reference on it</button>
+                    <button onClick="{{ rejectTap }}" style="flex: 1; min-height: 40px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #A8231B; color: #A8231B; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#A8231B;color:#fff" style-active="transform:scale(.96)">Reject — reason</button>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ payStaffNote }}" hint-placeholder-val="{{ false }}">
+                <div style="background: #F2EFE8; box-shadow: inset 0 0 0 1px #10101022; border-radius: 14px; padding: 12px 14px; font-size: 12px; line-height: 1.45; color: #3C4654">Only an admin can verify or reject. Ask Maximus.</div>
+              </sc-if>
+
+              <sc-if value="{{ paySettled }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ reopenTap }}" style="min-height: 40px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #101010; color: #101010; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.96)">Change verdict — reason required</button>
+              </sc-if>
+
+              <div style="border-top: 1px solid #10101018; padding-top: 10px; font-size: 11.5px; line-height: 1.45; color: #3C4654">Every verdict goes in the audit trail with your name and reason.</div>
+            </div>
+            <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+              <button style="min-height: 46px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #101010; color: #101010; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">Unlink Telegram account</button>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isReviews }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 1440px; background: #F2EFE8; color: #101010; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 70px #0007; animation: vIn .3s cubic-bezier(.2,.8,.2,1) both">
+        <div style="background: #101010; color: #F2EFE8; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Payment reviews · 4 waiting</span>
+          <span style="font-family: 'Space Mono', monospace; font-size: 12px; color: #A8A29B">JAM-4QK7 · 1 of 4</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 460px">
+          <div style="padding: 24px; display: flex; gap: 18px; align-items: flex-start">
+            <div style="flex: 0 1 380px; display: flex; flex-direction: column; gap: 10px">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">This upload · 7:39 PM</div>
+              <div style="background: #3C4654; border-radius: 18px; width: 100%; height: 460px"></div>
+            </div>
+            <sc-if value="{{ showTwin }}" hint-placeholder-val="{{ false }}">
+              <div style="flex: 0 1 380px; display: flex; flex-direction: column; gap: 10px">
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #A8231B">{{ twinLabel }}</div>
+                <div style="background: #3C4654; border-radius: 18px; width: 100%; height: 460px; box-shadow: inset 0 0 0 3px #A8231B"></div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="border-left: 1px solid #10101018; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+            <div style="{{ verdictCard }}">
+              <div style="font-family: Anton, sans-serif; font-size: 28px; text-transform: uppercase; line-height: 1.05">{{ verdictTitle }}</div>
+              <div style="font-size: 13px; line-height: 1.45; margin-top: 6px">{{ verdictBody }}</div>
+            </div>
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; justify-content: space-between; font-size: 14px"><span style="color: #3C4654">Booking</span><span style="font-family: 'Space Mono', monospace; font-weight: 700">JAM-4QK7</span></div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px"><span style="color: #3C4654">Person</span><span>Hafiz Osman · @hafizo</span></div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px"><span style="color: #3C4654">Slot</span><span>8:30–9:00 PM</span></div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px"><span style="color: #3C4654">Expected</span><span style="font-family: 'Space Mono', monospace; font-weight: 700">$10.00</span></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654">Transaction reference — type it from the screenshot</div>
+              <div style="background: #fff; box-shadow: inset 0 0 0 2px {{ refRing }}; border-radius: 16px; display: flex; align-items: center; padding: 0 16px; min-height: 56px; font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; letter-spacing: .06em">{{ refValue }}</div>
+              <div style="font-size: 12px; line-height: 1.45; color: {{ refTone }}">{{ refNote }}</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto">
+              <button style="{{ approveStyle }}" style-active="transform:scale(.98)">{{ approveLabel }}</button>
+              <button style="min-height: 52px; background: transparent; border: 0; border-radius: 16px; box-shadow: inset 0 0 0 2px #A8231B; color: #A8231B; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#A8231B;color:#fff" style-active="transform:scale(.98)">Reject — reason required</button>
+              <div style="font-size: 12px; line-height: 1.5; color: #3C4654">Either way the bot messages them. Rejections quote your reason back verbatim, so write it for them, not for us.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ blocked }}" hint-placeholder-val="{{ false }}">
+      <div style="width: 390px; background: #F2EFE8; color: #101010; border-radius: 26px; padding: 26px; display: flex; flex-direction: column; gap: 12px; animation: pop .3s cubic-bezier(.2,.8,.2,1) both">
+        <div style="font-family: Anton, sans-serif; font-size: 30px; text-transform: uppercase; line-height: 1.05">Not for this sign-in</div>
+        <div style="font-size: 14px; line-height: 1.5">{{ blockedBody }}</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #3C4654">FORBIDDEN · logged with your station name</div>
+      </div>
+    </sc-if>
+
+    <div style="width: 390px; font-size: 12px; line-height: 1.5; color: #EDEAE3">{{ note }}</div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:2100,&quot;height&quot;:1000},&quot;capacity&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:6,&quot;max&quot;:16,&quot;section&quot;:&quot;Escape room&quot;},&quot;gameSeconds&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:900,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:300,&quot;max&quot;:1800,&quot;step&quot;:60,&quot;section&quot;:&quot;Escape room&quot;}}">
+class Component extends DCLogic {
+  state = { screen: 'booth', role: 'staff', scan: 'valid', rev: 'clean', elapsed: 270, pay: 'submitted', txn: '' };
+
+  mmss(sec) { const m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
+  set(k, v) { this.setState({ [k]: v }); }
+
+  payVals() {
+    const st = this.state, pay = st.pay, txn = (st.txn || '').trim();
+    const pill = (bg, fg, label) => ({
+      payPill: 'background:' + bg + ';color:' + fg + ';font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px;border-radius:999px;transition:background .25s',
+      payPillLabel: label
+    });
+
+    const defs = {
+      submitted: {
+        pillArgs: ['#AE7338', '#101010', 'Payment submitted'],
+        card: '#AE7338', fg: '#101010',
+        title: 'Waiting on you',
+        body: 'They uploaded a screenshot at sign-up. Nothing has been handed over and the booth sees an amber card until you decide.',
+        open: true
+      },
+      verified: {
+        pillArgs: ['#1F7A4C', '#fff', 'Payment verified'],
+        card: '#1F7A4C', fg: '#fff',
+        title: 'Verified',
+        body: 'Verified by Maximus at 6:02 PM against reference ' + (txn || '8842119') + '. The booth can hand over matcha and panini, once each.',
+        open: false
+      },
+      skipped: {
+        pillArgs: ['#1F7A4C', '#fff', 'Payment verified'],
+        card: '#1F7A4C', fg: '#fff',
+        title: 'Verified without a reference',
+        body: 'You recorded that the screenshot shows no reference number. That reason is in the audit trail, and this payment is not covered by the reference check.',
+        open: false
+      },
+      rejected: {
+        pillArgs: ['#A8231B', '#fff', 'Payment rejected'],
+        card: '#A8231B', fg: '#fff',
+        title: 'Rejected',
+        body: 'The bot has told them why and offered a re-upload. Their pass still scans so the booth can find them, but nothing can be handed over.',
+        open: false
+      },
+      missing: {
+        pillArgs: ['#3C4654', '#fff', 'No receipt'],
+        card: '#3C4654', fg: '#fff',
+        title: 'No receipt at all',
+        body: 'One of the three sign-ups that came through without a link. Ask them to upload in the app, or mark it paid if you have seen the payment yourself.',
+        open: false
+      }
+    };
+
+    const d = defs[pay];
+    const used = txn.replace(/\s/g, '') === '8842119';
+    const long = txn.length >= 4;
+    const isAdmin = st.role === 'admin';
+
+    return {
+      ...pill(...d.pillArgs),
+      isAdmin,
+      payStaffNote: !isAdmin,
+      payVerdict: 'background:' + d.card + ';color:' + d.fg + ';border-radius:16px;padding:14px 15px;transition:background .25s',
+      payTitle: d.title,
+      payBody: d.body,
+      payOpen: d.open && isAdmin,
+      paySettled: !d.open && isAdmin,
+      txn: st.txn,
+      onTxn: (e) => this.set('txn', e.target.value),
+      txnNote: !long ? 'Approving needs it, or say the screenshot has none.'
+        : used ? 'Already used to prove JAM-9T2M. The database will refuse it.'
+        : 'Not used anywhere else.',
+      txnTone: 'font-size:11.5px;line-height:1.4;margin-top:6px;color:' + (!long ? '#3C4654' : used ? '#A8231B' : '#1F7A4C'),
+      dupNote: pay === 'missing' ? 'Nothing to fingerprint.' : 'No look-alike in the other 16 receipts.',
+      dupTone: 'color:' + (pay === 'missing' ? '#A8231B' : '#1F7A4C') + ';font-weight:600',
+      verifyLabel: !long ? 'Type the reference to verify' : used ? 'Reference already used' : 'Verify payment',
+      verifyStyle: 'min-height:48px;border:0;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s;'
+        + (long && !used
+          ? 'background:#1F7A4C;color:#fff;box-shadow:inset 0 0 0 2px #101010;cursor:pointer'
+          : 'background:#C9C5BD;color:#3C4654;box-shadow:inset 0 0 0 2px #10101033;cursor:not-allowed'),
+      verifyTap: () => { if (long && !used) this.set('pay', 'verified'); },
+      skipTap: () => this.set('pay', 'skipped'),
+      rejectTap: () => this.set('pay', 'rejected'),
+      reopenTap: () => this.setState({ pay: 'submitted', txn: '' })
+    };
+  }
+
+  renderVals() {
+    const st = this.state, role = st.role, screen = st.screen;
+    const allowed = { admin: ['booth', 'overview', 'person', 'reviews', 'gm'], staff: ['booth', 'person'], gm: ['booth', 'person', 'gm'] };
+    const can = allowed[role].includes(screen);
+
+    const scanDefs = {
+      valid: { card: '#1F7A4C', fg: '#fff', mark: '✓', title: 'Valid', kicker: 'Payment verified', body: 'One matcha left to collect. Panini went at 7:14 PM.', person: true, hand: true },
+      claimed: { card: '#A8231B', fg: '#fff', mark: '✕', title: 'Already collected', kicker: 'Matcha · 3:12 PM · Booth 1 · Wei', body: 'Nothing to hand over. Send them to the front desk rather than arguing at the booth.', person: true, hand: false },
+      unpaid: { card: '#AE7338', fg: '#101010', mark: '!', title: 'Not verified', kicker: 'Payment submitted, not checked', body: 'You cannot hand over. An admin can override with a reason, and it goes in the log under their name.', person: true, hand: false },
+      unknown: { card: '#3C4654', fg: '#fff', mark: '?', title: 'Unknown code', kicker: 'A Yard code, but nobody has it', body: 'Probably a typo. Search their username or name instead.', person: false, hand: false },
+      foreign: { card: '#3C4654', fg: '#fff', mark: '?', title: 'Not a Yard code', kicker: 'Scanned something else', body: 'That QR is not ours. Ask them to open The Yard in Telegram and show the pass.', person: false, hand: false },
+      inactive: { card: '#101010', fg: '#F2EFE8', mark: '·', title: 'Inactive', kicker: 'Removed from the latest roster', body: 'They were on an older list and are not on the current one. Front desk decides.', person: true, hand: false }
+    };
+    const sc = scanDefs[st.scan];
+
+    const revDefs = {
+      clean: { title: 'Nothing flagged', body: 'New image, new reference. Type the reference and approve.', card: '#1F7A4C', fg: '#fff', twin: false, ref: '8842119', refNote: 'Not used anywhere else.', refTone: '#3C4654', ring: '#101010', approve: 'Approve $10 · JAM-4QK7', ok: true },
+      exact: { title: 'Exact duplicate', body: 'Byte-for-byte the same file as a receipt already on another booking. Same SHA-256.', card: '#A8231B', fg: '#fff', twin: 'Same file · JAM-9T2M · @clarateoh', ref: '8842119', refNote: 'This reference is already on JAM-9T2M.', refTone: '#A8231B', ring: '#A8231B', approve: 'Approve anyway — reason required', ok: false },
+      lookalike: { title: 'Possible duplicate', body: 'A re-saved or re-screenshotted copy of an earlier receipt. Perceptual hash within threshold. Same bank looks alike, so read both.', card: '#AE7338', fg: '#101010', twin: 'Look-alike · entrance receipt · @hafizo', ref: '', refNote: 'Type the reference from the screenshot to settle it.', refTone: '#3C4654', ring: '#AE7338', approve: 'Approve $10 · JAM-4QK7', ok: true },
+      reused: { title: 'Reference already used', body: 'The number you typed proved a different payment. The database refuses it — this is the layer that actually counts each payment once.', card: '#A8231B', fg: '#fff', twin: false, ref: '8842119', refNote: 'DUPLICATE_TXN_REF · first used 6:58 PM on JAM-9T2M.', refTone: '#A8231B', ring: '#A8231B', approve: 'Approve — blocked', ok: false }
+    };
+    const rv = revDefs[st.rev];
+
+    const cueDefs = [
+      { at: '4:30', line: 'Dispatcher: "Units are fifteen out. Anything on the guests?"', action: 'Send', key: 1 },
+      { at: '6:45', line: 'Dispatcher: "We have a name. Ask about the kitchen."', action: 'Send', key: 2 },
+      { at: '7:30', line: 'Forced merge — both halves in the same room from here.', action: 'Merge', key: 3 },
+      { at: '10:30', line: 'Dispatcher: "Two minutes. Give us something."', action: 'Send', key: 4 }
+    ];
+    const toSec = t => Number(t.split(':')[0]) * 60 + Number(t.split(':')[1]);
+    const cues = cueDefs.map(c => {
+      const due = st.elapsed >= toSec(c.at), sent = st.elapsed >= toSec(c.at) + 45;
+      const bg = sent ? '#1A1A1D' : due ? '#C8CFC7' : '#1A1A1D';
+      const fg = due && !sent ? '#16181B' : '#F2EFE8';
+      return {
+        at: c.at, line: c.line, action: sent ? 'Sent' : c.action,
+        row: 'display:flex;gap:10px;align-items:center;background:' + bg + ';color:' + fg + ';border-radius:14px;padding:10px 12px;'
+          + (due && !sent ? 'animation:flash .3s both;' : '') + 'transition:background .25s,color .25s',
+        pill: 'flex:none;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px 10px;border-radius:999px;'
+          + (sent ? 'background:#1F7A4C;color:#fff' : due ? 'background:#101010;color:#F2EFE8' : 'box-shadow:inset 0 0 0 1px #FFFFFF33;color:#A8A29B')
+      };
+    });
+
+    const rowBase = 'font-size:13px;border-radius:10px;padding:8px 10px;cursor:pointer;transition:background .2s,transform .14s cubic-bezier(.2,.8,.2,1)';
+    const mk = (name, ok) => ({ name, row: rowBase + ';background:' + (ok ? '#1F7A4C' : '#2A2A2E') + ';color:' + (ok ? '#fff' : '#A8A29B') });
+    const halfA = [mk('Clara T', true), mk('Jun Wei', true), mk('Ayu', true), mk('Marcus', true), mk('Elle', true), mk('Devan', false)];
+    const halfB = [mk('Nadia R', true), mk('Hafiz O', true), mk('Priya', true), mk('Sam', true), mk('Yong', true), mk('Tia', true)];
+
+    const bars = [];
+    const taken = [12, 12, 11, 9, 12, 5, 9, 7, 12, 3, 2, 0, 0, 0];
+    for (let i = 0; i < 14; i++) {
+      const h = Math.max(4, Math.round(taken[i] / 12 * 120)), now = i === 6;
+      const mm = 1050 + 20 * i, hh = (Math.floor(mm / 60) % 12) || 12;
+      bars.push({
+        time: hh + ':' + String(mm % 60).padStart(2, '0'),
+        bar: 'height:' + h + 'px;border-radius:8px 8px 4px 4px;background:' + (now ? '#AE7338' : '#101010') + ';animation:rise .4s ' + (i * 18) + 'ms cubic-bezier(.2,.8,.2,1) both'
+      });
+    }
+
+    const pill = tone => 'flex:none;background:' + tone + ';color:#101010;font-family:\'Space Mono\',monospace;font-size:15px;font-weight:700;padding:4px 12px;border-radius:999px';
+    const pRow = on => 'background:' + (on ? '#101010' : 'transparent') + ';color:' + (on ? '#F2EFE8' : '#101010')
+      + ';box-shadow:inset 0 0 0 1px #10101022;border:0;border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer;transition:background .2s,color .2s,transform .14s cubic-bezier(.2,.8,.2,1)';
+    const pSub = on => 'display:block;font-family:\'Space Mono\',monospace;font-size:12px;color:' + (on ? '#C9C5BD' : '#3C4654');
+
+    const notes = {
+      booth: 'One hand, bright light, a queue. The result fills the screen, the words repeat the colour, and the next scan is one tap away. Call matcha pings that one person on Telegram — the new button the notification idea needs.',
+      overview: 'Everything an organiser checks between queues, on one screen. Nothing here polls faster than 30 seconds.',
+      person: 'Keyboard-first: the search box has focus on load, and @ is fixed in front of it. Every destructive action wants a reason.',
+      reviews: 'Three layers of duplicate check, but only the reference actually blocks. The image warnings hand you both pictures and let you decide.',
+      gm: 'Read in a dim room at arm\'s length: 78px timer, cue lines that turn orange when due, and the halves in tappable blocks.'
+    };
+    const roleNotes = {
+      admin: 'admin — everything, including settings, exports and overrides. Password sign-in.',
+      staff: 'staff — look up, hand over, check in. No payments, no settings, no GM console. PIN plus name and station.',
+      gm: 'gm — staff rights plus the game-master console, which carries the solution. Separate PIN, because booth volunteers may still be waiting to play.'
+    };
+
+    return {
+      roles: [['admin', 'admin — Maximus'], ['staff', 'staff — Booth 2 · Aisha'], ['gm', 'gm — Ryan']].map(([k, label]) => ({
+        label, pick: () => this.set('role', k),
+        style: 'background:' + (role === k ? '#101010' : 'transparent') + ';color:' + (role === k ? '#F2EFE8' : '#101010')
+          + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:38px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+      })),
+      screens: [['booth', 'Booth mode · 390'], ['gm', 'GM console · 390'], ['overview', 'Overview · 1440'], ['person', 'People · 1440'], ['reviews', 'Reviews · 1440']].map(([k, label]) => {
+        const ok = allowed[role].includes(k);
+        return {
+          label: label + (ok ? '' : ' — locked'), pick: () => this.set('screen', k),
+          style: 'background:' + (screen === k ? '#AE7338' : ok ? '#101010' : 'transparent') + ';color:' + (screen === k ? '#101010' : ok ? '#F2EFE8' : '#8E8A85')
+            + ';box-shadow:' + (ok ? 'none' : 'inset 0 0 0 1px #10101033') + ';border:0;border-radius:12px;min-height:38px;font-size:12px;font-weight:700;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+        };
+      }),
+      scans: [['valid', 'Valid and paid'], ['claimed', 'Already collected'], ['unpaid', 'Payment not verified'], ['unknown', 'Unknown code'], ['foreign', 'Not a Yard code'], ['inactive', 'Inactive person']].map(([k, label]) => ({
+        label, pick: () => this.set('scan', k),
+        style: 'background:' + (st.scan === k ? '#101010' : 'transparent') + ';color:' + (st.scan === k ? '#F2EFE8' : '#101010')
+          + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:36px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+      })),
+      reviewCases: [['clean', 'Clean'], ['exact', 'Exact duplicate'], ['lookalike', 'Look-alike'], ['reused', 'Reference reused']].map(([k, label]) => ({
+        label, pick: () => this.set('rev', k),
+        style: 'background:' + (st.rev === k ? '#101010' : 'transparent') + ';color:' + (st.rev === k ? '#F2EFE8' : '#101010')
+          + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:36px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+      })),
+
+      isBooth: can && screen === 'booth', isGm: can && screen === 'gm',
+      isOverview: can && screen === 'overview', isPerson: can && screen === 'person', isReviews: can && screen === 'reviews',
+      blocked: !can, blockedBody: roleNotes[role],
+      screenLabel: can ? ({ booth: 'Booth mode', gm: 'Game-master console', overview: 'Overview', person: 'People', reviews: 'Payment reviews' })[screen] : 'Blocked for ' + role,
+      note: can ? notes[screen] : 'Roles are enforced on the server too. A staff PIN cannot reach the GM console by typing the URL.',
+      roleNote: roleNotes[role],
+      station: role === 'admin' ? 'Admin · Maximus' : role === 'gm' ? 'GM · Ryan' : 'Booth 2 · Aisha',
+
+      resultCard: 'background:' + sc.card + ';color:' + sc.fg + ';border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:12px;animation:pop .3s cubic-bezier(.2,.8,.2,1) both',
+      resultMarkStyle: 'width:64px;height:64px;flex:none;border-radius:18px;background:' + sc.fg + ';color:' + sc.card + ';display:grid;place-items:center;font-size:36px;line-height:1',
+      resultMark: sc.mark, resultTitle: sc.title, resultKicker: sc.kicker, resultBody: sc.body,
+      showPerson: sc.person, canHand: sc.hand,
+
+      elapsed: st.elapsed, elapsedLabel: this.mmss(st.elapsed),
+      onElapsed: e => this.set('elapsed', Number(e.target.value)),
+      remaining: this.mmss(Math.max(0, 900 - st.elapsed)),
+      timerTone: 900 - st.elapsed <= 120 ? '#C4A98A' : '#F2EFE8',
+      phoneState: st.elapsed > 0 ? 'Phone unlocked · half B' : 'Phone locked',
+      phoneTone: st.elapsed > 0 ? '#C8CFC7' : '#A8A29B',
+      cues, halfA, halfB,
+      reset: [
+        'Reset the flat: chairs back, drawer closed, note under the lamp.',
+        'Both desk devices back to the phone\'s home screen — the file\'s own reset, top-left of its lock screen.',
+        'Wipe the whiteboard, re-hang the timeline board face down.',
+        'Collect the lock and set it to 0000.',
+        'Split the next group at the door, five and five, and read them their half.',
+        'Press Start only once the desk half is seated.'
+      ],
+
+      stats: [
+        { label: 'Signed up', value: '17', sub: '3 walk-ins tonight', tone: '#3C4654' },
+        { label: 'Checked in', value: '11', sub: '65% of the list', tone: '#3C4654' },
+        { label: 'Payments', value: '14', sub: '2 pending · 1 missing', tone: '#A8231B' },
+        { label: 'Matcha', value: '9/17', sub: 'stock 24 left', tone: '#3C4654' },
+        { label: 'Panini', value: '7/17', sub: 'stock 11 left', tone: '#AE7338' },
+        { label: 'Escape seats', value: '94', sub: 'of 168 tonight', tone: '#3C4654' }
+      ],
+      bars,
+      queue: [
+        { what: 'Jam receipts waiting', count: '4', pill: pill('#AE7338') },
+        { what: 'Refused at the gate', count: '2', pill: pill('#A8231B') },
+        { what: 'Signed up as — requests', count: '1', pill: pill('#C8CFC7') },
+        { what: 'Games under half full', count: '5', pill: pill('#F2EFE8') }
+      ],
+
+      ...this.payVals(),
+      payStates: [['submitted', 'Submitted — waiting'], ['verified', 'Verified'], ['skipped', 'Verified, no reference'], ['rejected', 'Rejected'], ['missing', 'No receipt']].map(([k, label]) => ({
+        label, pick: () => this.setState({ pay: k, txn: '' }),
+        style: 'background:' + (st.pay === k ? '#101010' : 'transparent') + ';color:' + (st.pay === k ? '#F2EFE8' : '#101010')
+          + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:38px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+      })),
+
+      people: [
+        ['Nadia Rahim', '@nadiarhm', 'verified', true],
+        ['Hafiz Osman', '@hafizo', 'pending', false],
+        ['Clara Teoh', '@clarateoh', 'verified', false],
+        ['Jun Wei Lim', '@junweil', 'no receipt', false],
+        ['Ayu Kartika', '@ayuk', 'verified', false],
+        ['Marcus Ong', '@marcusong', 'never opened', false],
+        ['Maximus', '@maxi_muslim', 'owner · test', false],
+        ['Devan Rao', '@devanrao', 'inactive', false]
+      ].map(([name, handle, tag, on]) => ({ name, sub: handle + ' · ' + tag, row: pRow(on), subStyle: pSub(on) })),
+      audit: [
+        { at: '7:14 PM', what: 'Panini handed over', who: 'Booth 1 · Wei' },
+        { at: '6:41 PM', what: 'Event check-in', who: 'Door · Aisha' },
+        { at: '6:02 PM', what: 'Payment verified — Paperform receipt, txn 8842119', who: 'Maximus' },
+        { at: '5:48 PM', what: 'Telegram account linked on first Start', who: 'system' }
+      ],
+
+      showTwin: !!rv.twin, twinLabel: rv.twin || '',
+      verdictCard: 'background:' + rv.card + ';color:' + rv.fg + ';border-radius:20px;padding:18px',
+      verdictTitle: rv.title, verdictBody: rv.body,
+      refValue: rv.ref || 'type it here', refNote: rv.refNote, refTone: rv.refTone, refRing: rv.ring,
+      approveLabel: rv.approve,
+      approveStyle: 'min-height:58px;border:0;border-radius:16px;box-shadow:inset 0 0 0 2px #101010;font-family:Anton,sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.02em;'
+        + 'transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s;'
+        + (rv.ok ? 'background:#1F7A4C;color:#fff;cursor:pointer' : 'background:#E3DFD7;color:#3C4654;cursor:not-allowed')
+    };
+  }
+}
+
+</script>
+</body>
+</html>

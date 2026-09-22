@@ -1,0 +1,2637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Yard</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   The Yard — Mini App. Design system: DESIGN.md ("Yard Paper").
+   Matte paper, ink, one warm accent, halftone and grain. Anton for
+   anything you read from across a room; Archivo for everything else.
+   Information sits in rows and rules, never in dot-separated strings.
+   =================================================================== */
+
+:root{
+  --paper:#EEEAE1; --paper-2:#E4DFD3; --card:#F8F6F1; --ink:#111111; --ink-2:#1B1B1E;
+  --muted:#5A5750; --rule:#11111124; --rule-soft:#11111114;
+  --accent:#AE7338; --accent-ink:#8A5626; --ok:#8FA65B; --bad:#A8231B; --jam:#3B32C4;
+  --night:#0E0E10; --night-2:#18181C; --night-3:#232328; --bone:#D9DDD6; --smoke:#9A968E;
+  /* What a photograph is toned with. Near-black, so the picture reads as a
+     photograph first and only carries a hint of the room’s colour — a
+     full-strength duotone turned a guitar into a blue poster. */
+  --tint-pass:#2A1E14; --tint-jam:#161A38;
+  --display:Anton, 'Arial Narrow', sans-serif;
+  --text:'Archivo', system-ui, sans-serif;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+
+*{ box-sizing:border-box }
+[hidden]{ display:none !important }
+html,body{ height:100% }
+body{
+  margin:0; font-family:var(--text); font-size:15px; background:var(--paper); color:var(--ink);
+  -webkit-font-smoothing:antialiased; overscroll-behavior:none; font-variant-numeric:tabular-nums;
+}
+/* Matte paper: one grain layer over everything, never catching taps. */
+body::after{
+  content:''; position:fixed; inset:0; z-index:80; pointer-events:none;
+  background-image:var(--grain); opacity:.22; mix-blend-mode:multiply;
+}
+button{ font-family:inherit; font-size:inherit; color:inherit }
+a{ color:inherit }
+h1,h2,p{ margin:0 }
+
+/* Nothing that holds content is allowed to start invisible.
+
+   Every "flash" complaint about this app traced back to a rule that began an
+   element at opacity:0 and faded it in. On a mid-range phone the fade starts
+   a few frames late - the browser is busy parsing the new markup and laying
+   it out - and for those frames the screen is simply blank. So the assets,
+   the buttons and the QR all "turn blank and then come back", together,
+   every time. Fourteen such rules were removed on 21 Sep.
+
+   These three are what is left, and none of them fades content in:
+     sheet   - the bottom button slides up the once, transform only
+     pulse   - a ring on the phone button, on a pseudo-element, not on text
+     stampIn - the booking moment, built on demand and thrown away
+   `rise` stays only because the toast is an overlay that genuinely appears. */
+@keyframes rise{ from{ opacity:0; transform:translateY(14px) } to{ opacity:1; transform:none } }
+@keyframes sheet{ from{ transform:translateY(100%) } to{ transform:none } }
+/* Transform only. Read the note by `.scroll.fwd` before touching these: an
+   `opacity` here is the bug this app had three times over. */
+@keyframes pageFwd{ from{ transform:translate3d(18px,0,0) } to{ transform:none } }
+@keyframes pageBack{ from{ transform:translate3d(-18px,0,0) } to{ transform:none } }
+@keyframes pulse{ 0%{ opacity:.5; transform:scale(1) } 70%,100%{ opacity:0; transform:scale(1.07) } }
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important } }
+
+/* ---- type ----------------------------------------------------------- */
+.label{ font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-stretch:115% }
+/* Headings and buttons are set in normal capitals, not forced upper case
+   (22 Sep, decision 123) — "Evening, Heidi", "The Yard Pass". Only the small
+   spaced .label and the .pill tags stay in capitals. Mixed case has
+   descenders, so the display sizes get a little more line height. */
+.display{ font-family:var(--display); line-height:.98; letter-spacing:.005em; font-weight:400 }
+.big{ font-family:var(--display); font-size:48px; line-height:.98 }
+.num{ font-family:var(--display); font-weight:400; letter-spacing:.01em }
+.code{ font-weight:700; font-stretch:125%; letter-spacing:.1em }
+.fine{ font-size:13px; line-height:1.45; color:var(--muted) }
+
+/* ---- halftone: dots that fade across a block ------------------------ */
+.halftone{ position:relative; isolation:isolate }
+.halftone::before{
+  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; border-radius:inherit;
+  background-image:radial-gradient(currentColor 1.1px, transparent 1.5px); background-size:6px 6px;
+  opacity:.2;
+  -webkit-mask-image:linear-gradient(200deg, #000 0%, transparent 62%);
+  mask-image:linear-gradient(200deg, #000 0%, transparent 62%);
+}
+
+/* ---- shell ---------------------------------------------------------- */
+#app{ height:100%; max-width:520px; margin:0 auto; display:flex; flex-direction:column; overflow:hidden; position:relative }
+.navbar{
+  flex:none; height:52px; background:var(--paper); display:flex; align-items:center; gap:12px;
+  padding:0 16px; border-bottom:1px solid var(--rule);
+}
+.navback{
+  width:36px; height:36px; flex:none; border:0; border-radius:50%; background:transparent; cursor:pointer;
+  box-shadow:inset 0 0 0 1.5px var(--ink); display:grid; place-items:center;
+  transition:background .18s, transform .14s var(--ease);
+}
+.navback svg{ width:16px; height:16px }
+.navback:active{ transform:scale(.88) }
+.navtitle{ font-family:var(--display); font-size:21px; letter-spacing:.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+/* The wordmark, on Home only. Drawn as a mask rather than an <img> so it
+   takes var(--ink) like every other mark on the page — the artwork is black
+   on transparent, and the paper ground is warm, so a flat black PNG sits a
+   shade cooler than the type beside it. As a mask it is the same ink, and it
+   follows the palette if that ever changes. */
+.navlogo{
+  display:block; width:104px; height:30px; flex:none;
+  background:var(--ink);
+  -webkit-mask:url('/static/yard-logo.png') left center / contain no-repeat;
+  mask:url('/static/yard-logo.png') left center / contain no-repeat;
+}
+/* `display:block` above outranks the browser's own rule for [hidden], so
+   without this the wordmark would sit on every screen, not just Home. */
+.navlogo[hidden]{ display:none }
+/* If masks are unavailable the element would be a solid ink block, which is
+   worse than the word. Browsers that cannot mask get the text instead. */
+@supports not ((-webkit-mask: url('')) or (mask: url(''))){
+  .navlogo{ display:none }
+  .navtitle.has-logo{ display:inline }
+}
+.navtitle.has-logo{ display:none }
+.scroll{ flex:1; position:relative; z-index:7; overflow-y:auto; overflow-x:hidden; touch-action:pan-y; transition:transform .32s var(--ease) }
+.scroll.dragging{ transition:none }
+.mainsheet{
+  flex:none; padding:12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:var(--paper);
+  border-top:1px solid var(--rule);
+}
+/* The sheet slides up the once, when it first becomes available. On the base
+   rule it replayed that slide every time it was shown again, which read as
+   the bottom of the screen flashing. */
+.mainsheet.in{ animation:sheet .3s var(--ease) both }
+.mainbtn{
+  width:100%; min-height:56px; border:0; border-radius:14px; background:var(--ink); color:var(--paper);
+  font-family:var(--display); font-size:24px; letter-spacing:.01em; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s;
+}
+.mainbtn:active{ transform:scale(.98) }
+/* One ground per room (decision 120): on a night screen the frame is night
+   too, so there is no cream bar above or below a black page. */
+body.dark{ background:var(--night) }
+body.dark .navbar{ background:var(--night); color:#F2EFE8; border-bottom-color:#FFFFFF1F }
+body.dark .navback{ box-shadow:inset 0 0 0 1.5px #F2EFE8 }
+body.dark .mainsheet{ background:var(--night); border-top-color:#FFFFFF1F }
+body.dark .mainbtn{ background:var(--bone); color:var(--night) }
+/* This one rule was the flash. Every screen's root element carries .view,
+   so every navigation faded the whole screen up from nothing. */
+.view{ }
+.page{ padding:22px 20px 40px; display:flex; flex-direction:column; gap:22px }
+
+/* ---- shared pieces -------------------------------------------------- */
+.arrow{ width:30px; height:14px; flex:none; transition:transform .2s var(--ease) }
+.btn{
+  min-height:52px; border:0; border-radius:14px; cursor:pointer; padding:0 18px; width:100%;
+  font-size:15px; font-weight:700; letter-spacing:.01em;
+  display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.btn:active{ transform:scale(.98) }
+.btn-ink{ background:var(--ink); color:var(--paper) }
+.btn-line{ background:transparent; box-shadow:inset 0 0 0 1.5px currentColor }
+.btn-quiet{ background:transparent; color:var(--smoke); box-shadow:inset 0 0 0 1px #FFFFFF2E }
+.btn-quiet:hover{ background:var(--bad); color:#fff; box-shadow:none }
+.pill{
+  display:inline-flex; align-items:center; height:26px; padding:0 11px; border-radius:999px; flex:none;
+  font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-stretch:115%;
+}
+.pill-ok{ background:var(--ok); color:var(--ink) }
+.pill-ink{ background:var(--ink); color:var(--paper) }
+.pill-line{ box-shadow:inset 0 0 0 1px currentColor }
+.strip{ border-radius:14px; padding:14px 16px; display:flex; gap:12px; align-items:center }
+.strip-warn{ background:var(--accent); color:var(--ink) }
+.strip-ok{ background:#1F7A4C; color:#fff }
+.strip-t{ font-family:var(--display); font-size:21px; line-height:1.05 }
+.strip-b{ font-size:13px; line-height:1.4; margin-top:3px }
+.strip .grow{ flex:1; min-width:0 }
+.strip-btn{ flex:none; border:0; border-radius:10px; background:var(--ink); color:var(--paper); padding:9px 14px;
+  font-size:13px; font-weight:700; letter-spacing:.01em; cursor:pointer }
+.rows{ display:flex; flex-direction:column }
+.row{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  padding:14px 0; border-top:1px solid var(--rule);
+}
+.row:last-child{ border-bottom:1px solid var(--rule) }
+.row dt{ font-size:13px; color:var(--muted) }
+.row dd{ margin:0; font-weight:600; text-align:right }
+.skeleton{ padding:48px 20px; color:var(--muted); font-size:13px }
+
+/* ---- gate ----------------------------------------------------------- */
+.gate{ min-height:100%; display:flex; flex-direction:column; position:relative }
+.gate-dots{
+  position:absolute; inset:0; pointer-events:none;
+  background-image:radial-gradient(#11111122 1px, transparent 1.3px); background-size:4px 4px;
+  -webkit-mask-image:radial-gradient(120% 80% at 50% 38%, #000 30%, transparent 85%);
+  mask-image:radial-gradient(120% 80% at 50% 38%, #000 30%, transparent 85%);
+}
+.gate-frame{ position:absolute; inset:10px; border-radius:26px; box-shadow:inset 0 0 0 2.5px var(--ink); pointer-events:none }
+.gate-top{ padding:30px 32px 0; display:flex; justify-content:space-between; align-items:center; gap:12px; position:relative }
+.gate-tag{ background:var(--ink); color:var(--paper); padding:7px 12px; border-radius:999px }
+.gate-where{ font-size:12px; font-weight:600; text-align:right }
+.gate-mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding:24px 32px; position:relative }
+.gate-logo{ width:270px; max-width:100%; display:block }
+.gate-dates{ display:flex; gap:10px }
+.gate-date{ background:var(--ink); color:var(--paper); padding:9px 13px; border-radius:8px }
+.gate-bot{ padding:0 32px 38px; display:flex; flex-direction:column; gap:14px; position:relative }
+.gate-card{ color:var(--paper); padding:18px 20px; border-radius:18px; display:flex; flex-direction:column; gap:8px }
+.gate-title{ font-family:var(--display); font-size:27px; line-height:1.05 }
+.gate-body{ font-size:14px; line-height:1.45 }
+.gate-handle{ background:var(--paper); color:var(--ink); border-radius:12px; display:flex; align-items:center; margin-top:4px }
+.gate-handle span{ font-weight:800; font-size:17px; padding:0 2px 0 14px }
+.gate-handle input{ flex:1; min-width:0; border:0; outline:none; background:transparent; font:inherit; font-size:16px; padding:14px 14px 14px 2px; color:var(--ink) }
+.gate-cta{
+  width:100%; min-height:64px; background:var(--ink); color:var(--paper); border:0; border-radius:16px;
+  font-family:var(--display); font-size:30px; letter-spacing:.02em; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.gate-cta:active{ transform:scale(.97) }
+.gate-cta[disabled]{ opacity:.55; cursor:progress }
+
+/* ---- home ----------------------------------------------------------- */
+.dateline{ display:flex; justify-content:space-between; padding-bottom:10px; border-bottom:2px solid var(--ink) }
+.hello{ font-size:60px; margin-top:14px }
+.next{
+  background:var(--night); color:#F2EFE8; border:0; border-radius:20px; padding:20px;
+  display:flex; flex-direction:column; gap:14px; width:100%; text-align:left; font:inherit;
+  transition:transform .18s var(--ease), box-shadow .18s;
+}
+/* Always pressable: with nothing booked it still opens Your bookings. */
+.next.live{ cursor:pointer }
+.next.live:active{ transform:scale(.985) }
+.next .label{ color:var(--accent) }
+.next-time{ font-size:64px; line-height:.85 }
+.next-foot{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding-top:12px; border-top:1px solid #FFFFFF22 }
+.next-what{ font-size:16px; font-weight:600 }
+.next .next-when{ color:#F2EFE8 }
+.next-go{ display:flex; align-items:center; gap:8px; color:var(--accent) }
+.next-go .arrow{ width:24px }
+.next.live:active .arrow{ transform:translateX(5px) }
+.prog{ display:flex; flex-direction:column }
+.prog-row{
+  display:flex; align-items:center; gap:14px; padding:18px 2px; border:0; border-top:1px solid var(--rule);
+  background:transparent; text-align:left; cursor:pointer; width:100%;
+}
+.prog-row:last-child{ border-bottom:1px solid var(--rule) }
+.prog-row{ align-items:flex-start }
+.prog-n{ width:24px; flex:none; color:var(--muted); padding-top:7px }
+.prog-text{ flex:1; display:flex; flex-direction:column; gap:5px; min-width:0 }
+.prog-t{ font-family:var(--display); font-size:34px; line-height:1.02 }
+/* The line under each name. Small, set in the body face against the display
+   face above it, so it reads as a caption rather than a second heading —
+   the same relationship the reference poster uses under its titles. */
+.prog-b{ font-size:12.5px; line-height:1.4; color:var(--muted); max-width:30ch }
+.prog-row .arrow{ margin-top:10px; flex:none }
+.prog-row:active .arrow, .prog-row:hover .arrow{ transform:translateX(5px) }
+.prog-row:active{ background:var(--paper-2) }
+.prog-row .pill{ margin-right:2px }
+
+/* ---- the last guest (night ground) ----------------------------------- */
+.night{ min-height:100%; background:var(--night); color:#F2EFE8 }
+.night .fine{ color:var(--smoke) }
+.night .row{ border-color:#FFFFFF1F }
+.esc-hero{ padding:26px 20px 6px; color:#F2EFE8 }
+.esc-hero .label{ color:var(--smoke) }
+.esc-title{ font-size:58px; margin-top:8px }
+.esc-prem{ font-size:15px; line-height:1.55; color:#D6D2CA; margin-top:14px; max-width:320px }
+.esc-body{ padding:18px 20px 40px; display:flex; flex-direction:column; gap:18px }
+.phone{ background:var(--night-2); border-radius:18px; padding:18px 20px; display:flex; flex-direction:column; gap:6px }
+.phone .label{ color:var(--bone) }
+.phone-t{ font-family:var(--display); font-size:28px; line-height:1.05; margin-top:2px }
+.phone-b{ font-size:14px; line-height:1.45; color:#D6D2CA }
+.phone-count{ color:var(--bone); margin-top:6px }
+.phone-open{
+  margin-top:10px; min-height:56px; background:var(--bone); color:var(--night); border:0; border-radius:14px;
+  font-family:var(--display); font-size:24px; cursor:pointer; position:relative;
+}
+/* The ring is a separate layer with a still shadow, so the phone moves and
+   fades a bitmap it has already painted instead of redrawing a shadow
+   forty times a second. */
+.phone-open::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 6px #D9DDD6; animation:pulse 2.2s ease-out infinite;
+}
+/* §9 r23 — the way out when Telegram's own browser won't play the phone.
+   Quiet on purpose: it is a fallback, and offering it as loudly as the real
+   button would send people out of the app for no reason. */
+.phone-alt{
+  margin-top:8px; background:none; border:0; padding:6px 0; cursor:pointer;
+  color:#D6D2CA; font-family:inherit; font-size:12.5px; line-height:1.4;
+  text-decoration:underline; text-underline-offset:3px; text-align:left;
+}
+.bar{ display:flex; justify-content:space-between; align-items:baseline; padding-bottom:10px; border-bottom:2px solid #F2EFE8 }
+.games{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px }
+.game{
+  border:0; border-radius:14px; padding:14px 12px 12px; text-align:left; min-height:82px; cursor:default;
+  background:var(--night-2); color:#F2EFE8; display:flex; flex-direction:column; justify-content:space-between; gap:8px;
+  transition:transform .16s var(--ease), background .2s;
+}
+.game .num{ font-size:30px; line-height:.9 }
+.game.live{ cursor:pointer; box-shadow:inset 0 0 0 1px #FFFFFF26 }
+.game.live:active{ transform:scale(.95) }
+.game.dim{ color:#8E897F }
+.game.low .label{ color:#D59A5C }
+.game.mine{ background:var(--bone); color:var(--night); cursor:pointer }
+.btn-bone{ background:var(--bone); color:var(--night) }
+
+/* ---- who's coming: one numbered box per person (decision 117) --------
+   The same list in both rooms, before booking and after. The colours come
+   from variables so one set of rules serves the night ground and the paper
+   one; the jam room only swaps its "you" colour for ultramarine. */
+.plist-wrap{
+  display:flex; flex-direction:column; gap:10px;
+  --p-bg:var(--card); --p-fg:var(--ink); --p-line:#10101018; --p-dim:var(--muted);
+  --p-me:var(--ink); --p-me-fg:var(--paper); --p-me-dim:#EEEAE1B3;
+  --p-act:var(--ink); --p-act-fg:var(--paper);
+}
+.night .plist-wrap{
+  --p-bg:var(--night-2); --p-fg:#F2EFE8; --p-line:#FFFFFF1F; --p-dim:var(--smoke);
+  --p-me:var(--bone); --p-me-fg:var(--night); --p-me-dim:#4A4A45;
+  --p-act:var(--bone); --p-act-fg:var(--night);
+}
+.jam-page .plist-wrap{ --p-me:var(--jam); --p-me-fg:#F2EFE8; --p-me-dim:#F2EFE8B3; --p-act:var(--jam); --p-act-fg:#F2EFE8 }
+.plist-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px }
+.plist-count{ color:var(--p-dim) }
+.plist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px }
+.prow{
+  display:flex; align-items:center; gap:12px; min-height:58px; padding:0 4px 0 14px; border-radius:14px;
+  background:var(--p-bg); color:var(--p-fg); box-shadow:inset 0 0 0 1px var(--p-line);
+}
+.prow-n{ width:16px; flex:none; text-align:center; color:var(--p-dim) }
+.prow-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; padding:9px 0 }
+.prow-name{ font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.prow-sub{ font-size:13px; color:var(--p-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.prow-sub.warn{ color:#E0776F; white-space:normal }
+.prow-tag{ flex:none; color:var(--p-dim); padding-right:10px }
+.prow.me{ background:var(--p-me); color:var(--p-me-fg); box-shadow:none }
+.prow.me .prow-n, .prow.me .prow-sub, .prow.me .prow-tag{ color:var(--p-me-dim) }
+/* Not yours to change: dimmed and without buttons, but still readable. */
+.prow.locked{ background:transparent; color:var(--p-dim) }
+.prow.bad{ box-shadow:inset 0 0 0 2px var(--bad) }
+.prow.bad .prow-sub{ color:var(--bad) }
+.prow-x, .prow-edit{
+  flex:none; min-width:44px; min-height:44px; border:0; border-radius:12px; background:transparent;
+  color:inherit; cursor:pointer; transition:transform .14s var(--ease);
+}
+.prow-x{ font-size:22px; line-height:1 }
+.prow-edit{ padding:0 8px; color:var(--p-dim); font-size:13px; font-weight:700; letter-spacing:.01em }
+.prow-x:active, .prow-edit:active{ transform:scale(.88) }
+/* The next seat: the number it would take, and the box to fill it. */
+.prow.add{ align-items:flex-start; padding:7px 7px 7px 14px; background:transparent; box-shadow:inset 0 0 0 1.5px var(--p-line) }
+.prow.add .prow-n{ padding-top:15px }
+.prow-addbody{ flex:1; min-width:0; display:flex; flex-direction:column; gap:8px }
+.prow-add{ display:flex; align-items:center; gap:8px }
+.prow-field{ flex:1; min-width:0; display:flex; align-items:center; min-height:44px }
+.prow-field span{ font-weight:800; font-size:16px; padding-right:2px }
+.prow-field input{ flex:1; min-width:0; border:0; outline:none; background:transparent; font:inherit; font-size:16px; padding:10px 4px 10px 0; color:inherit }
+.prow-field input::placeholder{ color:var(--p-dim) }
+.prow-add-btn{
+  flex:none; min-height:44px; padding:0 16px; border:0; border-radius:10px; cursor:pointer;
+  background:var(--p-act); color:var(--p-act-fg);
+  font-size:14px; font-weight:700; letter-spacing:.01em;
+  transition:transform .14s var(--ease);
+}
+.prow-add-btn:active{ transform:scale(.95) }
+/* Which instrument the friend being typed will play. Only the free ones. */
+.kitchips{ display:flex; flex-wrap:wrap; gap:6px; padding-bottom:2px }
+.kitchip{
+  min-height:44px; padding:0 14px; border:0; border-radius:999px; cursor:pointer; background:transparent;
+  color:inherit; box-shadow:inset 0 0 0 1.5px var(--p-line);
+  font-family:var(--display); font-size:17px; letter-spacing:.01em;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.kitchip:active{ transform:scale(.95) }
+.kitchip.on{ background:var(--p-act); color:var(--p-act-fg); box-shadow:none }
+
+/* ticket */
+.ticket{ padding:22px 20px 40px; display:flex; flex-direction:column; gap:16px }
+/* The escape ticket is on the night ground now, the same family as the room
+   cards — a cream stub on black was the "jarring" contrast (decision 120). */
+.tstub{
+  background:var(--night-2); color:#F2EFE8; border-radius:20px; padding:22px 22px 12px;
+  display:flex; flex-direction:column; gap:16px; box-shadow:inset 0 0 0 1px #FFFFFF1F;
+}
+.tstub .label{ color:var(--smoke) }
+.tstub-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px }
+.tstub-time{ font-size:72px; line-height:.82 }
+.tstub .tstub-time{ color:var(--bone) }
+.tstub .rows .row{ padding:11px 0; border-color:#FFFFFF1F }
+.tstub .rows .row:last-child{ border-bottom:0 }
+.tstub .row dt{ color:var(--smoke) }
+/* The booking page's head: the time, big, with nothing boxed around it,
+   and the board's own 2px rule under it before the names start. */
+.bookhead{ display:flex; flex-direction:column; gap:14px; padding-bottom:20px; margin-bottom:6px; border-bottom:2px solid #F2EFE8 }
+.bookhead .label{ color:var(--smoke) }
+.bookhead .tstub-time{ color:var(--bone) }
+
+/* ---- your bookings --------------------------------------------------
+   One card per room, always both, so the page reads as two rooms rather
+   than a list that shrinks when you have not booked something. */
+.holds{ display:flex; flex-direction:column; gap:10px }
+.hold{
+  display:block; width:100%; text-align:left; border:0; cursor:pointer; font:inherit;
+  background:var(--night-2); color:#F2EFE8; border-radius:20px; padding:18px 20px;
+  box-shadow:inset 0 0 0 1px #FFFFFF1F; transition:transform .16s var(--ease);
+}
+.hold:active{ transform:scale(.985) }
+.hold-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px }
+.hold .label{ color:var(--smoke) }
+.hold-t{ font-family:var(--display); font-size:38px; line-height:1; margin-top:10px }
+.hold-foot{ display:flex; justify-content:space-between; align-items:center; gap:12px;
+  margin-top:14px; padding-top:12px; border-top:1px solid #FFFFFF26; font-size:13px; color:#D6D2CA }
+.hold-go{ flex:none; color:var(--bone) }
+.hold:active .hold-go .arrow{ transform:translateX(5px) }
+.hold.empty{ background:transparent; box-shadow:inset 0 0 0 1.5px #FFFFFF33 }
+.hold.empty .hold-t{ font-size:30px; color:#F2EFE8 }
+/* Who's coming, numbered, on one or two lines. */
+.hold-who{ flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:4px 14px; font-size:14px; color:#F2EFE8 }
+.hold-who .label{ color:var(--smoke); margin-right:2px }
+/* The top of Your bookings is the Up next card carried up from Home: the
+   same label, the same 64px time, the same rule and line under it. */
+.bk-hero{ display:flex; flex-direction:column; gap:14px; color:#F2EFE8; padding-bottom:6px }
+.bk-hero .bk-hero-label{ color:var(--accent) }
+.bk-hero .next-when{ color:#F2EFE8 }
+
+/* ---- pass ----------------------------------------------------------- */
+.pass{
+  background:var(--card); border-radius:22px; padding:24px 20px 20px; display:flex; flex-direction:column; align-items:center; gap:16px;
+  box-shadow:inset 0 0 0 1px var(--rule); color:var(--ink);
+}
+.pass img{ width:212px; height:212px; display:block; image-rendering:pixelated }
+.pass-code{ font-size:28px }
+.items{ background:var(--card); border-radius:22px; padding:6px 20px; box-shadow:inset 0 0 0 1px var(--rule) }
+/* No circle before the name (22 Sep, STATE.md 132): an empty ring next to a
+   line reads as a checkbox you can tick, and nothing here is tappable. */
+.item{ display:flex; align-items:center; gap:14px; min-height:72px; padding:12px 0; border-top:1px dashed var(--rule) }
+.item:first-child{ border-top:0 }
+.item-text{ flex:1; display:flex; flex-direction:column; gap:4px; min-width:0 }
+.item-t{ font-family:var(--display); font-size:25px; line-height:1.05 }
+.item-s{ font-size:13px; color:var(--muted); line-height:1.35 }
+.item.done .item-t{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:2px }
+.item-when{ text-align:right; font-size:12px; color:var(--muted); line-height:1.35 }
+
+/* ---- jam ------------------------------------------------------------ */
+.jam-head{ color:var(--jam) }
+.jamlist{ display:flex; flex-direction:column; border-bottom:1px solid var(--rule) }
+.jamslot{
+  display:flex; justify-content:space-between; align-items:center; gap:12px; min-height:62px; padding:0 4px;
+  border:0; border-top:1px solid var(--rule); background:transparent; text-align:left; cursor:default;
+  transition:background .2s, color .2s;
+}
+.jamslot .num{ font-size:26px }
+.jamslot.live{ cursor:pointer }
+.jamslot.live:active{ background:var(--paper-2) }
+.jamslot.dim{ color:#6B675F }
+.jamslot.mine{ background:var(--ink); color:var(--paper); padding:0 12px; border-radius:12px; cursor:pointer }
+
+/* The jam room's own language. The escape room is dark, cramped and urgent;
+   this is paper, wide and loud — the same app, but you can tell which room
+   you are in before reading a word. Instruments are set as stencilled type,
+   after the poster on the studio wall. */
+.jam-page{ --jam-ink:var(--jam) }
+.jam-hero .label{ color:var(--jam) }
+.jam-hero h1{ margin-top:8px }
+.kitlist{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 4px }
+.kit{
+  font-family:var(--display); font-size:16px; letter-spacing:.01em; line-height:1.1;
+  padding:5px 10px; border-radius:6px; color:var(--jam);
+  box-shadow:inset 0 0 0 1.5px currentColor;
+}
+.jam-sec{ display:flex; flex-direction:column; gap:12px; padding:20px 0 4px; border-top:2px solid var(--ink); margin-top:20px }
+.kitpick{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.kitbtn{
+  border:0; background:var(--card); border-radius:14px; padding:14px 12px; cursor:pointer;
+  display:flex; flex-direction:column; gap:6px; text-align:left;
+  box-shadow:inset 0 0 0 1.5px #10101018; transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.kitbtn .kitname{ display:block; font-family:var(--display); font-size:22px; line-height:1.08 }
+.kitbtn .label{ color:var(--muted) }
+.kitbtn:active{ transform:scale(.96) }
+.kitbtn.on{ background:var(--jam); color:#F2EFE8; box-shadow:none }
+.kitbtn.on .label{ color:#F2EFE8CC }
+.kitbtn.gone{ background:transparent; color:#6B675F; cursor:default; box-shadow:inset 0 0 0 1.5px #10101010 }
+
+/* ---- the photo on each screen ---------------------------------------
+   A duotone halftone, so a photograph sits in the same world as the grain
+   and the stencilled type rather than looking pasted on. If the file is not
+   there the block simply does not render — see photo(). */
+/* Edge to edge, square, no card. A photograph here is a band of the page,
+   not an object sitting on it. The ground colour is what the picture is
+   toned with: caramel at the counter, ultramarine in the jam room, night
+   in the escape room — so a photograph tells you which room you are in.
+   Duotone rather than flat grey, because a grey photograph of a brown
+   cookie is a grey blur. */
+.shot{
+  position:relative; overflow:hidden; margin:0 -20px 18px; border-radius:0;
+  aspect-ratio:16/10; background:var(--ink);
+}
+.shot-pass{ background:var(--tint-pass) }
+.shot-jam{ background:var(--tint-jam) }
+.shot-esc{ background:var(--night-2) }
+.shot img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  filter:grayscale(1) contrast(1.14) brightness(1.02);
+  mix-blend-mode:luminosity;
+}
+.shot::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:radial-gradient(#00000055 1.1px, transparent 1.5px);
+  background-size:5px 5px; opacity:.34; mix-blend-mode:multiply;
+}
+/* The pass and the jam room keep their photographs' own colours (22 Sep,
+   decision 128): a counter of red berries and a floor of red rugs are the
+   point of those two pictures, and toning them turned both into a flat
+   wash. The dot screen stays so they still belong to the grain, but finer
+   and fainter than the escape room's. */
+.shot-pass img, .shot-jam img{ filter:none; mix-blend-mode:normal }
+.shot-pass::after, .shot-jam::after{
+  background-image:radial-gradient(#00000060 1.1px, transparent 1.6px);
+  background-size:5px 5px; opacity:.26;
+}
+.shot .shot-cap{
+  position:absolute; left:20px; bottom:12px; color:#F2EFE8; z-index:2;
+  text-shadow:0 1px 6px #00000099;
+}
+.night .shot{ background:var(--night-2) }
+
+/* ---- help (22 Sep, decision 124) ---------------------------------------
+   One card per section, the heading in a darker caramel so it reads as a
+   heading at 11px (the plain accent is too light on the card for small
+   text), and the answers at full ink rather than grey. */
+.help-card{
+  background:var(--card); border-radius:18px; padding:18px 18px 16px; box-shadow:inset 0 0 0 1px var(--rule);
+  display:flex; flex-direction:column; gap:12px;
+}
+.help-card > .label{ color:var(--accent-ink) }
+.help-when{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap }
+.help-when .display{ font-size:30px }
+.help-venue{ padding-top:12px; border-top:1px solid var(--rule); display:flex; flex-direction:column; gap:3px }
+.help-place{ font-size:16px; font-weight:700 }
+.help-addr{ font-size:14px; color:var(--muted) }
+.help-list{ list-style:none; margin:0; padding:0 }
+.help-list li{ padding:11px 0; border-top:1px solid var(--rule); font-size:16px; font-weight:600 }
+.help-list li:first-child{ border-top:0; padding-top:2px }
+.help-p{ font-size:15px; line-height:1.5 }
+/* The questions fold, so the page is a list of what you might be wondering. */
+.help-faq details{ border-top:1px solid var(--rule) }
+.help-faq details:first-child{ border-top:0 }
+.help-faq summary{
+  list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:14px;
+  min-height:48px; padding:10px 0; font-size:15px; font-weight:700; line-height:1.35;
+}
+.help-faq summary::-webkit-details-marker{ display:none }
+.help-faq summary::after{
+  content:''; flex:none; width:9px; height:9px; margin-right:4px;
+  border-right:2px solid var(--ink); border-bottom:2px solid var(--ink); transform:rotate(45deg) translate(-2px,-2px);
+}
+.help-faq details[open] summary::after{ transform:rotate(-135deg) translate(-2px,-2px) }
+.help-faq details p{ margin:0; padding:0 0 14px; font-size:15px; line-height:1.55 }
+/* The price list inside its question: groups under small labels, names on
+   the left, prices in a right-aligned column of tabular figures. */
+.prices{ display:flex; flex-direction:column; gap:16px; padding:2px 0 16px }
+.price-h{ color:var(--accent-ink); margin-bottom:2px }
+.price-row{ display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+  padding:7px 0; border-top:1px dashed var(--rule); font-size:15px; line-height:1.35 }
+.price-h + .price-row{ border-top:0 }
+.price{ flex:none; font-weight:700; font-variant-numeric:tabular-nums; text-align:right }
+
+/* ---- the floorplan -------------------------------------------------- */
+.plan{ border-radius:18px; overflow:auto; background:#fff; box-shadow:inset 0 0 0 1px var(--rule);
+  -webkit-overflow-scrolling:touch; overscroll-behavior:contain }
+.plan img{ display:block; width:100%; height:auto }
+.plan.zoomed img{ width:220%; max-width:none }
+.plan-notes{ margin-top:4px }
+
+/* ---- the phone ------------------------------------------------------- */
+#phoneframe{ position:fixed; inset:0; width:100%; height:100%; border:0; background:#000; z-index:60; display:none }
+body.phoneopen #phoneframe{ display:block }
+body.phoneopen::after{ display:none }
+
+/* ---- screen transitions ---------------------------------------------
+   A short nudge: the arriving screen starts 18px to the side and settles.
+
+   **Transform only. Never put `opacity` in these keyframes.** That is not a
+   style preference, it is the bug this app shipped three times.
+
+   A screen is rebuilt with `innerHTML`, so every element on it is new, and
+   an animation on it cannot begin until the browser has parsed and laid all
+   of that out. Fade it in and those frames are painted at `opacity:0` - a
+   blank page - and then the photographs, the buttons and the pass QR all
+   appear at once. Shortening the fade does not help; the late start is the
+   problem, not the duration. A transform has no such failure mode: start it
+   late and the content is simply sitting still, fully visible, and then it
+   moves.
+
+   18px rather than a full screen width, because there is no outgoing screen
+   underneath - it has already been thrown away - so a long slide would drag
+   a band of empty paper across. At this distance nothing is ever uncovered.
+
+   The direction class goes on `.scroll` *before* the markup is written, so
+   the new child animates from its very first style resolution and no frame
+   is painted in the wrong place. It is cleared at the top of the next
+   render, which is always before the next child exists. */
+.scroll.fwd > *{ animation:pageFwd .2s var(--ease) both }
+.scroll.back > *{ animation:pageBack .2s var(--ease) both }
+
+/* ---- the card growing into Your bookings (decision 121) ---------------
+   View Transitions. The browser freezes the frame, builds the next screen
+   behind it, and animates pictures of screens it has already drawn, so
+   none of this can paint a blank frame — the fault that decision 113 was
+   about. The same rule still holds anyway: no opacity, anywhere. Things
+   appear with `visibility` and move with `transform`, and
+   tests/test_invariants.py checks every rule below.
+
+   The names only exist while <html data-morph> is set, so this touches
+   the Home → Your bookings trip and its way back, and nothing else.
+
+   Open: Home stays put around the card; the card, drawn as a solid night
+   shape, grows up and down to fill the screen; its three pieces of text
+   glide up to the top; the page's own frame appears once the card has
+   landed; then the two room cards rise in. Close is the same run in
+   reverse, with Home there from the first frame. */
+.next > .label:first-child, .next-time, .bk-hero-label{ align-self:flex-start }
+html[data-morph] .next.live, html[data-morph] .bk-ground{ view-transition-name:upnext }
+html[data-morph] .next.live > .label:first-child, html[data-morph] .bk-hero-label{ view-transition-name:upnext-label }
+html[data-morph] .next.live > .next-time, html[data-morph] .bk-hero-time{ view-transition-name:upnext-time }
+html[data-morph] .next.live > .next-foot, html[data-morph] .bk-hero-foot{ view-transition-name:upnext-foot }
+html[data-morph] .room-esc{ view-transition-name:room-esc }
+html[data-morph] .room-jam{ view-transition-name:room-jam }
+::view-transition-group(*){ animation-duration:.42s; animation-timing-function:cubic-bezier(.2,.8,.2,1) }
+/* The card is a plain night shape while it moves, never a stretched
+   picture of one: its own snapshots are hidden and the group is painted. */
+::view-transition-group(upnext){ animation-duration:.36s; background:var(--night); border-radius:20px; overflow:hidden }
+::view-transition-old(upnext){ animation:none; visibility:hidden }
+::view-transition-new(upnext){ animation:none; visibility:hidden }
+/* The words move; they do not cross-fade. */
+::view-transition-old(upnext-label){ animation:none; visibility:hidden }
+::view-transition-old(upnext-time){ animation:none; visibility:hidden }
+::view-transition-old(upnext-foot){ animation:none; visibility:hidden }
+::view-transition-new(upnext-label){ animation:none }
+::view-transition-new(upnext-time){ animation:none }
+::view-transition-new(upnext-foot){ animation:none }
+/* The browser adds the old and new pictures together (plus-lighter) so a
+   cross-fade stays even. There is no cross-fade here, and paper plus night
+   would come out pale, so the pictures are simply stacked. */
+html[data-morph]::view-transition-old(root){ mix-blend-mode:normal }
+html[data-morph]::view-transition-new(root){ mix-blend-mode:normal }
+html[data-morph]::view-transition-new(upnext-label){ mix-blend-mode:normal }
+html[data-morph]::view-transition-new(upnext-time){ mix-blend-mode:normal }
+html[data-morph]::view-transition-new(upnext-foot){ mix-blend-mode:normal }
+html[data-morph="open"]::view-transition-old(root){ animation:none }
+html[data-morph="open"]::view-transition-new(root){ animation:vtWait .34s linear }
+html[data-morph="open"]::view-transition-new(room-esc){ animation:vtRise .3s cubic-bezier(.2,.8,.2,1) .3s both }
+html[data-morph="open"]::view-transition-new(room-jam){ animation:vtRise .3s cubic-bezier(.2,.8,.2,1) .36s both }
+html[data-morph="close"]::view-transition-old(root){ animation:none; visibility:hidden }
+html[data-morph="close"]::view-transition-new(root){ animation:none }
+html[data-morph="close"]::view-transition-old(room-esc){ animation:none; visibility:hidden }
+html[data-morph="close"]::view-transition-old(room-jam){ animation:none; visibility:hidden }
+/* Hidden for its whole run, then there: the page's frame waits for the card. */
+@keyframes vtWait{ from{ visibility:hidden } to{ visibility:hidden } }
+/* Hidden until it starts, then rising 24px into place, fully drawn. */
+@keyframes vtRise{ from{ visibility:hidden; transform:translateY(24px) } to{ visibility:visible; transform:none } }
+
+/* ---- the jam stub ---------------------------------------------------- */
+.jstub{ background:var(--card); border-radius:20px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px;
+  box-shadow:inset 0 0 0 1px var(--rule) }
+.jstub .tstub-time{ color:var(--jam) }
+.jstub .label.j{ color:var(--jam) }
+.jstub .rows .row{ padding:11px 0 }
+.jstub .rows .row:last-child{ border-bottom:0 }
+
+/* ---- toast ---------------------------------------------------------- */
+#toast{
+  position:fixed; left:50%; bottom:96px; transform:translateX(-50%); z-index:90;
+  background:var(--ink); color:var(--paper); padding:12px 18px; border-radius:12px;
+  font-size:14px; font-weight:600; max-width:88%; text-align:center; line-height:1.35;
+  box-shadow:0 12px 30px #0006; animation:rise .24s var(--ease) both; display:none;
+}
+/* The booking moment. One element that is built, shown and thrown away, and
+   only ever changes transform and opacity, so the phone composites it and
+   nothing underneath repaints. prefers-reduced-motion is handled in the JS
+   as well as the CSS, so on a phone asking for stillness it is never built. */
+#stamp{ position:fixed; inset:0; z-index:95; display:grid; place-items:center; background:#0E0E10F0; pointer-events:none }
+#stamp.out{ animation:stampOut .34s linear both }
+#stamp .stamp-in{
+  text-align:center; padding:30px 34px; border-radius:20px; max-width:78%;
+  box-shadow:inset 0 0 0 3px var(--accent); animation:stampIn .44s var(--ease) both;
+}
+#stamp .stamp-t{ font-family:var(--display); font-size:64px; line-height:1; color:var(--accent) }
+#stamp .stamp-b{ font-size:14px; line-height:1.4; margin:10px auto 0; max-width:250px; color:#F2EFE8 }
+@keyframes stampIn{ 0%{ transform:scale(1.6) rotate(-8deg); opacity:0 } 55%{ transform:scale(.96) rotate(-3deg); opacity:1 } 100%{ transform:scale(1) rotate(-3deg); opacity:1 } }
+@keyframes stampOut{ from{ opacity:1 } to{ opacity:0 } }
+#toast.show{ display:block }
+#toast.bad{ background:var(--bad); color:#fff }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="navbar" id="navbar">
+    <button class="navback" id="navback" aria-label="Back">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>
+    </button>
+    <span class="navlogo" id="navlogo" role="img" aria-label="The Yard" hidden></span>
+    <span class="navtitle" id="navtitle">The Yard</span>
+  </div>
+  <div class="scroll" id="screen"></div>
+  <div class="mainsheet" id="mainsheet" hidden>
+    <button class="mainbtn" id="mainbtn"></button>
+  </div>
+</div>
+
+<iframe id="phoneframe" title="The phone"></iframe>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===================================================================
+   1. DATA LAYER — every call goes to the server (§12). Nothing is faked.
+   =================================================================== */
+
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+/* Clock. The server is the only clock (§9 r34). Every response carries
+   server_time; countdowns run on the device against this offset. */
+let timeOffsetMs = 0;
+function now(){ return new Date(Date.now() + timeOffsetMs); }
+function absorbServerTime(iso){
+  if (!iso) return;
+  const t = Date.parse(iso);
+  if (!isNaN(t)) timeOffsetMs = t - Date.now();
+}
+
+async function api(method, path, opts){
+  opts = opts || {};
+  const headers = {
+    'Authorization': 'tma ' + (tg ? tg.initData : ''),
+    'ngrok-skip-browser-warning': '1'
+  };
+  let body;
+  if (opts.json){ headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
+  let res;
+  try {
+    res = await fetch(path, { method, headers, body, cache:'no-store' });
+  } catch (e){
+    return { ok:false, error:{ code:'NETWORK', message:"Can't reach The Yard" } };
+  }
+  if (opts.raw) return res;
+  let out;
+  // Not JSON means we answered with an error page: we were reached and we
+  // broke. Never report that as a network fault — see admin.html for why.
+  try { out = await res.json(); }
+  catch (e){
+    return { ok:false, error:{ code:'SERVER_ERROR',
+      message:'Something went wrong at our end (HTTP ' + res.status + '). Nothing was saved.' } };
+  }
+  absorbServerTime(out.server_time);
+  return out;
+}
+
+/* ===================================================================
+   2. COPY — event facts come from the server.
+   =================================================================== */
+
+const GATES = {
+  allowed:  { tone:'#1F7A4C', title:'You are on the list', cta:'Start' },
+  owner:    { tone:'#111111', title:'Always allowed', cta:'Start' },
+  NOT_ON_LIST:      { tone:'#A8231B', title:"We can't find @{handle}",
+    body:"That username isn't on The Yard's list. Signed up with a different one? Type it here and we'll pass it to the front desk.",
+    cta:'Check again' },
+  SENT:             { tone:'#AE7338', title:'Sent to the front desk',
+    body:'Show them this screen, or tap Check again in a minute. You are not in yet.', cta:'Check again' },
+  NO_USERNAME:      { tone:'#A8231B', title:'You need a Telegram username',
+    body:'Telegram, then Settings, then Username. Pick one and come back.', cta:'Check again' },
+  LINKED_ELSEWHERE: { tone:'#A8231B', title:'Please see the front desk',
+    body:'That sign-up is already linked to another Telegram account.', cta:'Check again' },
+  GATE_CLOSED:      { tone:'#3C4654', title:'The Yard is closed',
+    body:'Thanks for coming.', cta:'Check again' },
+  INITDATA_INVALID: { tone:'#A8231B', title:"We can't confirm who you are",
+    body:'Close The Yard and open it again from the bot.', cta:'Check again' },
+  INITDATA_EXPIRED: { tone:'#A8231B', title:'This session is too old',
+    body:'Close The Yard and open it again from the bot.', cta:'Check again' },
+  INACTIVE:         { tone:'#3C4654', title:'Please see the front desk',
+    body:"You're not on the current sign-up list.", cta:'Check again' },
+  NETWORK:          { tone:'#3C4654', title:"Can't reach The Yard",
+    body:"That's our end, not yours. Nothing is lost.", cta:'Try again' },
+  /* Distinct from NETWORK on purpose: the phone reached us and we broke. The
+     attendee sees the same reassurance, but the code in the audit log and the
+     app.py window tells the organiser which of the two it really was. */
+  SERVER_ERROR:     { tone:'#3C4654', title:'Something went wrong at our end',
+    body:"Nothing was saved, and nothing is lost. Try again, or ask at the front desk.",
+    cta:'Try again' }
+};
+
+/* The bar's title. Screens that open with their own big title leave it
+   empty, so nothing is said twice. */
+const TITLES = {
+  gate:'', home:'The Yard', esc:'', escbook:'', ticket:'Your Ticket',
+  food:'The Yard Pass', jam:'', jamticket:'', jambook:'', mybookings:'', help:'Help', phone:'',
+  floorplan:'Floorplan',
+  // Kept so an old deep link from a bot message still lands somewhere.
+  bookings:''
+};
+
+const ARROW = `<svg class="arrow" viewBox="0 0 30 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M1 7h26M21 1l6 6-6 6"/></svg>`;
+
+/* ===================================================================
+   3. STATE + RENDER
+   The UI never decides capacity, eligibility, halves or unlock time.
+   It renders what the server says (§3 r2, §14).
+   =================================================================== */
+
+const S = {
+  view:'gate',
+  loading:false,
+  session:null,
+  gateCode:null,
+  gateHandle:null,
+  gateSent:false,
+  me:null,
+  esc:null,
+  jam:null,
+  phone:null,
+  booked:null,         // the confirmation to show once, after a booking
+  pickedSlot:null,
+  pickedJam:null,
+  draft:[],            // usernames to book with you (the board's group panel)
+  badFriends:[],       // usernames the server just refused, shown red
+  // The jam room is booked by instrument, so its own screen needs more than
+  // a list of names: which one you are playing, who else is coming and on
+  // what, and which instrument is selected in each of the two add boxes.
+  jamPick:null,        // the instrument you are claiming
+  jamGuests:[],        // [{handle, instrument}] to book alongside you
+  jamGuestKit:null,    // the instrument selected for the guest being typed
+  jamAddKit:null,      // the same, on the jam slot’s own screen
+  openJam:null,        // which jam booking the jam ticket is showing
+  busy:false,          // a booking or group change is on its way
+  goAfter:null,        // ?go= from a bot button: where Start should land
+  phoneAuto:false,     // arrived from the phone message: open the phone at once
+  stack:[],
+  dragX:0,
+  dragging:false
+};
+
+const screen = document.getElementById('screen');
+const navbar = document.getElementById('navbar');
+const navtitle = document.getElementById('navtitle');
+const navlogo = document.getElementById('navlogo');
+const mainsheet = document.getElementById('mainsheet');
+const mainbtn = document.getElementById('mainbtn');
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function at(iso){ return new Date(iso); }
+function meridiem(d){ return d.getHours() >= 12 ? 'PM' : 'AM'; }
+function short(d){ let h = d.getHours() % 12; if (h === 0) h = 12; return h + ':' + String(d.getMinutes()).padStart(2,'0'); }
+function fmt(d){ return short(d) + ' ' + meridiem(d); }
+/* "7:30–8:00 PM", or "11:30 AM–12:00 PM" across noon. */
+function span(a, b){ return meridiem(a) === meridiem(b) ? short(a) + '–' + fmt(b) : fmt(a) + '–' + fmt(b); }
+function minsUntil(iso){ return Math.round((Date.parse(iso) - now().getTime()) / 60000); }
+/* "in 45 min", "in 3 hours", "in 6 days" — whichever reads naturally. */
+function until(iso){
+  const m = minsUntil(iso);
+  if (m <= 0) return 'now';
+  if (m < 90) return 'in ' + m + ' min';
+  const h = Math.round(m / 60);
+  if (h < 36) return 'in ' + h + ' hours';
+  const d = Math.round(m / 1440);
+  return 'in ' + d + ' day' + (d === 1 ? '' : 's');
+}
+function listOf(words){
+  return words.length < 2 ? words.join('') : words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
+}
+
+function toast(msg, bad){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = ''; }, 3400);
+}
+
+/* Navigation keeps a real history stack, so Back returns to the screen you
+   actually came from — Bookings -> ticket -> Back lands on Bookings, not on
+   the escape board. `replace` is for steps you must not be able to walk back
+   into, like the booking form after the booking went through. */
+function go(view, opts){
+  opts = opts || {};
+  const m = morphFor(S.view, view);
+  const run = () => {
+    if (view !== S.view && S.view !== 'gate' && !opts.replace){
+      const seen = S.stack.findIndex(e => e.view === view);
+      if (seen >= 0) S.stack.length = seen;            // revisiting: unwind, never loop
+      else S.stack.push({ view:S.view, scroll:screen.scrollTop });
+    }
+    if (opts.drop) S.stack = S.stack.filter(e => !opts.drop.includes(e.view));
+    if (view !== S.view && !m) navDir = 'fwd';
+    S.view = view;
+    S.dragX = 0; S.dragging = false;
+    render();
+    screen.scrollTop = opts.scroll || 0;
+    loadFor(view);
+  };
+  if (m) morph(m, run); else run();
+}
+
+/* The Up next card grows into Your bookings, and shrinks back into the card
+   on the way home (decision 121).
+
+   This is the View Transitions API, and the difference from the version
+   refused on 21 Sep (decision 113) is the whole point. That one animated
+   freshly built markup, whose first frames a busy phone paints blank. Here
+   the browser freezes the current frame, builds the new screen behind it,
+   and animates *pictures* of the two — there is no frame in which a
+   half-built screen can show. The CSS for it is under "the card growing"
+   and, like everything else, never touches opacity.
+
+   Where the API is missing (iOS before 18, some Telegram Desktop builds)
+   or the phone asks for less motion, the ordinary 18px nudge runs. If it
+   misbehaves on a real phone, set MORPH to false and nothing else changes. */
+const MORPH = true;
+function morphFor(from, to){
+  if (!MORPH || !document.startViewTransition || (reduceMotion && reduceMotion.matches)) return null;
+  // The card is always there once we know who you are — with nothing
+  // booked it says "None" and grows all the same (decision 127).
+  if (!S.me) return null;
+  if (from === 'home' && to === 'mybookings') return 'open';
+  if (from === 'mybookings' && to === 'home') return 'close';
+  return null;
+}
+function morph(dir, update){
+  const root = document.documentElement;
+  root.dataset.morph = dir;
+  let t;
+  try { t = document.startViewTransition(update); }
+  catch (e){ delete root.dataset.morph; update(); return; }
+  t.finished.finally(() => { if (root.dataset.morph === dir) delete root.dataset.morph; });
+}
+
+/* Which way the next render is travelling. go() and back() set it and the
+   very next render spends it. Every other render - the second one when the
+   server's answer lands, the minute tick, a tap that changes something -
+   leaves it null and draws with no movement, because the screen is being
+   rebuilt in place rather than arrived at. Without this the page would
+   nudge every time you tapped anything on it. */
+let navDir = null;
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function back(){
+  if (document.body.classList.contains('phoneopen')){ closeThePhone(); return; }
+  const prev = S.stack.pop();
+  if (!prev) return;                                  // home is the root; Telegram closes the app
+  const m = morphFor(S.view, prev.view);
+  const run = () => {
+    if (!m) navDir = 'back';
+    S.view = prev.view;
+    S.dragX = 0; S.dragging = false;
+    render();
+    screen.scrollTop = prev.scroll || 0;
+    loadFor(prev.view);
+  };
+  if (m) morph(m, run); else run();
+}
+
+/* The gate runs on every call (§3 r1). If /api/me is refused — list changed,
+   gate closed, session too old — go back to Start and say why, rather than
+   leaving a screen that says Loading for ever. */
+async function loadMe(){
+  const r = await api('GET','/api/me');
+  if (r.ok){ S.me = r.data; prewarmShots(); return true; }
+  S.me = null;
+  if (r.error.code !== 'NETWORK' && GATES[r.error.code]){
+    S.session = null; S.gateSent = false;
+    S.gateCode = r.error.code; S.gateHandle = r.error.handle || null;
+    S.stack = []; S.view = 'gate';
+  } else {
+    toast(r.error.message || "Can't reach The Yard", true);
+  }
+  return false;
+}
+
+/* A screen you return to already has its data. The app still asks the
+   server for a fresh copy, but it only rebuilds the screen if the answer
+   is actually different — otherwise every navigation threw the page away
+   and drew it again, which is what made the app look like it was
+   reloading itself under you. */
+const LAST = {};
+function changed(key, data){
+  const s = JSON.stringify(data);
+  if (LAST[key] === s) return false;
+  LAST[key] = s;
+  return true;
+}
+
+async function loadFor(view){
+  if (view === 'home' && !S.me) { await loadMe(); render(); }
+  if (view === 'esc' || view === 'escbook'){
+    if (!S.me) await loadMe();          // the booking page shows your own username
+    const slots = await api('GET','/api/escape/slots');
+    S.esc = slots.data;
+    if (changed('esc', slots.data)) render();
+  }
+  // The phone's own screen, reached only from the bot's message. Arriving
+  // from that message opens the phone straight away when it is open.
+  if (view === 'phone'){
+    if (!S.me) await loadMe();
+    const r = await api('GET','/api/escape/phone/status');
+    const auto = S.phoneAuto; S.phoneAuto = false;
+    if (!r.ok){ toast(r.error.message || "Can't reach The Yard", true); return; }
+    S.phone = r.data;
+    render();
+    if (auto && !r.data.code) openThePhone();
+  }
+  // Both jam screens read the same board: the second one needs to know
+  // which instruments are still free in the slot that was tapped.
+  if (view === 'jam' || view === 'jambook'){
+    if (!S.me) await loadMe();
+    const r = await api('GET','/api/jam/slots');
+    if (r.ok){ S.jam = r.data; if (changed('jam', r.data)) render(); }
+    else toast(r.error.message || "Can't reach The Yard", true);
+  }
+  if (['food', 'bookings', 'mybookings', 'ticket', 'help', 'floorplan'].includes(view) && !S.me){
+    await loadMe(); render();
+  }
+}
+
+/* Writing innerHTML throws the old <img> elements away, and a fresh one
+   has to be decoded before it can be painted — the blank-then-reappear
+   flash. One decoded node per picture is kept for the whole session and
+   put back into the new markup, so a photograph is decoded once and never
+   again, however many times you cross the screen it sits on. */
+const DECODED = new Map();
+function reuseDecoded(){
+  screen.querySelectorAll('img').forEach(fresh => {
+    const live = DECODED.get(fresh.src);
+    if (!live){ DECODED.set(fresh.src, fresh); return; }
+    // A node that is moved keeps the bitmap it has already decoded; a
+    // node that is built fresh from the same src does not, and paints
+    // nothing until it decodes. So we move the old one in.
+    if (live === fresh || !live.complete || !live.naturalWidth) return;
+    live.alt = fresh.alt;
+    live.className = fresh.className;
+    fresh.replaceWith(live);
+  });
+}
+
+/* Decode every photograph once, the moment the server names them. A
+   picture that is already decoded when its screen is built is painted in
+   the same frame as the rest of the screen; one that is not shows an empty
+   box first, and that empty box is what reads as a flash. */
+let shotsWarm = false;
+function prewarmShots(){
+  if (shotsWarm) return;
+  const shots = (S.me && S.me.event && S.me.event.shots) || {};
+  const names = Object.keys(shots);
+  if (!names.length) return;
+  shotsWarm = true;
+  names.forEach(name => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = shots[name];
+    if (!DECODED.has(img.src)) DECODED.set(img.src, img);
+  });
+}
+
+function render(){
+  navbar.hidden = S.view === 'gate';
+  document.getElementById('navback').hidden = S.stack.length === 0;
+  navtitle.textContent = TITLES[S.view] || '';
+  // Home wears the wordmark; every other screen names itself, because on
+  // those the bar has to say where you are, not whose app this is.
+  const onHome = S.view === 'home';
+  navlogo.hidden = !onHome;
+  navtitle.classList.toggle('has-logo', onHome);
+
+  const main = mainButtonFor();
+  const sheetWas = mainsheet.hidden;
+  mainsheet.hidden = !main;
+  mainsheet.classList.toggle('in', !!main && sheetWas);
+  if (main){ mainbtn.textContent = main.label; mainbtn.onclick = main.tap; }
+
+  // The direction class goes on before the markup does, so the arriving
+  // screen animates from its very first style resolution. Clearing it here
+  // rather than on a timer is enough: the only element it can affect is the
+  // one this render is about to replace.
+  screen.classList.remove('fwd', 'back');
+  if (navDir) screen.classList.add(navDir);
+  navDir = null;
+  // Only write a transform while a drag is actually happening. Writing
+  // translateX(0px) on every render kept a compositing layer alive for the
+  // whole session and re-armed the scroll area's own transition.
+  screen.style.transform = S.dragX ? 'translateX(' + S.dragX + 'px)' : '';
+  screen.classList.toggle('dragging', S.dragging);
+  // One ground per room (decision 120). A night screen is night all the way
+  // out: the scroll area, the top bar, the bottom sheet and Telegram's own
+  // header. It used to be a black page in a cream frame.
+  const dark = NIGHT.includes(S.view);
+  document.body.classList.toggle('dark', dark);
+  // While the card is growing, Telegram's header waits until it lands, so
+  // the frame does not go dark before the page does.
+  if (document.documentElement.dataset.morph === 'open') setTimeout(() => setChrome(NIGHT.includes(S.view)), 340);
+  else setChrome(dark);
+  // Keep a half-typed username across re-renders. Every add box, not just
+  // the escape room's: in the jam room, tapping an instrument after typing
+  // a name redraws the screen, and the name used to vanish with it.
+  const kept = ADD_BOXES.map(id => {
+    const box = document.getElementById(id);
+    return box ? { id, typed:box.value, focused:document.activeElement === box } : null;
+  }).filter(Boolean);
+  screen.innerHTML = VIEWS[S.view] ? VIEWS[S.view]() : '';
+  reuseDecoded();
+  kept.forEach(k => {
+    const nbox = document.getElementById(k.id);
+    if (nbox && k.typed) nbox.value = k.typed;
+    if (nbox && k.focused) nbox.focus();
+  });
+  wire();
+  if (tg){
+    if (S.stack.length) tg.BackButton.show(); else tg.BackButton.hide();
+  }
+}
+
+const ADD_BOXES = ['friendbox', 'jambox', 'jamfriendbox'];
+const NIGHT = ['esc', 'escbook', 'ticket', 'mybookings', 'bookings', 'phone'];
+
+/* Telegram's header and bottom bar take the screen's ground. Only called
+   through when the ground actually changes. */
+let chromeDark = null;
+function setChrome(dark){
+  if (!tg || dark === chromeDark) return;
+  chromeDark = dark;
+  const c = dark ? '#0E0E10' : '#EEEAE1';
+  try { tg.setHeaderColor && tg.setHeaderColor(c); } catch (e){}
+  try { tg.setBackgroundColor && tg.setBackgroundColor(c); } catch (e){}
+  try { tg.setBottomBarColor && tg.setBottomBarColor(c); } catch (e){}
+}
+
+/* Redraw, then put a name back into an add box with the cursor in it. */
+function refillBox(id, value){
+  render();
+  const box = document.getElementById(id);
+  if (box){ box.value = value; box.focus(); }
+}
+
+function mainButtonFor(){
+  if (S.view === 'escbook' && S.pickedSlot != null){
+    const slot = (S.esc && S.esc.slots || []).find(x => x.id === S.pickedSlot);
+    if (slot && slot.status === 'open') return { label:(S.busy ? 'Booking…' : 'Book ' + fmt(at(slot.starts_at))
+      + (S.draft.length ? ' for ' + (S.draft.length + 1) : '')), tap:bookEscape };
+  }
+  // The jam room's button lives on its own screen now, and only appears
+  // once an instrument is chosen — there is nothing to book without one.
+  if (S.view === 'jambook' && S.pickedJam != null && S.jamPick){
+    const slot = (S.jam && S.jam.slots || []).find(x => x.id === S.pickedJam);
+    const n = S.jamGuests.length;
+    if (slot) return { label:(S.busy ? 'Booking…' : 'Book ' + fmt(at(slot.starts_at))
+      + (n ? ' for ' + (n + 1) : '')), tap:bookJam };
+  }
+  return null;
+}
+
+/* ---- views --------------------------------------------------------- */
+
+const VIEWS = {};
+
+VIEWS.gate = function(){
+  const code = S.gateCode;
+  let g, handle = '';
+  if (!code){
+    const p = S.session;
+    g = (p && p.profile && p.profile.handle === 'maxi_muslim') ? GATES.owner : GATES.allowed;
+    g = Object.assign({}, g, { body: gateAllowedBody() });
+  } else if (code === 'NOT_ON_LIST' && S.gateSent){
+    g = GATES.SENT;
+  } else {
+    g = GATES[code] || GATES.NETWORK;
+    handle = S.gateHandle || 'you';
+  }
+  const title = (g.title || '').replace('{handle}', handle);
+  return `
+  <div class="gate">
+    <div class="gate-dots"></div>
+    <div class="gate-frame"></div>
+    <div class="gate-top">
+      <span class="gate-tag label">Pre-U event</span>
+      <span class="gate-where">${esc(ev().venue || '')}</span>
+    </div>
+    <div class="gate-mid">
+      <img class="gate-logo" src="/static/yard-logo.png" alt="The Yard">
+      <div class="gate-dates">
+        <span class="gate-date label" style="transform:rotate(-2.5deg)">${esc(ev().date || 'Thu 24 Sep')}</span>
+        <span class="gate-date label" style="transform:rotate(1.5deg)">${esc(hours() || '3–10 PM')}</span>
+      </div>
+    </div>
+    <div class="gate-bot">
+      <div class="gate-card" style="background:${g.tone}">
+        <div class="gate-title">${esc(title)}</div>
+        ${g.body ? `<div class="gate-body">${esc(g.body)}</div>` : ''}
+        ${code === 'NOT_ON_LIST' && !S.gateSent ? `
+        <label class="gate-handle">
+          <span>@</span>
+          <input type="text" id="claimed" placeholder="the username you signed up with"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+        </label>` : ''}
+      </div>
+      <button class="gate-cta" id="gatecta" ${S.loading ? 'disabled' : ''}>${esc(g.cta)}</button>
+    </div>
+  </div>`;
+};
+
+function gateAllowedBody(){
+  const s = S.session;
+  if (!s) return '';
+  if (s.profile.handle === 'maxi_muslim') return 'Signed in as @maxi_muslim.';
+  return 'Signed up as @' + s.profile.handle + '.';
+}
+
+VIEWS.home = function(){
+  const me = S.me;
+  if (!me) return skeleton();
+  const needsPayment = me.payment_status === 'missing' || me.payment_status === 'rejected';
+  const nx = nextUp(me);
+  return `
+  <div class="page view">
+    <header>
+      <!-- The opening hours used to sit on the right here. Removed at the
+           organiser's request: the phone already shows a clock in its own
+           status bar, and two times in one corner reads as a contradiction
+           rather than information. The hours are still on the gate screen,
+           which is where somebody is deciding whether to come, and in
+           Bookings & help. -->
+      <div class="dateline label"><span>${esc(ev().date)}</span></div>
+      <h1 class="display hello">Evening,<br>${esc(me.profile.first_name)}</h1>
+    </header>
+    ${photo('home', ev().venue || '')}
+    ${needsPayment ? `
+    <div class="strip strip-warn">
+      <div class="grow">
+        <div class="strip-t">We haven’t spotted your payment</div>
+        <div class="strip-b">Show it at the front desk and everything below opens up.</div>
+      </div>
+    </div>` : ''}
+    ${me.can_message === false && tg && tg.requestWriteAccess ? `
+    <div class="strip strip-warn" style="background:var(--paper-2)">
+      <div class="grow"><div class="strip-b" style="margin:0">Let us message you — your reminders and the escape room’s phone arrive that way.</div></div>
+      <button class="strip-btn" id="allowmsgs">Allow</button>
+    </div>` : ''}
+    <!-- The card was a notice; now it is the way into your bookings. It was
+         the most-looked-at thing on the screen and the only thing you could
+         not tap, which read as a dead end. It opens everything you hold, not
+         the one ticket that happens to be soonest (decision 115), and on a
+         phone that can, it grows into that page (121). With nothing booked
+         it is the same card saying "None" (22 Sep, decision 127), so it
+         still opens and still grows — an empty diary is where you most need
+         the way in. -->
+    ${upNextCard(nx)}
+    <nav class="prog">
+      ${progRow('01', 'The Yard Pass', 'Scan it to claim your ' + itemsSentence(), 'food',
+                !canCollect(me) ? '' : openItems(me) ? '' : `<span class="pill pill-line">Done</span>`)}
+      ${progRow('02', 'The Last Guest', 'You have fifteen minutes to solve this escape room. Can you do it in time?', 'esc')}
+      ${progRow('03', 'The Jamming Studio', 'Are you musical? Give our jamming room a try', 'jam')}
+      ${progRow('04', 'Floorplan', 'Where everything is at The Yard', 'floorplan')}
+      ${progRow('05', 'Help', 'Lost, stuck, or something looks odd? Click here', 'help')}
+    </nav>
+  </div>`;
+};
+
+/* A menu row: number, big name, and one line saying where it goes.
+   The subtitles were added on 19 Sep because the names alone assume you
+   already know what the evening contains — "Your pass" means nothing until
+   somebody tells you it is the thing you hold up at the counter. */
+function progRow(n, title, blurb, view, extra){
+  return `<button class="prog-row" data-go="${view}">
+    <span class="prog-n label">${n}</span>
+    <span class="prog-text">
+      <span class="prog-t">${esc(title)}</span>
+      <span class="prog-b">${esc(blurb)}</span>
+    </span>
+    ${extra || ''}
+    ${ARROW}
+  </button>`;
+}
+
+/* The soonest thing booked, or null. */
+function nextUp(me){
+  const soon = [];
+  const b = me.escape_booking;
+  if (b && minsUntil(b.ends_at) > 0) soon.push({ at:b.starts_at, what:'The Last Guest' });
+  (me.jam_bookings || []).forEach(j => { if (minsUntil(j.ends_at) > 0) soon.push({ at:j.starts_at, what:'The Jamming Studio' }); });
+  if (!soon.length) return null;
+  soon.sort((x, y) => Date.parse(x.at) - Date.parse(y.at));
+  const n = soon[0];
+  return { time:fmt(at(n.at)), what:n.what, when:minsUntil(n.at) > 0 ? until(n.at) : 'on now' };
+}
+
+/* What the card and the top of Your bookings say. Nothing booked reads
+   "None" and "Book something!" in the places a time and a room go, so the
+   two layouts are the same shape and the grow works either way. */
+function upNextWords(nx){
+  return nx || { time:'None', what:'Book something!', when:'' };
+}
+
+function upNextCard(nx){
+  const w = upNextWords(nx);
+  return `<button class="next halftone live" data-go="mybookings">
+      <span class="label">Up next</span>
+      <span class="num next-time">${esc(w.time)}</span>
+      <span class="next-foot">
+        <span class="next-what">${esc(w.what)}</span>
+        <span class="label next-when">${esc(w.when)}</span>
+      </span>
+      <span class="next-go label">Open it ${ARROW}</span>
+    </button>`;
+}
+
+VIEWS.esc = function(){
+  const d = S.esc;
+  if (!d) return `<div class="night">${skeleton()}</div>`;
+  const mine = d.my_booking;
+  const cells = d.slots.map((sl, i) => {
+    const isMine = mine && mine.slot_id === sl.id;
+    let cls = 'game', state;
+    if (isMine){ cls += ' mine'; state = 'Yours'; }
+    else if (sl.status === 'started'){ cls += ' dim'; state = 'Past'; }
+    else if (sl.status === 'blocked'){ cls += ' dim'; state = 'Off'; }
+    else if (sl.status === 'closed'){ cls += ' dim'; state = 'Closed'; }
+    else if (sl.status === 'full'){ cls += ' dim'; state = 'Full'; }
+    else {
+      cls += ' live';
+      state = sl.seats_left + ' left';
+      if (sl.seats_left <= 3) cls += ' low';
+    }
+    return `<button class="${cls}" data-slot="${sl.id}">
+      <span class="num">${esc(short(at(sl.starts_at)))}</span>
+      <span class="label">${esc(state)}</span>
+    </button>`;
+  }).join('');
+  const first = d.slots[0], last = d.slots[d.slots.length - 1];
+  return `
+  <div class="night view">
+    <div class="esc-hero halftone">
+      <div class="label">Fifteen minutes on the clock</div>
+      <h1 class="display esc-title">The Last<br>Guest</h1>
+      <!-- Rewritten 19 Sep. The old version stopped at "you have the same
+           fifteen", which is a good line and a bad ending: it never says
+           what you are meant to do, so it reads as a sentence cut off. It
+           now finishes the thought — one of them is lying, find out which. -->
+      <p class="esc-prem">Si Hong hosted four guests. At 10:30 PM he collapsed. All four say they had already left — and one of them is lying.</p>
+      <p class="esc-prem">You’ll be split into two groups — one inside his flat, one at the desk. When your game starts, his phone arrives on Telegram for every one of you. Each group finds things the other can’t see, so you’ll have to talk to each other to work out who’s lying. The police are fifteen minutes out, and so are you.</p>
+    </div>
+    <div class="esc-body">
+      ${photo('esc', 'The Last Guest')}
+      <!-- The phone card that sat here is gone (22 Sep, decision 130): the
+           phone opens only from the bot's message, on its own screen. -->
+      <div class="bar label"><span>Tonight</span><span>${first ? esc(span(at(first.starts_at), at(last.starts_at))) : ''}</span></div>
+      <div class="games">${cells}</div>
+    </div>
+  </div>`;
+};
+
+/* A free time, on its own page (decision 116): the time, who's coming, and
+   the Book button in the bottom sheet. The same shape as the jam room's
+   second screen, so both rooms book the same way. */
+VIEWS.escbook = function(){
+  const d = S.esc;
+  if (!d) return `<div class="night">${skeleton()}</div>`;
+  const sl = d.slots.find(x => x.id === S.pickedSlot);
+  // It filled up or closed while they were choosing names.
+  if (!sl || sl.status !== 'open') return `
+  <div class="night view"><div class="ticket">
+    <h1 class="display" style="font-size:44px">That time has gone</h1>
+    <button class="btn btn-bone" data-go="esc">Pick another ${ARROW}</button>
+  </div></div>`;
+  const max = d.max_party || 6;
+  const most = Math.min(max, sl.seats_left);
+  const me = S.me && S.me.profile;
+  const rows = [{ name:'You', sub:me ? '@' + me.handle : '', me:true }]
+    .concat(S.draft.map(h => ({
+      name:'@' + h, bad:S.badFriends.includes(h),
+      edit:`data-redraft="${esc(h)}"`, remove:`data-undraft="${esc(h)}"`
+    })));
+  return `
+  <div class="night view"><div class="ticket">
+    <header class="bookhead">
+      <div class="tstub-top">
+        <span class="label">The Last Guest</span>
+        <span class="label">${esc(sl.seats_left)} left</span>
+      </div>
+      <div class="num tstub-time">${esc(fmt(at(sl.starts_at)))}</div>
+    </header>
+    ${peopleList({
+      head:'Who’s coming', count:rows.length + ' of ' + most, rows,
+      add:rows.length < most ? addRow('friendbox', '<button class="prow-add-btn" id="friendadd">Add</button>') : ''
+    })}
+  </div></div>`;
+};
+
+/* The people on a booking: one numbered box each (decision 117). Used by
+   both rooms, before booking and after, so there is one way to read "who's
+   coming" anywhere in the app.
+
+   Each row: { name, sub, tag, me, locked, bad, warn, edit, remove }
+     name    the bold line: "You", a name, or an @handle
+     sub     the line under it, usually the @handle
+     tag     one word on the right: an instrument, "Booked it", "Taken"
+     me      filled, so you can find yourself at a glance
+     locked  dimmed and without buttons — not yours to change. Dimmed, not
+             blurred: you still need to read who is coming.
+     bad     a name the server just refused, ringed red
+     edit    attributes for an Edit button (before booking only, 118)
+     remove  attributes for the × button
+   The last box, when there is room, is the next number with the add box in
+   it, so adding somebody reads as filling the next seat. Nothing is checked
+   here: the server books everyone or no one, and names who failed. */
+function peopleList(o){
+  const rows = o.rows.map((r, i) => `
+      <li class="prow${r.me ? ' me' : ''}${r.locked ? ' locked' : ''}${r.bad ? ' bad' : ''}">
+        <span class="prow-n label">${i + 1}</span>
+        <span class="prow-main">
+          <span class="prow-name">${esc(r.name)}</span>
+          ${r.sub ? `<span class="prow-sub${r.warn ? ' warn' : ''}">${esc(r.sub)}</span>` : ''}
+        </span>
+        ${r.tag ? `<span class="prow-tag label">${esc(r.tag)}</span>` : ''}
+        ${r.edit ? `<button class="prow-edit" ${r.edit}>Edit</button>` : ''}
+        ${r.remove ? `<button class="prow-x" ${r.remove} aria-label="Remove ${esc(r.name)}">×</button>` : ''}
+      </li>`).join('');
+  return `
+    <section class="plist-wrap">
+      <div class="plist-head">
+        <span class="label">${esc(o.head)}</span>
+        ${o.count ? `<span class="label plist-count">${esc(o.count)}</span>` : ''}
+      </div>
+      <ol class="plist">
+        ${rows}
+        ${o.add ? `
+        <li class="prow add">
+          <span class="prow-n label">${o.rows.length + 1}</span>
+          <div class="prow-addbody">${o.add}</div>
+        </li>` : ''}
+      </ol>
+    </section>`;
+}
+
+/* The inside of that last box: "@", the input, the button, and anything
+   that belongs with the name being typed (the jam room's instruments). */
+function addRow(inputId, button, extra){
+  return `
+          <div class="prow-add">
+            <label class="prow-field">
+              <span>@</span>
+              <input id="${inputId}" placeholder="add a friend" autocapitalize="off" autocorrect="off" spellcheck="false">
+            </label>
+            ${button}
+          </div>
+          ${extra || ''}`;
+}
+
+/* "You can change this anytime, until 5 minutes before your booking." The
+   number is read off the server's deadline, never typed in, so the sentence
+   stays true if the organiser changes the cut-off in Settings. */
+function minsBefore(startIso, cutIso){
+  return Math.max(0, Math.round((Date.parse(startIso) - Date.parse(cutIso)) / 60000));
+}
+function beforeLine(verb, startIso, cutIso){
+  const m = minsBefore(startIso, cutIso);
+  return 'You can ' + verb + ' anytime, until ' + m + (m === 1 ? ' minute' : ' minutes') + ' before your booking.';
+}
+
+function cleanHandle(s){
+  return String(s || '').trim().replace(/^(https?:\/\/)?(www\.)?(t|telegram)\.me\//i, '')
+    .replace(/^@/, '').split(/[/?\s]/)[0].toLowerCase();
+}
+
+function draftAdd(){
+  const box = document.getElementById('friendbox');
+  const h = cleanHandle(box && box.value);
+  if (!h) return;
+  const mine = S.me && S.me.profile && S.me.profile.handle;
+  if (h === mine){ toast("You're already in."); return; }
+  if (!S.draft.includes(h)) S.draft.push(h);
+  S.badFriends = S.badFriends.filter(x => x !== h);
+  box.value = '';
+  render();
+  const again = document.getElementById('friendbox');
+  if (again) again.focus();
+}
+
+/* Phone card copy, keyed on the server's code. The device never decides
+   whether the phone is open — §9 r21 is the server's call. Shown only on the
+   phone's own screen, which the bot's message opens (decision 130). */
+function phoneCard(){
+  const p = S.phone;
+  if (!p) return { title:'Checking', body:'One moment.', openable:false, count:'' };
+  switch (p.code){
+    case 'NO_BOOKING':
+      return { title:'No game booked', body:'His phone is for the people in a game, once it starts.', openable:false, count:'' };
+    case 'PHONE_OFF':
+      return { title:'At the desk', body:'This game uses the handset on the desk. Ask the game master.', openable:false, count:'' };
+    case 'PHONE_LOCKED':
+      return { title:'Locked', body:'It opens when your game starts, and we’ll message you the moment it does.',
+               openable:false, count:minsUntil(p.game_starts_at) > 0 ? 'Your game starts ' + until(p.game_starts_at) : '' };
+    case 'RELOCKED':
+      return { title:'Time’s up', body:'The phone has locked again. Your time is with the game master.', openable:false, count:'' };
+    case 'NOT_CHECKED_IN':
+      return { title:'Check in first', body:'Check in at ' + (ev().escape_meet || 'the escape room entrance') + ', then tap Open the phone in the message again.', openable:false, count:'' };
+    default: {
+      const left = Math.max(0, minsUntil(p.lock_at));
+      return { title:'Unlocked', body:'Messages, calls and photos. Everything you need is on it.',
+               openable:true, count:left + ' min left' };
+    }
+  }
+}
+
+/* His phone, on its own screen (decision 130). Nothing in the app links
+   here: the bot's "Open the phone" message is the only way in, and arriving
+   from it opens the phone at once. This is what sits behind it — to open it
+   again after closing, to reach the browser fallback, or to say why not. */
+VIEWS.phone = function(){
+  const ph = phoneCard();
+  return `
+  <div class="night view"><div class="ticket">
+    <header>
+      <div class="label" style="color:var(--smoke)">The Last Guest</div>
+      <h1 class="display" style="font-size:52px; margin-top:8px">His<br>Phone</h1>
+    </header>
+    <div class="phone">
+      <div class="label">The phone</div>
+      <div class="phone-t">${esc(ph.title)}</div>
+      <div class="phone-b">${esc(ph.body)}</div>
+      ${ph.count ? `<div class="label phone-count">${esc(ph.count)}</div>` : ''}
+      ${ph.openable ? `<button class="phone-open" id="openphone">Open the phone</button>` : ''}
+      ${ph.openable ? `<button class="phone-alt" id="openphonetab">Phone not working? Open it in your browser</button>` : ''}
+    </div>
+  </div></div>`;
+};
+
+VIEWS.ticket = function(){
+  const me = S.me;
+  if (!me) return `<div class="night">${skeleton()}</div>`;
+  const b = me.escape_booking;
+  if (!b) return `
+  <div class="night view"><div class="ticket">
+    <h1 class="display" style="font-size:44px">No game booked</h1>
+    <button class="btn btn-bone" data-go="esc">Go to the board ${ARROW}</button>
+  </div></div>`;
+  const owner = b.i_am_owner;
+  const starts = at(b.starts_at);
+  const arrive = new Date(starts.getTime() - 5 * 60000);
+  const where = b.zone === 'A' ? 'Inside the flat' : b.zone === 'B' ? 'At the desk' : 'You’ll be told at the door';
+  // His phone only ever arrives as a bot message (decision 130), so someone
+  // we can't message would never get it. Say so here, with the fix.
+  const noMsgs = me.can_message === false;
+  const rows = b.group.map(g => g.me
+    ? { name:'You', sub:'@' + g.handle, me:true }
+    : { name:g.name,
+        sub:!g.reachable ? "Can't get our messages, so tell them yourself" : '@' + g.handle,
+        warn:!g.reachable,
+        tag:g.owner ? 'Booked it' : '',
+        locked:!g.removable,
+        remove:g.removable ? `data-unfriend="${esc(g.handle)}"` : '' });
+  // One line each, in the organiser's words (decision 119). Changing the
+  // group closes 5 minutes out; cancelling closes earlier, so it says so.
+  const verb = owner ? 'cancel' : 'leave';
+  const changeLine = !owner ? ''
+    : !b.locked ? beforeLine('change this', b.starts_at, b.edit_until)
+    : 'Changes are closed. Ask the game master at the door.';
+  const leaveLine = b.can_leave ? beforeLine(verb, b.starts_at, b.leave_until)
+    : !b.locked ? 'Too late to ' + verb + ' here. Ask the game master at the door.' : '';
+  return `
+  <div class="night view"><div class="ticket">
+    ${bookedBanner('escape')}
+    <div class="tstub halftone">
+      <div class="tstub-top">
+        <span class="label">The Last Guest</span>
+        <span class="label">${esc(b.ref)}</span>
+      </div>
+      <div class="num tstub-time">${esc(fmt(starts))}</div>
+      <dl class="rows" style="margin:0">
+        <div class="row"><dt>Arrive by</dt><dd>${esc(fmt(arrive))}</dd></div>
+        <div class="row"><dt>Meet at</dt><dd>${esc(capFirst(ev().escape_meet || 'the escape room entrance'))}</dd></div>
+        <div class="row"><dt>Where you start</dt><dd>${esc(where)}</dd></div>
+        <div class="row"><dt>His phone</dt><dd>On Telegram, when the game starts</dd></div>
+        ${!owner ? `<div class="row"><dt>Booked by</dt><dd>@${esc(b.booked_by.handle)}</dd></div>` : ''}
+      </dl>
+    </div>
+    ${noMsgs ? `
+    <div class="phone">
+      <div class="phone-b">We can’t message you yet — and his phone only arrives as a message.</div>
+      ${tg && tg.requestWriteAccess
+        ? `<button class="btn btn-bone" id="allowmsgs">Allow messages</button>`
+        : `<div class="phone-b">Open our bot in Telegram and tap Start.</div>`}
+    </div>` : ''}
+    ${peopleList({
+      head:'Your group', count:b.group.length + ' of ' + b.max_party, rows,
+      add:b.can_add ? addRow('friendbox', '<button class="prow-add-btn" id="friendlive">Add</button>') : ''
+    })}
+    ${changeLine ? `<p class="fine">${esc(changeLine)}</p>` : ''}
+    ${leaveLine ? `<p class="fine">${esc(leaveLine)}</p>` : ''}
+    ${b.can_leave ? `<button class="btn btn-quiet" id="cancelesc">${owner ? 'Cancel my seat' : 'Leave this game'}</button>` : ''}
+  </div></div>`;
+};
+
+VIEWS.food = function(){
+  const me = S.me;
+  if (!me) return skeleton();
+  const items = ev().items || [];
+  return `
+  <div class="page view">
+    ${!canCollect(me) ? `
+    <div class="strip strip-warn">
+      <div class="grow">
+        <div class="strip-t">We haven’t spotted your payment</div>
+        <div class="strip-b">Show it at the front desk, then the counter can hand your stuff over.</div>
+      </div>
+    </div>` : ''}
+    <div class="pass halftone">
+      <img src="${esc(me.pass_qr)}" alt="Your pass QR code">
+      <div class="code pass-code">${esc(me.profile.pass_code)}</div>
+    </div>
+    <div class="items">
+      ${items.map(i => itemRow(i, me.claims[i.key] || { claimed:false })).join('')}
+    </div>
+    ${photo('pass', 'Included with entry')}
+  </div>`;
+};
+
+/* Whether the booth may hand over is the server's call (§9 r25 — Settings can
+   relax it to 'submitted'). */
+function canCollect(me){
+  return !!me.payment_ok;
+}
+
+function openItems(me){
+  return (ev().items || []).filter(i => !(me.claims[i.key] || {}).claimed).length;
+}
+
+/* "pastry, photo strip and vinyl making", from the server's item list. */
+function itemsSentence(){
+  const n = (ev().items || []).map(i => i.label.toLowerCase());
+  return n.length < 2 ? n.join('') : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1];
+}
+
+/* A place from Settings, starting with a capital when it opens a line. */
+function capFirst(s){ s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* A photograph at the top of a screen, if there is one.
+
+   The server only lists files that are actually on the laptop, so a screen
+   with no photograph yet renders exactly as it did before — no gap, no
+   broken image. Drop a file into static\shots and it appears. The CSS
+   turns it greyscale and lays a halftone over it so a photograph belongs to
+   the same world as the grain and the stencilled type. */
+function photo(name, caption){
+  const src = (ev().shots || {})[name];
+  if (!src) return '';
+  return `<figure class="shot shot-${esc(name)}">
+    <img src="${esc(src)}" alt="" decoding="async">
+    ${caption ? `<figcaption class="shot-cap label">${esc(caption)}</figcaption>` : ''}
+  </figure>`;
+}
+
+/* Event facts from the server (Settings), with nothing hard-coded. */
+function ev(){
+  return (S.me && S.me.event) || (S.session && S.session.event) || {};
+}
+/* "3–10 PM" from "3:00 PM" and "10:00 PM". */
+function hours(){
+  const e = ev();
+  if (!e.opens) return '';
+  const trim = s => s.replace(':00', '');
+  const [a, am] = trim(e.opens).split(' '), [b, bm] = trim(e.closes).split(' ');
+  return am === bm ? a + '–' + b + ' ' + bm : trim(e.opens) + '–' + trim(e.closes);
+}
+
+/* One thing the pass covers: its name, a line saying what it is (the pastry
+   lists the kinds), and whether it's still to collect. Once collected, the
+   line says which pastry it was. */
+function itemRow(item, claim){
+  const sub = claim.claimed ? (claim.variant_label || item.note || '') : (item.note || '');
+  const text = `<span class="item-text">
+      <span class="item-t">${esc(item.label)}</span>
+      ${sub ? `<span class="item-s">${esc(sub)}</span>` : ''}
+    </span>`;
+  if (!claim.claimed){
+    return `<div class="item">${text}<span class="pill pill-ok">Ready</span></div>`;
+  }
+  return `<div class="item done">${text}
+    <span class="item-when">Collected<br>${esc(fmt(at(claim.at)))}</span>
+  </div>`;
+}
+
+/* "You're booked" — shown once, straight after a booking, so nobody wonders. */
+function bookedBanner(kind){
+  const b = S.booked;
+  if (!b || b.kind !== kind) return '';
+  S.booked = null;
+  const reach = S.me && S.me.can_message
+    ? 'We’ve dropped the details in your Telegram.'
+    : 'Tap Allow on the home screen and we’ll nudge you.';
+  return `<div class="strip strip-ok">
+    <div class="grow">
+      <div class="strip-t">You’re in</div>
+      <div class="strip-b">${esc(b.what)}. Ref ${esc(b.ref)}. ${esc(reach)}</div>
+    </div>
+  </div>`;
+}
+
+/* ---- the jamming studio -------------------------------------------
+   Two screens, on purpose. The board picks a time; the second screen picks
+   instruments and people. The escape room works the same way, so the shape
+   is familiar — but the jam room is set on paper with the instruments as
+   big stencilled type, where the escape room is dark and cramped. You should
+   know which room you are in before you read a word. */
+
+VIEWS.jam = function(){
+  const d = S.jam;
+  if (!d) return skeleton();
+  const rows = d.slots.map((sl, i) => {
+    let cls = 'jamslot', label;
+    const free = (sl.free || []).length;
+    if (sl.status === 'mine'){ cls += ' mine'; label = 'Yours'; }
+    else if (sl.status === 'open'){ cls += ' live'; label = free + ' free'; }
+    else { cls += ' dim'; label = { started:'Past', closed:'Closed', blocked:'Off', full:'Full' }[sl.status] || sl.status; }
+    return `<button class="${cls}" data-jam="${sl.id}">
+      <span class="num">${esc(short(at(sl.starts_at)))}–${esc(short(at(sl.ends_at)))}</span>
+      <span class="label">${esc(label)}</span>
+    </button>`;
+  }).join('');
+  return `
+  <div class="page view jam-page">
+    ${photo('jam', 'The Jamming Studio')}
+    <header class="jam-hero">
+      <div class="label">Half an hour, the room is yours</div>
+      <h1 class="display big jam-head">The Jamming<br>Studio</h1>
+      <p class="fine" style="margin-top:12px">Pick a time, claim an instrument, and invite your friends to come hear you play! Whoever takes the rest is your band for the night.</p>
+    </header>
+    <div class="kitlist">
+      ${(d.instruments || []).map(i => `<span class="kit">${esc(i.label)}</span>`).join('')}
+    </div>
+    <div class="bar label"><span>Tonight</span><span>${d.slots.length ? esc(span(at(d.slots[0].starts_at), at(d.slots[d.slots.length-1].ends_at))) : ''}</span></div>
+    <div class="jamlist">${rows}</div>
+  </div>`;
+};
+
+/* The second jam screen: which instrument, and who else is coming. */
+VIEWS.jambook = function(){
+  const d = S.jam;
+  if (!d) return skeleton();
+  const sl = (d.slots || []).find(x => x.id === S.pickedJam);
+  if (!sl) return skeleton();
+  const free = sl.free || [];
+  const mine = S.jamPick;
+  return `
+  <div class="page view jam-page">
+    <header class="jam-hero">
+      <div class="label">The Jamming Studio</div>
+      <h1 class="display big jam-head">${esc(span(at(sl.starts_at), at(sl.ends_at)))}</h1>
+    </header>
+    <section class="jam-sec">
+      <div class="label">You're playing</div>
+      <div class="kitpick">
+        ${(d.instruments || []).map(i => {
+          const gone = !free.includes(i.key);
+          return `<button class="kitbtn ${gone ? 'gone' : ''} ${mine === i.key ? 'on' : ''}"
+            ${gone ? 'disabled' : `data-kit="${esc(i.key)}"`}>
+            <span class="kitname">${esc(i.label)}</span>
+            <span class="label">${gone ? 'Taken' : mine === i.key ? 'Yours' : 'Free'}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </section>
+    ${mine ? jamPartyPanel(d, sl) : ''}
+  </div>`;
+};
+
+/* Instruments still free for a friend in this slot: not taken by anyone
+   already in the room, not yours, and not one you have given someone. */
+function jamOpenKits(sl){
+  const used = S.jamGuests.map(g => g.instrument);
+  return (sl.free || []).filter(k => k !== S.jamPick && !used.includes(k));
+}
+
+/* Who's in the room, as one numbered list: the instruments somebody else
+   already holds (dimmed — the board says what is taken, not by whom), then
+   you, then the friends you are bringing, then the next seat to fill. */
+function jamPartyPanel(d, sl){
+  const inst = d.instruments || [];
+  const label = k => (inst.find(i => i.key === k) || {}).label || k;
+  const open = jamOpenKits(sl);
+  const me = S.me && S.me.profile;
+  const rows = inst.filter(i => !(sl.free || []).includes(i.key))
+    .map(i => ({ name:i.label, tag:'Taken', locked:true }))
+    .concat([{ name:'You', sub:me ? '@' + me.handle : '', tag:label(S.jamPick), me:true }])
+    .concat(S.jamGuests.map(g => ({
+      name:'@' + g.handle, tag:label(g.instrument), bad:S.badFriends.includes(g.handle),
+      edit:`data-reguest="${esc(g.handle)}"`, remove:`data-unguest="${esc(g.handle)}"`
+    })));
+  // With one instrument left there is nothing to choose, so it is chosen.
+  const pick = S.jamGuestKit || (open.length === 1 ? open[0] : null);
+  return `
+    <section class="jam-sec">
+      ${peopleList({
+        head:'In the room', count:rows.length + ' of ' + inst.length, rows,
+        add:open.length ? addRow('jambox', '<button class="prow-add-btn" id="jamguestadd">Add</button>',
+          `<div class="kitchips">${open.map(k => `<button class="kitchip ${pick === k ? 'on' : ''}" data-guestkit="${esc(k)}">${esc(label(k))}</button>`).join('')}</div>`) : ''
+      })}
+    </section>`;
+}
+
+/* ---- my bookings ---------------------------------------------------
+   Reached from the card on Home, which used to be a notice you could not
+   tap. Everything you have booked, with the controls on it. */
+VIEWS.mybookings = function(){
+  const me = S.me;
+  if (!me) return `<div class="night">${skeleton()}</div>`;
+  const b = me.escape_booking, jams = me.jam_bookings || [];
+  const escCard = b ? `
+      <button class="hold room-esc" data-go="ticket">
+        <div class="hold-top">
+          <span class="label">The Last Guest</span>
+          <span class="label">${esc(until(b.starts_at))}</span>
+        </div>
+        <div class="hold-t" style="color:var(--bone)">${esc(fmt(at(b.starts_at)))}</div>
+        <div class="hold-foot">
+          ${holdWho((b.group || []).map(g => g.me ? 'You' : firstName(g.name, g.handle)))}
+          <span class="hold-go">${ARROW}</span>
+        </div>
+      </button>` : emptyHold('The Last Guest', 'Book a game', 'esc', 'room-esc');
+  const jam = jams.length ? jams.map(jamRow).join('')
+    : emptyHold('The Jamming Studio', 'Grab an instrument', 'jam', 'room-jam');
+  // The top of this page is the Up next card, carried up from Home: on a
+  // phone that can, the card grows into this page and these three pieces
+  // glide up into place (decision 121), so they are the same words at the
+  // same size as on the card. Nothing booked is the same header saying
+  // "None" (decision 127), so there is always somewhere for them to land.
+  const w = upNextWords(nextUp(me));
+  const hero = `
+    <header class="bk-hero">
+      <span class="label bk-hero-label">Up next</span>
+      <span class="num next-time bk-hero-time">${esc(w.time)}</span>
+      <span class="next-foot bk-hero-foot">
+        <span class="next-what">${esc(w.what)}</span>
+        <span class="label next-when">${esc(w.when)}</span>
+      </span>
+    </header>`;
+  return `
+  <div class="night view bk-ground"><div class="ticket">
+    ${hero}
+    <div class="holds">${escCard}${jam}</div>
+  </div></div>`;
+};
+
+/* Who's coming, on a room card: numbered, first names only, so it fits on a
+   line or two. The full list, with its buttons, is on the room's own page. */
+function holdWho(names){
+  return `<span class="hold-who">${names.map((n, i) =>
+    `<span><span class="label">${i + 1}</span> ${esc(n)}</span>`).join('')}</span>`;
+}
+function firstName(name, handle){
+  const n = String(name || '').trim().split(/\s+/)[0];
+  return n || '@' + handle;
+}
+
+/* ---- help ----------------------------------------------------------
+   Split from bookings on 19 Sep. They were one screen, and a person looking
+   for "who do I ask" had to scroll past their own tickets to find it. */
+VIEWS.help = function(){
+  const e = ev();
+  const included = (e.items || []).map(i => i.label)
+    .concat(['The Last Guest', 'The Jamming Studio', 'Board Games']);
+  const desk = e.meeting_point || 'the front desk';
+  // Easier to read (22 Sep, decision 124): a card per section, its heading
+  // in the accent colour, and the questions folded so the page is a list of
+  // things you might be wondering rather than a wall of answers. The price
+  // list is the first question (22 Sep, STATE.md 132): it's the one people
+  // ask most, and it comes from Settings, so a price changed on the night
+  // shows here straight away.
+  const faq = [
+    ['Is there a price list?', priceList(e.prices)],
+    ['I’ve ordered a matcha or panini. How do I know it’s ready?',
+     'We’ll message you on Telegram the moment it’s done, so you don’t have to wait at the counter. If you never tapped Allow on Home, listen for your name instead.'],
+    ['The counter says I already collected something.',
+     'Have a word at ' + desk + '. Every hand-over is logged with the time, so it’s easy to check and undo.'],
+    ['Can I change who’s in my booking?',
+     'Yes, up to 5 minutes before it starts. Tap Up next on Home, open the booking, and add or remove people there.'],
+    ['Someone booked me in and I can’t make it.',
+     'Open the booking and tap Leave. Everyone else keeps their spot, and whoever booked you gets a heads-up.'],
+    ['You haven’t seen my payment.',
+     'Show it at ' + desk + ' and you’re good to go.'],
+    ['How do I open the escape room’s phone?',
+     'When your game starts, the bot messages everyone in it with an Open the phone button — that button is the only way in. It stays open for '
+     + (e.phone_minutes || 25) + ' minutes from the start. If it won’t load, there’s a link under it to open it in your browser instead.']
+  ];
+  // The street address alone: a Singapore postcode finds the building.
+  const maps = e.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.address) : '';
+  return `
+  <div class="page view">
+    <header><h1 class="display big">Help</h1></header>
+    <section class="help-card">
+      <h2 class="label">When and where</h2>
+      <div class="help-when">
+        <span class="display">${esc(e.date || '')}</span>
+        <span class="display">${esc(hours())}</span>
+      </div>
+      ${e.venue ? `<div class="help-venue">
+        <div class="help-place">${esc(e.venue)}</div>
+        ${e.address ? `<div class="help-addr">${esc(e.address)}</div>` : ''}
+      </div>` : ''}
+      ${maps ? `<a class="btn btn-line" href="${esc(maps)}" target="_blank" rel="noopener">Open in Maps ${ARROW}</a>` : ''}
+      <button class="btn btn-line" data-go="floorplan">See the floorplan ${ARROW}</button>
+    </section>
+    <section class="help-card">
+      <h2 class="label">Included with entry</h2>
+      <ul class="help-list">${included.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+    </section>
+    ${e.paid_extras ? `<section class="help-card">
+      <h2 class="label">Bring a bit extra for</h2>
+      <p class="help-p">${esc(e.paid_extras)}.</p>
+    </section>` : ''}
+    <section class="help-card">
+      <h2 class="label">Questions</h2>
+      <div class="help-faq">
+        ${faq.filter(([, a]) => a).map(([q, a]) => `<details name="helpfaq"><summary>${esc(q)}</summary>${
+          typeof a === 'string' ? `<p>${esc(a)}</p>` : a.html}</details>`).join('')}
+      </div>
+    </section>
+    <section class="help-card">
+      <h2 class="label">Still stuck</h2>
+      <p class="help-p">Ask at ${esc(desk)} — someone is always there.</p>
+      ${e.help_handle ? `<a class="btn btn-ink" href="https://t.me/${esc(e.help_handle)}" target="_blank" rel="noopener">Message @${esc(e.help_handle)} ${ARROW}</a>` : ''}
+    </section>
+  </div>`;
+};
+
+/* The price list inside its Help question: each group under a small
+   heading, the name on the left and the price on the right, so prices line
+   up and can be read down the column. Only things that cost money are here —
+   what the pass covers is under "Included with entry". Null (and the
+   question is left out) if Settings hold no prices. */
+function priceList(sections){
+  if (!sections || !sections.length) return null;
+  return { html:`<div class="prices">${sections.map(s => `
+    <div class="price-group">
+      ${s.title ? `<div class="label price-h">${esc(s.title)}</div>` : ''}
+      ${s.rows.map(r => `<div class="price-row"><span>${esc(r.name)}</span><span class="price">${esc(r.price)}</span></div>`).join('')}
+    </div>`).join('')}
+  </div>` };
+}
+
+/* The venue map (22 Sep, STATE.md 132). It is wider than a phone, so it
+   opens fitted to the screen and one tap zooms it to twice the size, to
+   drag around; a second tap fits it again. A map you can't read the names
+   on is no map. */
+VIEWS.floorplan = function(){
+  const e = ev();
+  const src = e.floorplan;
+  return `
+  <div class="page view">
+    <header><h1 class="display big">Floorplan</h1></header>
+    ${src ? `
+    <div class="plan ${S.planZoom ? 'zoomed' : ''}" id="plan">
+      <img src="${esc(src)}" alt="The Yard floorplan: the DIY area, two chill rooms, the photo booth, the jamming room, the food stalls, the seating area, registration and the entrance">
+    </div>
+    <button class="btn btn-line" id="planzoom">${S.planZoom ? 'Fit to screen' : 'Zoom in'}</button>
+    <ul class="help-list plan-notes">
+      <li>The Jamming Studio is the Jamming Room: ${esc(e.jam_room || 'Heaven 2')}</li>
+      <li>For The Last Guest, meet at ${esc(e.escape_meet || 'the escape room entrance')}</li>
+    </ul>` : `<p class="help-p">The floorplan isn’t up yet. Ask at ${esc(e.meeting_point || 'the front desk')}.</p>`}
+  </div>`;
+};
+
+/* An old deep link (?go=bookings) from a message sent before 19 Sep. */
+VIEWS.bookings = function(){ return VIEWS.mybookings(); };
+
+/* A jam booking on My bookings. A row, not a panel: tapping it opens the
+   slot on its own screen, the way an escape booking opens its ticket. The
+   controls that used to be crammed under this row live there now. */
+function jamRow(j, i){
+  return `
+  <button class="hold ${i ? '' : 'room-jam'}" data-jamopen="${esc(j.ref)}">
+    <div class="hold-top">
+      <span class="label">The Jamming Studio</span>
+      <span class="label">${esc(until(j.starts_at))}</span>
+    </div>
+    <div class="hold-t" style="color:var(--bone)">${esc(span(at(j.starts_at), at(j.ends_at)))}</div>
+    <div class="hold-foot">
+      ${holdWho((j.line_up || []).map(g => g.me ? 'You' : firstName(g.name, g.handle)))}
+      <span class="hold-go">${ARROW}</span>
+    </div>
+  </button>`;
+}
+
+/* An activity you have not booked yet. The same shape, drawn as an outline,
+   so the page is always two rooms. */
+function emptyHold(title, line, view, cls){
+  return `
+  <button class="hold empty ${cls || ''}" data-go="${esc(view)}">
+    <div class="hold-top"><span class="label">${esc(title)}</span></div>
+    <div class="hold-t">${esc(line)}</div>
+    <div class="hold-foot"><span>Nothing booked yet</span><span class="hold-go">${ARROW}</span></div>
+  </button>`;
+}
+
+/* ---- a jam slot, on its own screen ---------------------------------
+   The escape room has a ticket; this is the jam room’s. Same shape, paper
+   ground and ultramarine ink, so you know which room you are looking at
+   before you read it. */
+VIEWS.jamticket = function(){
+  const me = S.me;
+  if (!me) return skeleton();
+  const jams = me.jam_bookings || [];
+  const j = jams.find(x => x.ref === S.openJam) || jams[0];
+  if (!j) return `
+  <div class="page view">
+    <header><h1 class="display big">Nothing<br>booked</h1></header>
+    <button class="btn btn-line" data-go="jam">The board ${ARROW}</button>
+  </div>`;
+  const line = j.line_up || [];
+  const free = j.free || [];
+  // The whole room is listed, not just your group. Anyone you cannot take
+  // off — another group, or everyone if somebody else booked — is dimmed.
+  const rows = line.map(g => g.me
+    ? { name:'You', sub:'@' + g.handle, tag:g.instrument_label || '', me:true }
+    : { name:g.name || '@' + g.handle, sub:'@' + g.handle, tag:g.instrument_label || '',
+        locked:!g.mine_to_remove,
+        remove:g.mine_to_remove ? `data-jamdrop="${esc(j.ref)}|${esc(g.handle)}"` : '' });
+  const pick = S.jamAddKit || (free.length === 1 ? free[0].key : null);
+  const open = minsUntil(j.edit_until) > 0;
+  const line1 = j.i_am_owner
+    ? (open ? beforeLine('change this', j.starts_at, j.edit_until) : 'Changes are closed.')
+    : j.can_leave ? beforeLine('leave', j.starts_at, j.edit_until) : '';
+  return `
+  <div class="page view jam-page">
+    ${bookedBanner('jam')}
+    <div class="jstub">
+      <div class="tstub-top">
+        <span class="label j">The Jamming Studio</span>
+        <span class="label">${esc(j.ref)}</span>
+      </div>
+      <div class="num tstub-time" style="font-size:40px">${esc(span(at(j.starts_at), at(j.ends_at)))}</div>
+      <dl class="rows" style="margin:0">
+        <div class="row"><dt>Where</dt><dd>${esc(capFirst(ev().jam_room || 'Heaven 2'))}</dd></div>
+        <div class="row"><dt>Playing</dt><dd>${esc(j.instrument_label || '')}</dd></div>
+        <div class="row"><dt>Booked by</dt><dd>${j.i_am_owner ? 'You' : '@' + esc((j.booked_by || {}).handle || '')}</dd></div>
+      </dl>
+    </div>
+    ${peopleList({
+      head:'In the room', count:line.length + ' of ' + j.capacity, rows,
+      add:j.can_add && free.length ? addRow('jamfriendbox',
+        `<button class="prow-add-btn" data-jamadd="${esc(j.ref)}">Add</button>`,
+        `<div class="kitchips">${free.map(k => `<button class="kitchip ${pick === k.key ? 'on' : ''}" data-addkit="${esc(k.key)}">${esc(k.label)}</button>`).join('')}</div>`) : ''
+    })}
+    ${line1 ? `<p class="fine">${esc(line1)}</p>` : ''}
+    ${j.can_cancel ? `<button class="btn btn-quiet" style="color:var(--bad);box-shadow:inset 0 0 0 1.5px currentColor" data-canceljam="${esc(j.ref)}">Cancel this slot</button>` : ''}
+    ${j.can_leave ? `<button class="btn btn-quiet" style="color:var(--bad);box-shadow:inset 0 0 0 1.5px currentColor" data-leavejam="${esc(j.ref)}">Leave this slot</button>` : ''}
+  </div>`;
+};
+
+function skeleton(){ return `<div class="skeleton view">Loading…</div>`; }
+
+/* ---- actions ------------------------------------------------------- */
+
+function wire(){
+  screen.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+
+  // Help's questions: one open at a time (22 Sep, STATE.md 132). Opening one
+  // closes the rest, so the page never turns back into a wall of answers.
+  // `name` on <details> does this in newer browsers; this does it in all.
+  const faqs = screen.querySelectorAll('.help-faq details');
+  faqs.forEach(d => d.addEventListener('toggle', () => {
+    if (d.open) faqs.forEach(o => { if (o !== d && o.open) o.open = false; });
+  }));
+
+  const pz = document.getElementById('planzoom');
+  if (pz) pz.onclick = () => {
+    S.planZoom = !S.planZoom;
+    render();
+    // Zoomed, start in the middle of the map rather than its left edge.
+    const plan = document.getElementById('plan');
+    if (plan && S.planZoom) plan.scrollLeft = (plan.scrollWidth - plan.clientWidth) / 2;
+  };
+
+  const cta = document.getElementById('gatecta');
+  if (cta) cta.onclick = gateTap;
+
+  screen.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => {
+    const id = Number(b.dataset.slot);
+    const sl = S.esc.slots.find(x => x.id === id);
+    const mine = S.esc.my_booking;
+    if (mine && mine.slot_id === id) { go('ticket'); return; }
+    if (!sl || sl.status !== 'open') return;
+    // The server would refuse, so say it now rather than on a page that
+    // cannot book.
+    if (mine){ toast('You already have a game. Cancel it on your ticket to move.'); return; }
+    S.pickedSlot = id;
+    S.badFriends = [];
+    go('escbook');
+  });
+
+  // group booking
+  const fb = document.getElementById('friendbox');
+  const fadd = document.getElementById('friendadd');
+  const flive = document.getElementById('friendlive');
+  if (fadd) fadd.onclick = e => { e.preventDefault(); draftAdd(); };
+  if (flive) flive.onclick = e => { e.preventDefault(); addFriendLive(); };
+  if (fb) fb.onkeydown = e => { if (e.key === 'Enter') (fadd ? draftAdd : addFriendLive)(); };
+  screen.querySelectorAll('[data-undraft]').forEach(b => b.onclick = () => {
+    S.draft = S.draft.filter(h => h !== b.dataset.undraft);
+    S.badFriends = S.badFriends.filter(h => h !== b.dataset.undraft);
+    render();
+  });
+  // Edit, before booking only (decision 118): the name goes back into the
+  // box to be fixed. Anything already typed there is added first, so it is
+  // never lost.
+  screen.querySelectorAll('[data-redraft]').forEach(b => b.onclick = () => {
+    const h = b.dataset.redraft;
+    if (cleanHandle(fb && fb.value)) draftAdd();
+    S.draft = S.draft.filter(x => x !== h);
+    S.badFriends = S.badFriends.filter(x => x !== h);
+    refillBox('friendbox', h);
+  });
+  screen.querySelectorAll('[data-reguest]').forEach(b => b.onclick = () => {
+    const g = S.jamGuests.find(x => x.handle === b.dataset.reguest);
+    if (!g) return;
+    S.jamGuests = S.jamGuests.filter(x => x !== g);
+    S.badFriends = S.badFriends.filter(x => x !== g.handle);
+    S.jamGuestKit = g.instrument;
+    refillBox('jambox', g.handle);
+  });
+  screen.querySelectorAll('[data-unfriend]').forEach(b => b.onclick = () => removeFriend(b.dataset.unfriend));
+  const allow = document.getElementById('allowmsgs');
+  if (allow) allow.onclick = allowMessages;
+
+  // Picking a time on the jam board opens its own screen, the way the
+  // escape room does — rather than growing a panel under the list.
+  screen.querySelectorAll('[data-jam]').forEach(b => b.onclick = () => {
+    const id = Number(b.dataset.jam);
+    const sl = S.jam.slots.find(x => x.id === id);
+    if (!sl) return;
+    // Your own slot opens its ticket, the way your own escape game does.
+    if (sl.status === 'mine'){
+      const j = ((S.me && S.me.jam_bookings) || []).find(x => x.slot_id === id);
+      S.openJam = j ? j.ref : null; S.jamAddKit = null;
+      go('jamticket');
+      return;
+    }
+    if (sl.status !== 'open') return;
+    S.pickedJam = id; S.jamPick = null; S.jamGuests = []; S.jamGuestKit = null;
+    S.badFriends = [];
+    go('jambook');
+  });
+  screen.querySelectorAll('[data-kit]').forEach(b => b.onclick = () => {
+    S.jamPick = S.jamPick === b.dataset.kit ? null : b.dataset.kit;
+    // Nobody can keep an instrument you have just taken for yourself.
+    S.jamGuests = S.jamGuests.filter(g => g.instrument !== S.jamPick);
+    if (S.jamGuestKit === S.jamPick) S.jamGuestKit = null;
+    render();
+  });
+  screen.querySelectorAll('[data-guestkit]').forEach(b => b.onclick = () => {
+    S.jamGuestKit = S.jamGuestKit === b.dataset.guestkit ? null : b.dataset.guestkit;
+    render();
+  });
+  screen.querySelectorAll('[data-addkit]').forEach(b => b.onclick = () => {
+    S.jamAddKit = S.jamAddKit === b.dataset.addkit ? null : b.dataset.addkit;
+    render();
+  });
+  const guestAdd = document.getElementById('jamguestadd');
+  if (guestAdd) guestAdd.onclick = draftJamGuest;
+  const jb = document.getElementById('jambox');
+  if (jb) jb.onkeydown = e => { if (e.key === 'Enter') draftJamGuest(); };
+  const jfb = document.getElementById('jamfriendbox');
+  const jadd = screen.querySelector('[data-jamadd]');
+  if (jfb && jadd) jfb.onkeydown = e => { if (e.key === 'Enter') addJamFriend(jadd.dataset.jamadd); };
+  screen.querySelectorAll('[data-unguest]').forEach(b => b.onclick = () => {
+    S.jamGuests = S.jamGuests.filter(g => g.handle !== b.dataset.unguest);
+    S.badFriends = S.badFriends.filter(h => h !== b.dataset.unguest);
+    render();
+  });
+  screen.querySelectorAll('[data-jamopen]').forEach(b => b.onclick = () => { S.openJam = b.dataset.jamopen; S.jamAddKit = null; go('jamticket'); });
+  screen.querySelectorAll('[data-canceljam]').forEach(b => b.onclick = e => { e.stopPropagation(); cancelJam(b.dataset.canceljam); });
+  screen.querySelectorAll('[data-leavejam]').forEach(b => b.onclick = e => { e.stopPropagation(); leaveJam(b.dataset.leavejam); });
+  screen.querySelectorAll('[data-jamadd]').forEach(b => b.onclick = e => { e.stopPropagation(); addJamFriend(b.dataset.jamadd); });
+  screen.querySelectorAll('[data-jamdrop]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const [ref, handle] = b.dataset.jamdrop.split('|');
+    removeJamFriend(ref, handle);
+  });
+
+  const openPhone = document.getElementById('openphone');
+  if (openPhone) openPhone.onclick = openThePhone;
+  const openTab = document.getElementById('openphonetab');
+  if (openTab) openTab.onclick = openPhoneInBrowser;
+
+  const cancel = document.getElementById('cancelesc');
+  if (cancel) cancel.onclick = cancelEscape;
+}
+
+async function gateTap(){
+  if (S.loading) return;
+  if (S.gateCode === 'NOT_ON_LIST' && !S.gateSent){
+    const input = document.getElementById('claimed');
+    const claimed = (input && input.value || '').trim();
+    if (claimed){
+      S.loading = true; render();
+      const r = await api('POST','/api/session/claimed-handle', { json:{ claimed_handle:claimed } });
+      S.loading = false;
+      if (r.ok){ S.gateSent = true; }
+      else toast(r.error.message || r.error.code, true);
+      render();
+      return;
+    }
+  }
+  if (!S.gateCode){
+    go('home');
+    // A bot button can ask for a screen (?go=ticket); Back still lands on Home.
+    const target = S.goAfter; S.goAfter = null;
+    if (target && target !== 'home' && VIEWS[target]) go(target);
+    return;
+  }
+  await startSession();
+}
+
+async function startSession(){
+  S.loading = true; render();
+  const r = await api('POST','/api/session', { json:{ start_param: startParam() } });
+  S.loading = false;
+  if (r.ok){
+    S.session = r.data; S.gateCode = null; S.gateSent = false;
+    render();
+  } else {
+    S.session = null;
+    S.gateCode = r.error.code;
+    S.gateHandle = r.error.handle
+      || (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.username)
+      || null;
+    render();
+  }
+}
+
+function startParam(){
+  return (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || null;
+}
+
+async function bookEscape(){
+  const id = S.pickedSlot;
+  if (id == null || S.busy) return;
+  // A username typed but not yet added still counts — people forget to tap Add.
+  const box = document.getElementById('friendbox');
+  const pending = cleanHandle(box && box.value);
+  if (pending && !S.draft.includes(pending)) S.draft.push(pending);
+  S.busy = true; render();
+  const r = await api('POST','/api/escape/bookings', { json:{ slot_id:id, friends:S.draft } });
+  S.busy = false;
+  if (!r.ok){
+    S.badFriends = r.error.handles || [];
+    toast(bookingError(r.error), true);
+    // A time that went while they were typing: reload, and the page says so.
+    if (['SLOT_FULL','SLOT_CLOSED','SLOT_STARTED','SLOT_BLOCKED'].includes(r.error.code)) S.esc = null, loadFor('escbook');
+    render();
+    return;
+  }
+  const n = S.draft.length;
+  S.pickedSlot = null; S.draft = []; S.badFriends = []; S.me = null; S.esc = null;
+  if (!(await loadMe())){ render(); return; }
+  S.booked = { kind:'escape', ref:r.data.ref,
+    what:'The Last Guest at ' + fmt(at(r.data.starts_at)) + (n ? ', with ' + n + (n === 1 ? ' friend' : ' friends') : '') };
+  celebrate();
+  // The booking page is replaced, so Back from the ticket lands on the
+  // board — the same as the jam room.
+  go('ticket', { replace:true });
+}
+
+/* A booking is a moment: buzz the phone, and show the confirmation. */
+function celebrate(){
+  try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch (e){}
+  if (reduceMotion && reduceMotion.matches) return;
+  const what = (S.booked && S.booked.what) || '';
+  const el = document.createElement('div');
+  el.id = 'stamp';
+  el.innerHTML = '<div class="stamp-in"><div class="stamp-t">Booked</div>'
+    + (what ? '<div class="stamp-b">' + esc(what) + '</div>' : '') + '</div>';
+  document.body.appendChild(el);
+  clearTimeout(celebrate._a); clearTimeout(celebrate._b);
+  celebrate._a = setTimeout(() => el.classList.add('out'), 880);
+  celebrate._b = setTimeout(() => el.remove(), 1240);
+}
+
+/* Stage a friend and their instrument. Nothing is sent until Book. */
+function draftJamGuest(){
+  const box = document.getElementById('jambox');
+  const h = cleanHandle(box && box.value);
+  if (!h){ toast('Type a username first.', true); return; }
+  // With one instrument left it is already chosen for them.
+  const sl = ((S.jam && S.jam.slots) || []).find(x => x.id === S.pickedJam);
+  const open = sl ? jamOpenKits(sl) : [];
+  const kit = S.jamGuestKit || (open.length === 1 ? open[0] : null);
+  if (!kit){ toast('Pick their instrument too.', true); return; }
+  const mine = S.me && S.me.profile && S.me.profile.handle;
+  if (h === mine){ toast("You're already in."); return; }
+  if (S.jamGuests.some(g => g.handle === h)){ toast('They are already on the list.'); return; }
+  box.value = '';
+  S.jamGuests.push({ handle:h, instrument:kit });
+  S.jamGuestKit = null;
+  S.badFriends = S.badFriends.filter(x => x !== h);
+  render();
+}
+
+async function bookJam(){
+  const id = S.pickedJam;
+  if (id == null || !S.jamPick || S.busy) return;
+  S.busy = true; render();
+  // Same all-or-nothing promise as the escape room: the server seats the
+  // whole line-up or nobody, and names whoever it could not seat.
+  const r = await api('POST','/api/jam/bookings',
+    { json:{ slot_id:id, instrument:S.jamPick, friends:S.jamGuests.slice() } });
+  S.busy = false;
+  if (!r.ok){
+    S.badFriends = (r.error.handles || []);
+    toast(bookingError(r.error), true);
+    // An instrument that went while they were typing is a board problem,
+    // not a name problem: reload the board so they can see what is left.
+    if (!S.badFriends.length){ S.jam = null; await loadFor('jam'); }
+    render();
+    return;
+  }
+  S.pickedJam = null; S.jamPick = null; S.jamGuests = []; S.jamGuestKit = null;
+  S.badFriends = []; S.jam = null; S.me = null;
+  S.openJam = r.data.ref;
+  if (!(await loadMe())){ render(); return; }
+  const n = (r.data.friends || []).length;
+  S.booked = { kind:'jam', ref:r.data.ref,
+    what:'The Jamming Studio, ' + span(at(r.data.starts_at), at(r.data.ends_at))
+       + (n ? ', for you and ' + n + (n === 1 ? ' other' : ' others') : '') };
+  celebrate();
+  go('jamticket', { replace:true, drop:['jambook'] });
+}
+
+async function cancelJam(ref){
+  if (S.busy) return;
+  const j = ((S.me && S.me.jam_bookings) || []).find(x => x.ref === ref);
+  const others = j ? (j.group || []).filter(g => !g.me).length : 0;
+  const ask = others
+    ? 'Cancel this jam slot? ' + others + (others === 1 ? ' other person' : ' other people')
+      + ' will be told it is off.'
+    : 'Cancel this jam slot? Another group can then book it.';
+  if (!(await askConfirm(ask))) return;
+  S.busy = true;
+  const r = await api('DELETE','/api/jam/bookings/' + encodeURIComponent(ref));
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  S.jam = null;
+  await loadMe();
+  if (S.view === 'jamticket') leaveTicket(); else render();
+  toast('Cancelled. Someone else can have it.');
+}
+
+/* After a cancel or a leave the ticket no longer exists, so go back to
+   wherever it was opened from — the board, or Your bookings — rather than
+   to a fixed screen. Opened straight from a bot link, that is Home. */
+function leaveTicket(){
+  if (S.stack.length) back(); else go('home', { replace:true });
+}
+
+/* Someone who was added gives up their own seat. The group carries on
+   without them, which is why this is not "cancel". */
+async function leaveJam(ref){
+  if (S.busy) return;
+  if (!(await askConfirm('Leave this jam slot? The rest of the group keeps it.'))) return;
+  S.busy = true;
+  const r = await api('POST','/api/jam/bookings/' + encodeURIComponent(ref) + '/leave');
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  S.jam = null;
+  await loadMe();
+  if (S.view === 'jamticket') leaveTicket(); else render();
+  toast('You’re out. The rest carry on.');
+}
+
+async function addJamFriend(ref){
+  if (S.busy) return;
+  const box = document.getElementById('jamfriendbox');
+  const h = cleanHandle(box && box.value);
+  if (!h){ toast('Type a username first.', true); return; }
+  const j = ((S.me && S.me.jam_bookings) || []).find(x => x.ref === ref);
+  const free = (j && j.free) || [];
+  const kit = S.jamAddKit || (free.length === 1 ? free[0].key : null);
+  if (!kit){ toast('Pick the instrument they will play.', true); return; }
+  S.busy = true;
+  const r = await api('POST','/api/jam/bookings/' + encodeURIComponent(ref) + '/group',
+                      { json:{ players:[{ handle:h, instrument:kit }] } });
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  box.value = '';
+  S.jamAddKit = null;
+  await loadMe(); render();
+  toast('Added @' + h + '.');
+}
+
+async function removeJamFriend(ref, handle){
+  if (S.busy) return;
+  if (!(await askConfirm('Remove @' + handle + ' from this slot?'))) return;
+  S.busy = true;
+  const r = await api('DELETE','/api/jam/bookings/' + encodeURIComponent(ref)
+                    + '/group/' + encodeURIComponent(handle));
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  await loadMe(); render();
+  toast('Removed @' + handle + '.');
+}
+
+async function addFriendLive(){
+  if (S.busy) return;
+  const box = document.getElementById('friendbox');
+  const h = cleanHandle(box && box.value);
+  if (!h) return;
+  S.busy = true;
+  const r = await api('POST','/api/escape/group', { json:{ add:[h] } });
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  box.value = '';
+  await loadMe(); render();
+  toast('Added @' + h + '. We’re messaging them.');
+}
+
+async function removeFriend(h){
+  if (S.busy) return;
+  if (!(await askConfirm('Take @' + h + ' off this game? We’ll tell them, and their seat opens up.'))) return;
+  S.busy = true;
+  const r = await api('DELETE','/api/escape/group/' + encodeURIComponent(h));
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); await loadMe(); render(); return; }
+  await loadMe(); render();
+  toast('Removed @' + h + '.');
+}
+
+function allowMessages(){
+  if (!tg || !tg.requestWriteAccess) return;
+  tg.requestWriteAccess(async granted => {
+    if (!granted){ toast('No problem. Check the app before your game instead.'); return; }
+    await api('POST','/api/me/messages', { json:{ allowed:true } });
+    if (S.me) S.me.can_message = true;
+    render();
+    toast('Done. We only message you when it matters.');
+  });
+}
+
+/* Telegram's own dialog where it exists; window.confirm is unreliable in
+   some Telegram WebViews. */
+function askConfirm(message){
+  return new Promise(resolve => {
+    if (tg && tg.showConfirm){
+      try { tg.showConfirm(message, ok => resolve(!!ok)); return; } catch (e){ /* fall through */ }
+    }
+    resolve(window.confirm(message));
+  });
+}
+
+function bookingError(e){
+  // These messages name the usernames or seats involved — say them as sent.
+  if (['FRIEND_NOT_ELIGIBLE','FRIEND_ALREADY_BOOKED','LIMIT_REACHED','SLOT_FULL', 'TIME_CONFLICT',
+       'FORBIDDEN','SLOT_CLOSED','SLOT_STARTED','NO_BOOKING','ALREADY_BOOKED'].includes(e.code) && e.message) return e.message;
+  const map = {
+    SLOT_FULL:'That game filled up. Pick another.',
+    SLOT_CLOSED:'Booking closed for that game.',
+    SLOT_STARTED:'That game has already started.',
+    SLOT_BLOCKED:'That game is not running.',
+    ALREADY_BOOKED:'You already have a game booked.',
+    TIME_CONFLICT:'That clashes with something else you booked.',
+    LIMIT_REACHED:'You have reached the limit.',
+    FRIEND_NOT_ELIGIBLE:'One of your friends is not on the list, so nobody was booked.',
+    FRIEND_ALREADY_BOOKED:'One of your friends already has a game, so nobody was booked.',
+    RATE_LIMITED:'Too many tries. Wait a moment.'
+  };
+  return map[e.code] || e.message || e.code;
+}
+
+async function cancelEscape(){
+  const b = S.me && S.me.escape_booking;
+  if (!b || S.busy) return;
+  // What cancelling does to everyone else is said here, at the moment of
+  // deciding, rather than in a line of small print under the button.
+  const others = (b.group || []).filter(g => !g.me).length;
+  const ask = b.i_am_owner
+    ? 'Cancel your seat at ' + fmt(at(b.starts_at)) + '?' + (others ? ' Your friends keep theirs.' : '')
+    : 'Leave the ' + fmt(at(b.starts_at)) + ' game? We’ll tell @' + b.booked_by.handle + '.';
+  if (!(await askConfirm(ask))) return;
+  S.busy = true;
+  const r = await api('DELETE','/api/escape/bookings/' + b.ref);
+  S.busy = false;
+  if (!r.ok){ toast(bookingError(r.error), true); return; }
+  S.me = null; S.esc = null;
+  if (!(await loadMe())){ render(); return; }
+  leaveTicket();
+}
+
+/* The phone: fetched at the moment of opening, never cached, mounted in
+   an iframe from a Blob URL. The server re-runs §9 r21 on arrival. */
+async function openThePhone(){
+  const res = await api('GET','/api/escape/phone', { raw:true });
+  if (!res || !res.ok){
+    let code = 'PHONE_LOCKED';
+    try { const j = await res.json(); code = j.error.code; } catch (e){}
+    S.phone = Object.assign({}, S.phone, { code });
+    toast(phoneCard().title, true);
+    render();
+    return;
+  }
+  const html = await res.text();
+  const url = URL.createObjectURL(new Blob([html], { type:'text/html' }));
+  const frame = document.getElementById('phoneframe');
+  frame.src = url;
+  document.body.classList.add('phoneopen');
+  if (tg){ tg.disableVerticalSwipes && tg.disableVerticalSwipes(); tg.BackButton.show(); }
+  closeThePhone._url = url;
+}
+/* §9 r23 — the fallback. Ask the server for a link that works once and dies
+   in ninety seconds, then hand it to Telegram to open outside the app. The
+   link is fetched at the moment of tapping and never stored: a link sitting
+   in a variable would be a spare key, and the point of this one is that it
+   cannot be passed to the half of the room that isn't meant to have it. */
+async function openPhoneInBrowser(){
+  const r = await api('POST','/api/escape/phone/link');
+  if (!r.ok){
+    S.phone = Object.assign({}, S.phone, { code:r.error.code });
+    toast(r.error.message || phoneCard().title, true);
+    render();
+    return;
+  }
+  const url = r.data.url || (location.origin + r.data.path);
+  /* openLink leaves Telegram for the real browser, which is the entire
+     point — the in-app webview is what we are working around. */
+  if (tg && tg.openLink) tg.openLink(url, { try_instant_view:false });
+  else window.open(url, '_blank', 'noopener');
+  toast('Opening in your browser. The link works once, for ' + r.data.seconds + ' seconds.');
+}
+
+function closeThePhone(){
+  document.body.classList.remove('phoneopen');
+  const frame = document.getElementById('phoneframe');
+  frame.src = 'about:blank';
+  if (closeThePhone._url){ URL.revokeObjectURL(closeThePhone._url); closeThePhone._url = null; }
+  if (tg) tg.enableVerticalSwipes && tg.enableVerticalSwipes();
+}
+
+/* ---- back, and drag-right-to-go-back ------------------------------- */
+
+document.getElementById('navback').onclick = back;
+
+let sx = null, sy = null;
+screen.addEventListener('pointerdown', e => {
+  if (S.view === 'gate') return;
+  // Left edge only. Starting a drag anywhere meant every press on a slot
+  // tile also began a back swipe, and it fought the phone's own gesture.
+  if (e.clientX - screen.getBoundingClientRect().left > 36) return;
+  // Dragging a zoomed floorplan is looking around the map, not going back.
+  if (e.target.closest && e.target.closest('.plan.zoomed')) return;
+  sx = e.clientX; sy = e.clientY; S.dragging = true;
+});
+screen.addEventListener('pointermove', e => {
+  if (!S.dragging || sx == null) return;
+  const dx = e.clientX - sx, dy = Math.abs(e.clientY - sy);
+  if (dy > 34){ S.dragging = false; S.dragX = 0; screen.style.transform = ''; screen.classList.remove('dragging'); return; }
+  S.dragX = Math.max(0, Math.min(dx * 0.65, 130));
+  // Move the layer directly. This used to call into the render bookkeeping
+  // and spend the arrival flag, so the screen the drag led to then arrived
+  // with no animation at all.
+  screen.style.transform = 'translateX(' + S.dragX + 'px)';
+  screen.classList.add('dragging');
+});
+function endDrag(){
+  if (!S.dragging) return;
+  const far = S.dragX > 54;
+  sx = null; S.dragging = false; S.dragX = 0;
+  screen.classList.remove('dragging');
+  screen.style.transform = '';
+  if (far) back();
+}
+screen.addEventListener('pointerup', endDrag);
+screen.addEventListener('pointercancel', endDrag);
+
+/* ===================================================================
+   4. BOOT
+   =================================================================== */
+
+// A bot message's button opens /?go=ticket (or food); Start then lands there.
+try {
+  const go0 = new URLSearchParams(location.search).get('go');
+  // `bookings` is the name the bot's messages use. It is the same page as
+  // `mybookings`, and naming it once keeps the history stack from treating
+  // the two as different screens.
+  if (go0 === 'bookings') S.goAfter = 'mybookings';
+  else if (['ticket','food','esc'].includes(go0)) S.goAfter = go0;
+  // The phone message's button (decision 130) — the only way to the phone.
+  else if (go0 === 'phone'){ S.goAfter = 'phone'; S.phoneAuto = true; }
+} catch (e){ /* old WebView: land on Home */ }
+
+if (tg){
+  tg.ready();
+  tg.expand();
+  tg.BackButton.onClick(back);
+  if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+  // Telegram's own bars start on paper; render() switches them per screen.
+  setChrome(false);
+}
+
+/* Countdowns move once a minute. They used to do it by re-rendering the
+   whole screen, which threw away every image and replayed every entrance
+   animation — the app appeared to reload itself while you were reading it.
+   Now the two pieces of text that actually change are written in place.
+   No polling (§3 r6), and nothing while the page is hidden. */
+function tickCountdowns(){
+  const when = screen.querySelector('.next-when');
+  if (when && S.me){ const nx = nextUp(S.me); if (nx) when.textContent = nx.when; }
+  const count = screen.querySelector('.phone-count');
+  if (count && S.phone){ const c = phoneCard().count; if (c) count.textContent = c; }
+}
+setInterval(() => {
+  if (document.hidden) return;
+  tickCountdowns();
+}, 60000);
+
+startSession().then(() => {
+  const sp = startParam();
+  if (S.gateCode || !sp) return;
+  // A deep link from the bot lands on the screen it points at, with Home
+  // seeded behind it so Back still has somewhere sensible to go.
+  S.view = 'home';
+  S.stack = [];
+  if (sp === 'pass') go('food');
+  else if (sp === 'phone'){ S.phoneAuto = true; go('phone'); }
+});
+</script>
+</body>
+</html>

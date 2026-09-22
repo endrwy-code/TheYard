@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:opsz,wght@14..32,400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #6F6B64; }
+  a { color: #AE7338; text-underline-offset: 2px; }
+  a:hover { color: #101010; }
+  input[type=range] { accent-color: #AE7338; }
+  @keyframes vIn { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
+  @keyframes pop { from { opacity: 0; transform: scale(.94) } to { opacity: 1; transform: none } }
+  @keyframes sheet { from { transform: translateY(100%) } to { transform: none } }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 #C8CFC766 } 55% { box-shadow: 0 0 0 10px #C8CFC700 } }
+  @keyframes tick { from { opacity: .45 } to { opacity: 1 } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+</style>
+</helmet>
+
+<section style="padding: 48px; font-family: Inter, sans-serif; color: #F2EFE8; display: flex; gap: 36px; align-items: flex-start">
+
+  <div style="width: 300px; flex: none; background: #F2EFE8; color: #101010; padding: 24px; border-radius: 26px; display: flex; flex-direction: column; gap: 20px">
+    <div>
+      <div style="background: #101010; color: #F2EFE8; display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px">Round 2 · demo controls</div>
+      <div style="font-family: Anton, sans-serif; font-size: 30px; text-transform: uppercase; margin-top: 10px; line-height: 1">Mini app<br>prototype</div>
+      <div style="font-size: 13px; line-height: 1.45; color: #3C4654; margin-top: 8px">390 × 844, Telegram WebView proportions. Attendee screens in <a href="#1a">1a</a>; The Last Guest in <a href="#1b">1b</a>. Drag right anywhere on a screen to go back.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Persona</div>
+      <sc-for list="{{ personas }}" as="p" hint-placeholder-count="6">
+        <button onClick="{{ p.pick }}" style="{{ p.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ p.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Clock</div>
+        <div style="font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums">{{ clock }}</div>
+      </div>
+      <input type="range" min="1020" max="1350" step="5" value="{{ mins }}" onInput="{{ onClock }}" style="width: 100%">
+      <div style="font-size: 12px; color: #3C4654; line-height: 1.4">Your game: 7:30 PM. Drag to watch the board close and the phone unlock, then relock.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">GM switches</div>
+      <button onClick="{{ toggleInApp }}" style="{{ inAppStyle }}" style-active="transform:scale(.97)">{{ inAppLabel }}</button>
+      <button onClick="{{ toggleChecked }}" style="{{ checkedStyle }}" style-active="transform:scale(.97)">{{ checkedLabel }}</button>
+      <button onClick="{{ toggleDark }}" style="{{ darkStyle }}" style-active="transform:scale(.97)">{{ darkLabel }}</button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Bot notification</div>
+      <sc-for list="{{ notifs }}" as="b" hint-placeholder-count="3">
+        <button onClick="{{ b.fire }}" style="{{ b.style }}" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">{{ b.label }}</button>
+      </sc-for>
+      <div style="font-size: 12px; color: #3C4654; line-height: 1.4">Fires the message in the bot chat, then tap its button to land where it points.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Jump to</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px">
+        <sc-for list="{{ navs }}" as="n" hint-placeholder-count="7">
+          <button onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background:#AE7338;color:#101010" style-active="transform:scale(.95)">{{ n.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; line-height: 1.45; color: #3C4654; border-top: 1px solid #10101022; padding-top: 14px">Settings in play: 12 players a game, 14 games from 5:30 to 9:50 PM, <code style="font-family:'Space Mono',monospace">gm_start</code> unlock, check-in required, halves of six. Jam: $10 a slot, up to 15 people, instruments provided.</div>
+  </div>
+
+  <div id="1a" style="display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 10px; align-items: baseline">
+      <span style="background: #101010; color: #F2EFE8; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px">1a + 1b</span>
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{ viewLabel }}</span>
+    </div>
+
+    <div style="--bg: {{ bg }}; --ink: {{ ink }}; --card: {{ card }}; --muted: {{ muted }}; --line: {{ line }}; width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 42px; box-shadow: 0 30px 70px #0007, inset 0 0 0 1px #ffffff14; background: var(--bg, #F2EFE8); display: flex; flex-direction: column">
+
+      <div style="flex: none; height: 46px; background: var(--card, #fff); color: var(--ink, #101010); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 22px 6px; font-size: 12px; font-weight: 600">
+        <span style="font-family: 'Space Mono', monospace; font-variant-numeric: tabular-nums">{{ clock }}</span>
+        <span style="font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted, #3C4654)">Telegram</span>
+        <span style="font-family: 'Space Mono', monospace">100%</span>
+      </div>
+
+      <div style="flex: none; height: 48px; background: var(--card, #fff); color: var(--ink, #101010); display: flex; align-items: center; gap: 10px; padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line, #0002)">
+        <button onClick="{{ back }}" style="background: transparent; border: 0; color: inherit; cursor: pointer; width: 36px; height: 36px; border-radius: 999px; font-size: 20px; line-height: 1; display: grid; place-items: center; transition: background .18s, transform .14s cubic-bezier(.2,.8,.2,1); box-shadow: inset 0 0 0 2px #101010" style-hover="background:var(--line, #0002)" style-active="transform:scale(.88)">‹</button>
+        <span style="font-size: 15px; font-weight: 600">{{ navTitle }}</span>
+      </div>
+
+      <div onPointerDown="{{ dragDown }}" onPointerMove="{{ dragMove }}" onPointerUp="{{ dragUp }}" onPointerCancel="{{ dragUp }}" style="flex: 1; overflow-y: auto; overflow-x: hidden; color: var(--ink, #101010); touch-action: pan-y; transform: translateX({{ dragX }}px); transition: {{ dragEase }}">
+
+        <sc-if value="{{ isGate }}" hint-placeholder-val="{{ true }}">
+          <div style="min-height: 100%; background: #F2EFE8; color: #101010; display: flex; flex-direction: column; position: relative; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="position: absolute; inset: 0; background-image: radial-gradient(#10101018 1px, transparent 1.3px); background-size: 3px 3px; pointer-events: none"></div>
+            <div style="position: absolute; inset: 8px; border-radius: 28px; box-shadow: inset 0 0 0 3px #101010; pointer-events: none"></div>
+            <div style="padding: 28px 32px 0; display: flex; justify-content: space-between; align-items: flex-start; position: relative">
+              <span style="background: #101010; color: #F2EFE8; font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; padding: 7px 12px; border-radius: 999px">Pre-u event</span>
+              <span style="font-family: 'Space Mono', monospace; font-size: 11px">EUNOS AVE 3, L6</span>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 32px; position: relative">
+              <img src="assets/yard-logo.png" alt="The Yard" style="width: 262px; display: block; animation: pop .5s cubic-bezier(.2,.8,.2,1) both">
+              <div style="display: flex; gap: 10px; animation: rise .5s .1s cubic-bezier(.2,.8,.2,1) both">
+                <span style="background: #101010; color: #F2EFE8; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 8px 12px; border-radius: 10px; transform: rotate(-2.5deg)">24 September '26.</span>
+                <span style="background: #101010; color: #F2EFE8; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 8px 12px; border-radius: 10px; transform: rotate(1.5deg)">5pm onwards</span>
+              </div>
+            </div>
+            <div style="padding: 0 32px 36px; display: flex; flex-direction: column; gap: 14px; position: relative">
+              <div style="background: {{ gateTone }}; color: #F2EFE8; padding: 18px 20px; border-radius: 20px; display: flex; flex-direction: column; gap: 8px; animation: rise .42s .16s cubic-bezier(.2,.8,.2,1) both">
+                <div style="display: flex; gap: 10px; align-items: baseline">
+                  <span style="font-family: 'Space Mono', monospace; font-weight: 700">{{ gateMark }}</span>
+                  <span style="font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase; line-height: 1.05">{{ gateTitle }}</span>
+                </div>
+                <div style="font-size: 13px; line-height: 1.45">{{ gateBody }}</div>
+                <sc-if value="{{ showHandleBox }}" hint-placeholder-val="{{ true }}">
+                  <div style="background: #F2EFE8; color: #101010; border-radius: 14px; display: flex; align-items: center; margin-top: 4px; animation: pop .3s cubic-bezier(.2,.8,.2,1) both">
+                    <span style="font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px; padding: 0 2px 0 14px">@</span>
+                    <input type="text" placeholder="the username you signed up with" autocapitalize="off" autocorrect="off" spellcheck="false" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: 'Space Mono', monospace; font-size: 15px; padding: 14px 14px 14px 2px; border-radius: 14px">
+                  </div>
+                </sc-if>
+              </div>
+              <button onClick="{{ startTap }}" style="width: 100%; min-height: 62px; background: #101010; color: #F2EFE8; border: 0; border-radius: 18px; font-family: Anton, sans-serif; font-size: 27px; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; animation: rise .42s .22s cubic-bezier(.2,.8,.2,1) both; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#AE7338;color:#101010" style-active="transform:scale(.97)">{{ gateCta }}</button>
+              <sc-if value="{{ showGateFoot }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 12px; line-height: 1.45; text-align: center; color: #3C4654">{{ gateFoot }}</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 22px 20px 34px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted, #3C4654)">24 September · 5pm onwards</div>
+              <div style="font-family: Anton, sans-serif; font-size: 42px; line-height: .95; text-transform: uppercase; margin-top: 6px">Evening,<br>{{ firstName }}</div>
+            </div>
+
+            <sc-if value="{{ showReceiptBanner }}" hint-placeholder-val="{{ false }}">
+              <div style="background: #AE7338; color: #101010; padding: 18px 20px; border-radius: 20px; display: flex; flex-direction: column; gap: 10px; animation: pop .34s cubic-bezier(.2,.8,.2,1) both">
+                <div style="font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase; line-height: 1.05">{{ receiptTitle }}</div>
+                <div style="font-size: 13px; line-height: 1.45">{{ receiptBody }}</div>
+                <button style="align-self: flex-start; min-height: 44px; background: #101010; color: #F2EFE8; border: 0; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 20px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#F2EFE8;color:#101010" style-active="transform:scale(.96)">Upload receipt</button>
+              </div>
+            </sc-if>
+
+            <div style="background: #0D0D0F; color: #F2EFE8; padding: 20px; border-radius: 22px; display: flex; flex-direction: column; gap: 10px; animation: rise .4s .04s cubic-bezier(.2,.8,.2,1) both">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #AE7338">Next up</div>
+              <div style="display: flex; align-items: flex-end; gap: 12px">
+                <div style="font-family: 'Space Mono', monospace; font-size: 44px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums">{{ nextTime }}</div>
+                <div style="font-size: 13px; line-height: 1.3; padding-bottom: 4px">{{ nextWhat }}<br><span style="color: #C9C5BD; animation: tick 1.6s ease-in-out infinite alternate">{{ nextCountdown }}</span></div>
+              </div>
+              <div style="font-family: 'Space Mono', monospace; font-size: 12px; color: #C9C5BD">{{ nextRef }}</div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px">
+              <button onClick="{{ goEsc }}" style="background: #0D0D0F; color: #F2EFE8; border: 0; border-radius: 22px; text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 92px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .22s, box-shadow .22s; animation: rise .4s .08s cubic-bezier(.2,.8,.2,1) both; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#1C2024;box-shadow:0 10px 26px #1C202455" style-active="transform:scale(.98)">
+                <span>
+                  <span style="display: block; font-family: Anton, sans-serif; font-size: 26px; text-transform: uppercase; line-height: 1">The Last Guest</span>
+                  <span style="display: block; font-size: 13px; color: #C9C5BD; margin-top: 4px">15-minute escape room · 12 a game</span>
+                </span>
+                <span style="font-size: 22px; color: #C8CFC7; width: 34px; height: 34px; border-radius: 999px; background: #ffffff14; display: grid; place-items: center">›</span>
+              </button>
+              <button onClick="{{ goFood }}" style="background: var(--card, #fff); color: var(--ink, #101010); border: 0; border-radius: 22px; box-shadow: inset 0 0 0 2px var(--ink, #101010); text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 92px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .22s; animation: rise .4s .12s cubic-bezier(.2,.8,.2,1) both" style-hover="background:#8FA65B" style-active="transform:scale(.98)">
+                <span>
+                  <span style="display: block; font-family: Anton, sans-serif; font-size: 26px; text-transform: uppercase; line-height: 1">Food &amp; drinks</span>
+                  <span style="display: block; font-size: 13px; color: var(--muted, #3C4654); margin-top: 4px">{{ foodSub }}</span>
+                </span>
+                <span style="font-size: 22px; width: 34px; height: 34px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line, #0002); display: grid; place-items: center">›</span>
+              </button>
+              <button onClick="{{ goJam }}" style="background: var(--card, #fff); color: var(--ink, #101010); border: 0; border-radius: 22px; box-shadow: inset 0 0 0 2px var(--ink, #101010); text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 92px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .22s, color .22s; animation: rise .4s .16s cubic-bezier(.2,.8,.2,1) both" style-hover="background:#3B32C4;color:#F2EFE8" style-active="transform:scale(.98)">
+                <span>
+                  <span style="display: block; font-family: Anton, sans-serif; font-size: 26px; text-transform: uppercase; line-height: 1">Jam room</span>
+                  <span style="display: block; font-size: 13px; color: var(--muted, #3C4654); margin-top: 4px">30 minutes · $10 a slot</span>
+                </span>
+                <span style="font-size: 22px; width: 34px; height: 34px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line, #0002); display: grid; place-items: center">›</span>
+              </button>
+            </div>
+
+            <button onClick="{{ goBookings }}" style="background: transparent; color: var(--ink, #101010); border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line, #0002); min-height: 50px; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; animation: rise .4s .2s cubic-bezier(.2,.8,.2,1) both" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">My bookings &amp; help</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isEsc }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 100%; background: #0D0D0F; color: #F2EFE8; padding: 22px 20px 34px; display: flex; flex-direction: column; gap: 18px; position: relative; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="position: absolute; width: 240px; height: 240px; border-radius: 50%; background: #2A2E33; top: -132px; right: -96px"></div>
+            <div style="position: relative">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #9AA4A8">Escape room</div>
+              <div style="font-family: Anton, sans-serif; font-size: 46px; line-height: .92; text-transform: uppercase; margin-top: 6px">The Last<br>Guest</div>
+              <div style="font-size: 14px; line-height: 1.5; color: #C9C5BD; margin-top: 10px; max-width: 258px">Si Hong hosted four guests. At 10:30 PM he collapsed. All four say they had already left. The police are fifteen minutes out. You have the same fifteen.</div>
+            </div>
+
+            <div style="position: relative; background: #1C2024; padding: 18px 20px; border-radius: 22px; display: flex; flex-direction: column; gap: 8px; animation: rise .42s .06s cubic-bezier(.2,.8,.2,1) both">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #C8CFC7">The phone</div>
+              <div style="font-family: Anton, sans-serif; font-size: 24px; text-transform: uppercase; line-height: 1.05">{{ phoneTitle }}</div>
+              <div style="font-size: 13px; line-height: 1.45; color: #DDEDEB">{{ phoneBody }}</div>
+              <sc-if value="{{ phoneOpenable }}" hint-placeholder-val="{{ false }}">
+                <button style="margin-top: 6px; min-height: 54px; background: #C8CFC7; color: #1C2024; border: 0; border-radius: 16px; font-family: Anton, sans-serif; font-size: 22px; text-transform: uppercase; letter-spacing: .03em; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s; animation: glow 2.2s ease-out infinite; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#F2EFE8" style-active="transform:scale(.97)">Open the phone</button>
+              </sc-if>
+              <sc-if value="{{ phoneCountdown }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #C8CFC7; font-variant-numeric: tabular-nums; animation: tick 1.6s ease-in-out infinite alternate">{{ phoneCountdown }}</div>
+              </sc-if>
+            </div>
+
+            <div style="position: relative; display: flex; justify-content: space-between; align-items: baseline">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase">Tonight's games</div>
+              <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #A8A29B">5:30 → 9:50 PM</div>
+            </div>
+
+            <div style="position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+              <sc-for list="{{ games }}" as="g" hint-placeholder-count="14">
+                <button onClick="{{ g.tap }}" style="{{ g.style }}" style-active="{{ g.press }}">
+                  <span style="display: block; font-family: 'Space Mono', monospace; font-size: 25px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums">{{ g.time }}</span>
+                  <span style="display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-top: 6px">{{ g.state }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="position: relative; font-size: 12px; line-height: 1.5; color: #A8A29B">Arrive 5 minutes early. The game master splits your group at the door: half work the flat, half work the desk with the phone. Cancel up to 30 minutes before.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isTicket }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 100%; background: #0D0D0F; color: #F2EFE8; padding: 22px 20px 34px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #9AA4A8">Booked</div>
+            <div style="background: #F2EFE8; color: #101010; padding: 22px; border-radius: 24px; display: flex; flex-direction: column; gap: 14px; animation: pop .4s cubic-bezier(.2,.8,.2,1) both">
+              <div style="display: flex; justify-content: space-between; align-items: baseline">
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">The Last Guest</span>
+                <span style="font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700">ESC-4H7K</span>
+              </div>
+              <div style="font-family: 'Space Mono', monospace; font-size: 54px; font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums">7:30 PM</div>
+              <div style="font-size: 14px; line-height: 1.5">Meet at the escape-room door, Level 6. Arrive 5 minutes early — the game master splits your group at the door.</div>
+              <div style="border-top: 2px dashed #10101055; padding-top: 14px; display: flex; flex-direction: column; gap: 4px">
+                <div style="font-size: 12px; color: #3C4654">Your group</div>
+                <div style="font-size: 15px; font-weight: 600">Nadia Rahim · @nadiarhm</div>
+                <div style="font-size: 15px">Hafiz Osman · @hafizo</div>
+                <div style="font-size: 15px">Clara Teoh · @clarateoh</div>
+              </div>
+            </div>
+            <div style="background: #1C2024; color: #DDEDEB; padding: 18px 20px; border-radius: 20px; font-size: 13px; line-height: 1.45; animation: rise .4s .06s cubic-bezier(.2,.8,.2,1) both">You learn your half at the door. One half works the flat, the other works the desk with the phone. Neither half finishes alone.</div>
+            <button onClick="{{ goEsc }}" style="min-height: 54px; background: transparent; color: #F2EFE8; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px #F2EFE8; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#F2EFE8;color:#0D0D0F" style-active="transform:scale(.97)">Back to the board</button>
+            <button style="min-height: 50px; background: transparent; color: #C9C5BD; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px #FFFFFF33; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#A8231B;color:#fff" style-active="transform:scale(.97)">Cancel booking</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isFood }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 20px 20px 34px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="font-family: Anton, sans-serif; font-size: 40px; line-height: .95; text-transform: uppercase">Food &amp;<br>drinks</div>
+            <sc-if value="{{ payBlocked }}" hint-placeholder-val="{{ false }}">
+              <div style="background: #AE7338; color: #101010; padding: 18px 20px; border-radius: 20px; display: flex; flex-direction: column; gap: 8px; animation: pop .34s cubic-bezier(.2,.8,.2,1) both">
+                <div style="font-family: Anton, sans-serif; font-size: 20px; text-transform: uppercase; line-height: 1.05">Payment not verified yet</div>
+                <div style="font-size: 13px; line-height: 1.45">The booth can't hand anything over until we see your receipt.</div>
+              </div>
+            </sc-if>
+            <div style="background: #fff; box-shadow: inset 0 0 0 1px #10101022; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; color: #101010; animation: pop .4s .04s cubic-bezier(.2,.8,.2,1) both">
+              <div style="width: 100%; display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3C4654"><span>{{ fullName }}</span><span>One matcha · one panini</span></div>
+              <img src="assets/qr-demo.png" alt="Your pass QR code" style="width: 190px; height: 190px; display: block; image-rendering: pixelated">
+              <div style="font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums">7K3M-Q9XT</div>
+              <div style="font-size: 12px; color: #3C4654; text-align: center">Turn your brightness up at the booth.</div>
+            </div>
+            <div style="height: 0; border-top: 2px dashed var(--line, #0002)"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+              <div style="background: var(--card, #fff); box-shadow: inset 0 0 0 2px var(--ink, #101010); border-radius: 20px; padding: 18px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; min-height: 132px; justify-content: flex-start; animation: rise .4s .08s cubic-bezier(.2,.8,.2,1) both">
+                <div style="font-family: Anton, sans-serif; font-size: 23px; text-transform: uppercase">Matcha</div>
+                <div style="background: #8FA65B; color: #101010; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 5px 11px; border-radius: 999px">Ready</div>
+                <div style="font-size: 12px; color: var(--muted, #3C4654); text-align: center">Drinks booth</div>
+              </div>
+              <div style="background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); border-radius: 20px; padding: 18px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; min-height: 132px; justify-content: flex-start; position: relative; overflow: hidden; animation: rise .4s .12s cubic-bezier(.2,.8,.2,1) both">
+                <div style="font-family: Anton, sans-serif; font-size: 23px; text-transform: uppercase; color: var(--muted, #3C4654)">Panini</div>
+                <div style="font-size: 12px; color: var(--muted, #3C4654); text-align: center">Collected 7:14 PM<br>Booth 1 · Wei</div>
+                <div style="position: absolute; bottom: 10px; left: -12px; right: -12px; transform: rotate(-9deg); background: #A8231B; color: #F2EFE8; font-family: Anton, sans-serif; font-size: 21px; letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 3px 0">✕ punched</div>
+              </div>
+            </div>
+            <div style="background: #101010; color: #F2EFE8; padding: 14px 16px; border-radius: 16px; display: flex; gap: 10px; align-items: flex-start">
+              <span style="font-family: 'Space Mono', monospace; font-weight: 700; color: #AE7338">!</span>
+              <span style="font-size: 13px; line-height: 1.4">Each spot punches once. If a booth says already collected, go to the front desk — do not queue again.</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isJam }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 20px 20px 34px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div>
+              <div style="font-family: Anton, sans-serif; font-size: 40px; line-height: .95; text-transform: uppercase">Jam room</div>
+              <div style="font-size: 14px; line-height: 1.5; color: var(--muted, #3C4654); margin-top: 6px">30 minutes, $10 a slot, up to 15 of you. Backline is provided: drums, two amps, keys, four mics. Bring your own guitar.</div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <sc-for list="{{ jamSlots }}" as="s" hint-placeholder-count="8">
+                <button onClick="{{ s.tap }}" style="{{ s.style }}" style-active="{{ s.press }}">
+                  <span style="font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums">{{ s.time }}</span>
+                  <span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase">{{ s.state }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="font-size: 12px; line-height: 1.5; color: var(--muted, #3C4654)">Two slots a person. A slot cannot overlap your escape-room game, counting from 5 minutes before it starts, plus 5 minutes to walk. Refunds are handled by hand at the front desk.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isJamPay }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 20px 20px 34px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="background: #3B32C4; color: #F2EFE8; padding: 18px 20px; border-radius: 22px; display: flex; justify-content: space-between; align-items: center; animation: pop .36s cubic-bezier(.2,.8,.2,1) both">
+              <div>
+                <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase">Held for you</div>
+                <div style="font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; animation: tick 1.2s ease-in-out infinite alternate">{{ holdLeft }}</div>
+              </div>
+              <div style="text-align: right; font-size: 13px; line-height: 1.35">{{ jamPicked }}<br>30 minutes · $10</div>
+            </div>
+            <div style="font-family: Anton, sans-serif; font-size: 32px; line-height: .95; text-transform: uppercase">Pay by PayNow</div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <div style="background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); border-radius: 18px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+                <span><span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted, #3C4654)">Name</span><span style="font-size: 17px; font-weight: 600">Maximus</span></span>
+                <button style="min-height: 44px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--ink, #101010); color: inherit; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 16px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.94)">Copy</button>
+              </div>
+              <div style="background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); border-radius: 18px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+                <span><span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted, #3C4654)">Mobile</span><span style="font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700">9646 9460</span></span>
+                <button style="min-height: 44px; background: transparent; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--ink, #101010); color: inherit; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 16px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.94)">Copy</button>
+              </div>
+              <div style="background: #101010; color: #F2EFE8; border-radius: 18px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+                <span><span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #AE7338">Reference — type this exactly</span><span style="font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700">JAM-4QK7</span></span>
+                <button style="min-height: 44px; background: #AE7338; border: 0; border-radius: 999px; color: #101010; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 0 16px; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#F2EFE8" style-active="transform:scale(.94)">Copy</button>
+              </div>
+            </div>
+            <button onClick="{{ goJamWait }}" style="min-height: 62px; background: #101010; color: #F2EFE8; border: 0; border-radius: 18px; font-family: Anton, sans-serif; font-size: 25px; text-transform: uppercase; letter-spacing: .03em; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#AE7338;color:#101010" style-active="transform:scale(.97)">Upload screenshot</button>
+            <div style="font-size: 12px; line-height: 1.5; color: var(--muted, #3C4654)">Can't upload? Send the screenshot to the bot in chat and it attaches itself to this booking. Your slot is released if nothing arrives before the hold runs out.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isJamWait }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 100%; padding: 20px 20px 34px; display: flex; flex-direction: column; gap: 16px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="background: #3B32C4; color: #F2EFE8; padding: 24px; border-radius: 24px; display: flex; flex-direction: column; gap: 10px; animation: pop .38s cubic-bezier(.2,.8,.2,1) both">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase">Jam room · JAM-4QK7</div>
+              <div style="font-family: Anton, sans-serif; font-size: 34px; line-height: .95; text-transform: uppercase">Waiting for approval</div>
+              <div style="font-size: 14px; line-height: 1.5">{{ jamPicked }}, 30 minutes, $10. Your screenshot is with the front desk. The bot messages you either way, usually within a few minutes.</div>
+            </div>
+            <div style="background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted, #3C4654)">What we have</div>
+              <div style="display: flex; gap: 12px; align-items: center">
+                <div style="width: 58px; height: 78px; background: #3C4654; border-radius: 10px; flex: none"></div>
+                <div style="font-size: 13px; line-height: 1.45">screenshot.jpg · 1600 px<br><span style="color: var(--muted, #3C4654)">Uploaded {{ clock }}</span></div>
+              </div>
+            </div>
+            <button onClick="{{ goJam }}" style="min-height: 50px; background: transparent; color: var(--ink, #101010); border: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--ink, #101010); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.97)">Back to the board</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBookings }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 20px 20px 34px; display: flex; flex-direction: column; gap: 12px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="font-family: Anton, sans-serif; font-size: 40px; line-height: .95; text-transform: uppercase">My bookings</div>
+            <button onClick="{{ goTicket }}" style="background: #0D0D0F; color: #F2EFE8; border: 0; border-radius: 22px; text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 84px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .22s; animation: rise .4s .04s cubic-bezier(.2,.8,.2,1) both; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#1C2024" style-active="transform:scale(.98)">
+              <span>
+                <span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #9AA4A8">The Last Guest · ESC-4H7K</span>
+                <span style="display: block; font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums">7:30 PM</span>
+              </span>
+              <span style="font-size: 22px; color: #C8CFC7; width: 34px; height: 34px; border-radius: 999px; background: #ffffff14; display: grid; place-items: center">›</span>
+            </button>
+            <button onClick="{{ goJamWait }}" style="background: #3B32C4; color: #F2EFE8; border: 0; border-radius: 22px; text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 84px; transition: transform .16s cubic-bezier(.2,.8,.2,1), filter .22s; animation: rise .4s .08s cubic-bezier(.2,.8,.2,1) both; box-shadow: inset 0 0 0 2px #101010" style-hover="filter:brightness(1.12)" style-active="transform:scale(.98)">
+              <span>
+                <span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Jam room · JAM-4QK7 · pending</span>
+                <span style="display: block; font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums">8:30 PM</span>
+              </span>
+              <span style="font-size: 22px; width: 34px; height: 34px; border-radius: 999px; background: #ffffff22; display: grid; place-items: center">›</span>
+            </button>
+            <button onClick="{{ goFood }}" style="background: var(--card, #fff); color: var(--ink, #101010); border: 0; border-radius: 22px; box-shadow: inset 0 0 0 2px var(--ink, #101010); text-align: left; padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; min-height: 84px; transition: transform .16s cubic-bezier(.2,.8,.2,1), background .22s; animation: rise .4s .12s cubic-bezier(.2,.8,.2,1) both" style-hover="background:#8FA65B" style-active="transform:scale(.98)">
+              <span>
+                <span style="display: block; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Pass · 7K3M-Q9XT</span>
+                <span style="display: block; font-size: 17px; font-weight: 600; margin-top: 4px">Matcha ready · panini collected</span>
+              </span>
+              <span style="font-size: 22px; width: 34px; height: 34px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line, #0002); display: grid; place-items: center">›</span>
+            </button>
+            <div style="border-top: 1px solid var(--line, #0002); padding-top: 14px; display: flex; flex-direction: column; gap: 8px">
+              <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted, #3C4654)">Need help?</div>
+              <div style="font-size: 15px; line-height: 1.5">Front desk, Level 6, by the door. Or message <strong>@maxi_muslim</strong> on Telegram.</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBot }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 100%; background: var(--bg, #F2EFE8); padding: 16px 14px 24px; display: flex; flex-direction: column; gap: 14px; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="align-self: center; background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); color: var(--muted, #3C4654); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px">Today</div>
+            <sc-for list="{{ botMsgs }}" as="m" hint-placeholder-count="3">
+              <div style="display: flex; gap: 10px; align-items: flex-end; animation: rise .4s cubic-bezier(.2,.8,.2,1) both">
+                <div style="width: 34px; height: 34px; flex: none; border-radius: 999px; background: #101010; display: grid; place-items: center; overflow: hidden">
+                  <img src="assets/yard-logo.png" alt="The Yard bot" style="width: 28px; display: block; filter: invert(1)">
+                </div>
+                <div style="max-width: 278px; display: flex; flex-direction: column; gap: 4px">
+                  <div style="{{ m.bubble }}">
+                    <div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: {{ m.tag }}">{{ m.kicker }}</div>
+                    <div style="font-size: 14px; line-height: 1.45; margin-top: 6px">{{ m.text }}</div>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 10px; text-align: right; margin-top: 6px; opacity: .7">{{ m.time }}</div>
+                  </div>
+                  <sc-if value="{{ m.cta }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ m.tap }}" style="{{ m.btn }}" style-active="transform:scale(.97)">{{ m.cta }}</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+            <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; background: var(--card, #fff); box-shadow: inset 0 0 0 1px var(--line, #0002); border-radius: 999px; padding: 12px 18px; color: var(--muted, #3C4654); font-size: 14px">Message</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 100%; background: linear-gradient(#1C2024, #C8CFC7); display: flex; flex-direction: column; animation: vIn .32s cubic-bezier(.2,.8,.2,1) both">
+            <div style="background: #0D0D0F; color: #F2EFE8; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #C8CFC7">The phone · half B</span>
+              <span style="font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; animation: tick 1.6s ease-in-out infinite alternate">{{ phoneTimer }}</span>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 26px 22px 24px">
+              <div style="background: #0D0D0FCC; color: #F2EFE8; border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px">
+                <div style="font-family: Anton, sans-serif; font-size: 24px; text-transform: uppercase; line-height: 1.05">The fixed phone file mounts here</div>
+                <div style="font-size: 13px; line-height: 1.45; color: #DDEDEB">Full screen, in an iframe from a Blob URL, fetched from <code style="font-family:'Space Mono',monospace">/api/escape/phone</code> at this moment and never cached. Telegram's back button returns to The Yard, and vertical swipes are disabled while it is open.</div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 14px; align-items: center">
+                <div style="font-family: 'Space Mono', monospace; font-size: 13px; color: #1C2024; font-weight: 700">Thursday 24 · 10:33 PM</div>
+                <div style="display: flex; gap: 12px">
+                  <div style="width: 64px; height: 64px; border-radius: 18px; background: #F2EFE8; color: #1C2024; display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase">Msgs</div>
+                  <div style="width: 64px; height: 64px; border-radius: 18px; background: #F2EFE8; color: #1C2024; display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase">Phone</div>
+                  <div style="width: 64px; height: 64px; border-radius: 18px; background: #F2EFE8; color: #1C2024; display: grid; place-items: center; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase">Photos</div>
+                </div>
+                <div style="font-size: 12px; line-height: 1.4; color: #0D0D0F; text-align: center; max-width: 280px">Sketch of the handset's own home screen, for placement only. The real one is the file you already have.</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <sc-if value="{{ mainButton }}" hint-placeholder-val="{{ false }}">
+        <div style="flex: none; padding: 10px 14px 16px; background: var(--card, #fff); box-shadow: inset 0 1px 0 var(--line, #0002); animation: sheet .3s cubic-bezier(.2,.8,.2,1) both">
+          <button onClick="{{ mainTap }}" style="width: 100%; min-height: 52px; background: #AE7338; color: #101010; border: 0; border-radius: 16px; font-size: 16px; font-weight: 700; letter-spacing: .02em; cursor: pointer; transition: transform .14s cubic-bezier(.2,.8,.2,1), background .2s, color .2s; box-shadow: inset 0 0 0 2px #101010" style-hover="background:#101010;color:#F2EFE8" style-active="transform:scale(.98)">{{ mainButton }}</button>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="width: 390px; font-size: 12px; line-height: 1.5; color: #EDEAE3">{{ note }}</div>
+  </div>
+
+  <div id="1b" style="width: 330px; flex: none; background: #0D0D0F; color: #F2EFE8; padding: 24px; border-radius: 26px; display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #AE7338">1b applied to The Last Guest</div>
+    <div style="font-size: 13px; line-height: 1.5; color: #C9C5BD">Attendee screens stay on paper. The escape room is the only place the ink ground appears, so walking into it feels like walking into the flat. Graphite #1C2024 carries the phone card, and bone #C8CFC7 is the only thing that ever says "you may open it" — no second hue, so the section reads as a different room rather than a different brand.</div>
+    <div style="border-top: 1px solid #FFFFFF1A; padding-top: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Motion</div>
+      <div style="font-size: 12px; line-height: 1.5; color: #C9C5BD">One easing curve everywhere: <code style="font-family:'Space Mono',monospace">cubic-bezier(.2,.8,.2,1)</code>. Screens rise 12px and fade in over 320ms, cards stagger in 40ms apart, every pressable thing scales to .97 under the thumb, the main button slides up from the bottom edge, and the unlocked phone button breathes a teal ring until it is tapped. Drag right on any screen to go back, with the screen following your thumb. All of it is off under <code style="font-family:'Space Mono',monospace">prefers-reduced-motion</code>.</div>
+    </div>
+    <div style="border-top: 1px solid #FFFFFF1A; padding-top: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">What the bot sends</div>
+      <div style="font-size: 12px; line-height: 1.5; color: #C9C5BD">Four moments, one button each: 10 minutes before your game, your half at the door, game live (opens the phone directly), and each food item the moment the booth starts making it. Jam approvals and rejections too. Links are web-app buttons carrying <code style="font-family:'Space Mono',monospace">startapp=phone</code> or <code style="font-family:'Space Mono',monospace">startapp=pass</code>, so the app opens on the right screen with the user data the gate needs — and the server re-checks on arrival, so a forwarded link opens nothing.</div>
+      <div style="font-size: 12px; line-height: 1.5; color: #A8A29B">New thing to decide: "your matcha is ready" needs a booth-side button to call it, which does not exist in the brief yet. Cheapest version is a Called button on the booth result card, which pings that one person.</div>
+    </div>
+    <div style="border-top: 1px solid #FFFFFF1A; padding-top: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Every state, in context</div>
+      <sc-for list="{{ stateList }}" as="s" hint-placeholder-count="10">
+        <div style="display: flex; gap: 10px; align-items: baseline">
+          <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #AE7338; flex: none; width: 132px; white-space: nowrap">{{ s.code }}</span>
+          <span style="flex: 1; min-width: 0; font-size: 12px; line-height: 1.4; color: #C9C5BD">{{ s.where }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border-top: 1px solid #FFFFFF1A; padding-top: 14px; font-size: 12px; line-height: 1.5; color: #A8A29B">Not yet built: the in-app phone view itself (it loads the fixed phone file), and the admin console. The phone fix list from §1 comes next, once I have read the deck against the phone file.</div>
+  </div>
+
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;capacity&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:6,&quot;max&quot;:16,&quot;section&quot;:&quot;Escape room&quot;},&quot;requireCheckin&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Escape room&quot;},&quot;inAppPhoneEnabled&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Escape room&quot;}}">
+class Component extends DCLogic {
+  state = { view: 'gate', persona: 'allowed', mins: 1110, dark: false, inApp: true, checked: true, sent: false, jam: null, dragX: 0, dragging: false, notif: 'game' };
+
+  fmt(m) {
+    const h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? 'PM' : 'AM';
+    let hh = h % 12; if (hh === 0) hh = 12;
+    return hh + ':' + String(mm).padStart(2, '0') + ' ' + ap;
+  }
+  short(m) {
+    const h = Math.floor(m / 60), mm = m % 60; let hh = h % 12; if (hh === 0) hh = 12;
+    return hh + ':' + String(mm).padStart(2, '0');
+  }
+  set(k, v) { this.setState({ [k]: v }); }
+  nav(v) {
+    const patch = { view: v, dragX: 0, dragging: false };
+    if (v === 'phone' && this.state.mins < 1170) patch.mins = 1170;
+    this.setState(patch);
+  }
+
+  renderVals() {
+    const s = this.state, cap = this.props.capacity ?? 12;
+    const P = s.persona, mins = s.mins, dark = s.dark;
+    const myStart = 1170, myEnd = myStart + 15, relock = myEnd + 2;
+    const booked = ['allowed', 'desk', 'flat', 'receipt', 'owner'].includes(P);
+    const half = P === 'flat' ? 'A' : 'B';
+
+    const theme = dark
+      ? { bg: '#0D0D0F', ink: '#F2EFE8', card: '#16161A', muted: '#9C978E', line: '#FFFFFF1A' }
+      : { bg: '#F2EFE8', ink: '#101010', card: '#FFFFFF', muted: '#3C4654', line: '#10101022' };
+
+    const gates = {
+      allowed: { tone: '#1F7A4C', mark: '✓', title: 'You are on the list', body: 'Signed up as @nadiarhm. Tap Start to go in.', cta: 'Start', foot: '' },
+      receipt: { tone: '#1F7A4C', mark: '✓', title: 'You are on the list', body: 'Signed up as @nadiarhm. We have not seen your entrance payment yet — you can still go in and upload it.', cta: 'Start', foot: '' },
+      desk: { tone: '#1F7A4C', mark: '✓', title: 'You are on the list', body: 'Signed up as @hafizo. Tap Start to go in.', cta: 'Start', foot: '' },
+      flat: { tone: '#1F7A4C', mark: '✓', title: 'You are on the list', body: 'Signed up as @clarateoh. Tap Start to go in.', cta: 'Start', foot: '' },
+      owner: { tone: '#101010', mark: '★', title: 'Always allowed', body: '@maxi_muslim goes in whether the list loaded or not.', cta: 'Start', foot: '' },
+      notlist: { tone: '#A8231B', mark: '✕', title: "We can't find @ryanlow", body: "That is not on The Yard's sign-up list. Signed up with a different username? Send it to the front desk.", cta: 'Check again', foot: 'The front desk checks before anyone is let in.' },
+      sent: { tone: '#AE7338', mark: '→', title: 'Sent to the front desk', body: 'Show them this screen, or tap Check again in a minute. You are not in yet.', cta: 'Check again', foot: '' },
+      nouser: { tone: '#A8231B', mark: '✕', title: 'Your account has no username', body: 'Telegram → Settings → Username. Pick one, then come back and tap Check again.', cta: 'Check again', foot: '' },
+      linked: { tone: '#A8231B', mark: '✕', title: 'Please see the front desk', body: 'That sign-up is already linked to another Telegram account.', cta: 'Check again', foot: '' },
+      closed: { tone: '#3C4654', mark: '·', title: 'The Yard is closed', body: 'Sign-ups are done and the doors shut at 10 PM. Thanks for coming.', cta: 'Check again', foot: '' },
+      down: { tone: '#3C4654', mark: '↻', title: "Can't reach The Yard", body: 'This is our end, not yours. Tap Try again — nothing is lost.', cta: 'Try again', foot: '' }
+    };
+    const gp = P === 'notlist' && s.sent ? 'sent' : P;
+    const g = gates[gp] || gates.allowed;
+
+    const names = { desk: 'Hafiz', flat: 'Clara', owner: 'Maximus' };
+    const fulls = { desk: 'Hafiz Osman', flat: 'Clara Teoh', owner: 'Maximus' };
+
+    const taken = [12, 12, 11, 9, 12, 5, 9, 7, 12, 3, 2, 0, 0, 0];
+    const games = [];
+    for (let i = 0; i < 14; i++) {
+      const st = 1050 + 20 * i, left = cap - taken[i], mine = booked && st === myStart;
+      let state, bg = '#16161A', fg = '#F2EFE8', ring = 'inset 0 0 0 1px #FFFFFF22', open = false;
+      if (mins >= st) { state = 'past'; bg = '#131315'; fg = '#8E8A85'; }
+      else if (mins >= st - 5) { state = 'booking closed'; bg = '#131315'; fg = '#A8A29B'; }
+      else if (left <= 0) { state = 'full'; bg = '#131315'; fg = '#A8A29B'; }
+      else if (left <= 3) { state = left + ' of ' + cap + ' left'; fg = '#C9A063'; open = true; }
+      else { state = left + ' of ' + cap + ' left'; open = true; }
+      if (mine) { state = 'your game · half ' + half; bg = '#C8CFC7'; fg = '#16181B'; ring = 'inset 0 0 0 2px #101010'; }
+      const live = mine || open;
+      games.push({
+        time: this.short(st), state,
+        style: 'background:' + bg + ';color:' + fg + ';box-shadow:' + ring + ';border:0;border-radius:18px;padding:16px 14px;text-align:left;min-height:84px;'
+          + 'transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .2s;animation:pop .34s ' + (i * 22) + 'ms cubic-bezier(.2,.8,.2,1) both;cursor:' + (live ? 'pointer' : 'default'),
+        press: live ? 'transform:scale(.95)' : 'transform:none',
+        tap: live ? () => this.nav('ticket') : () => {}
+      });
+    }
+
+    let phoneTitle, phoneBody, phoneOpenable = false, phoneCountdown = '';
+    if (!booked) { phoneTitle = 'Book a game first'; phoneBody = 'At game time, half of your group gets the phone. The other half works the flat.'; }
+    else if (!s.inApp) { phoneTitle = 'The phone is at the desk'; phoneBody = 'Use the handset on the desk.'; }
+    else if (mins < myStart) {
+      phoneTitle = 'Locked until the game starts';
+      phoneBody = 'Your half is decided at the door.';
+      phoneCountdown = 'GAME STARTS ' + this.fmt(myStart) + ' · IN ' + (myStart - mins) + ' MIN';
+    }
+    else if (mins >= relock) { phoneTitle = 'Case closed'; phoneBody = 'Your time and result are with the game master.'; }
+    else if (half === 'A') { phoneTitle = "You're working the flat"; phoneBody = 'The phone is with the other half. Shout across the room.'; }
+    else if (!s.checked) { phoneTitle = 'Check in at the door'; phoneBody = 'The game master checks you in before the phone opens.'; }
+    else { phoneTitle = 'The phone is unlocked'; phoneBody = 'Messages, recents and photos. Everything you need is on it.'; phoneOpenable = true; phoneCountdown = (myEnd - mins) + ':00 LEFT'; }
+
+    const jamSlots = [];
+    const jamStates = ['booked', 'open', 'open', 'pending', 'open', 'open', 'booked', 'open'];
+    for (let i = 0; i < 8; i++) {
+      const st = 1080 + 30 * i, sta = jamStates[i], picked = s.jam === i;
+      let label = sta === 'open' ? '$10 · open' : sta === 'booked' ? 'booked' : 'awaiting approval';
+      let bg = theme.card, fg = theme.ink, ring = 'inset 0 0 0 1px ' + theme.line, live = sta === 'open' && mins < st;
+      if (sta !== 'open') fg = theme.muted;
+      if (mins >= st) { label = 'past'; fg = theme.muted; }
+      if (picked) { bg = '#3B32C4'; fg = '#F2EFE8'; ring = 'inset 0 0 0 2px #101010'; label = 'held for you'; live = true; }
+      jamSlots.push({
+        time: this.short(st) + '–' + this.short(st + 30), state: label,
+        style: 'background:' + bg + ';color:' + fg + ';box-shadow:' + ring + ';border:0;border-radius:18px;min-height:64px;padding:0 20px;display:flex;justify-content:space-between;align-items:center;'
+          + 'transition:transform .16s cubic-bezier(.2,.8,.2,1),background .2s;animation:rise .36s ' + (i * 26) + 'ms cubic-bezier(.2,.8,.2,1) both;cursor:' + (live ? 'pointer' : 'default'),
+        press: live ? 'transform:scale(.98)' : 'transform:none',
+        tap: live ? () => this.setState({ jam: i, view: 'jampay', dragX: 0 }) : () => {}
+      });
+    }
+
+    const titles = { gate: 'The Yard', home: 'The Yard', esc: 'The Last Guest', ticket: 'Your ticket', food: 'Food & drinks', jam: 'Jam room', jampay: 'Pay by PayNow', jamwait: 'Jam room', bookings: 'My bookings', bot: 'The Yard bot', phone: 'The phone' };
+    const labels = { gate: 'Start gate — ' + gp, home: 'Home', esc: 'The Last Guest', ticket: 'Escape ticket', food: 'Pass', jam: 'Jam slot board', jampay: 'Jam payment', jamwait: 'Jam pending', bookings: 'My bookings', bot: 'Bot chat — ' + s.notif + ' notification', phone: 'Deep link · the phone' };
+    const notes = {
+      gate: 'The gate re-runs on every open and never caches "allowed". The username shown is always the one Telegram gave us, quoted back exactly.',
+      home: 'Next up counts down on the device, corrected by the server clock. Cards stagger in 40ms apart so the eye lands on the greeting first.',
+      esc: 'Start times are the hero, in tabular mono. Drag the clock past 7:25 PM to watch booking close, then 7:30 to unlock the phone for half B.',
+      ticket: 'Group bookings are all-or-nothing: if one friend is not on the list, nobody is booked.',
+      food: 'The QR is dark on white in both themes, with a quiet zone. Punches are server facts, not device state.',
+      jam: "Other people's bookings only ever say booked. Never who.",
+      jampay: 'The reference is the booking code. It is what the admin types back to prove the payment counted once.',
+      jamwait: 'The bot messages the outcome, so this screen does not need polling.',
+      bookings: 'Everything in one list, so nobody hunts through three areas at the door.',
+      bot: 'The bot is the reason nobody misses their slot: it reaches the lock screen, the app does not. Every message carries one button and one job, and the button is a web-app button, so Telegram still sends the user data the gate needs.',
+      phone: 'The game-live message opens the app straight onto the phone — startapp=phone. The server still re-runs rule 21 on arrival, so a flat-half player or a late tap lands on the locked card instead.'
+    };
+
+    const personaDefs = [
+      ['allowed', 'Paid and allowed'], ['receipt', 'Receipt missing'], ['notlist', 'Not on the list'],
+      ['nouser', 'No username'], ['linked', 'Linked elsewhere'], ['owner', '@maxi_muslim'],
+      ['desk', 'Half B — the desk'], ['flat', 'Half A — the flat'], ['closed', 'Gate closed'], ['down', 'Server unreachable']
+    ];
+    const personas = personaDefs.map(([k, label]) => ({
+      label, pick: () => this.setState({ persona: k, view: 'gate', sent: false, dragX: 0 }),
+      style: 'background:' + (P === k ? '#101010' : 'transparent') + ';color:' + (P === k ? '#F2EFE8' : '#101010')
+        + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:38px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+    }));
+
+    const navDefs = [['home', 'Home'], ['esc', 'Escape'], ['ticket', 'Ticket'], ['food', 'Pass'], ['jam', 'Jam'], ['jampay', 'Pay'], ['jamwait', 'Pending'], ['bookings', 'Bookings'], ['bot', 'Bot chat'], ['phone', 'The phone'], ['gate', 'Gate']];
+
+    const bubbleBase = 'background:' + theme.card + ';color:' + theme.ink + ';box-shadow:inset 0 0 0 1px ' + theme.line
+      + ';border-radius:20px 20px 20px 6px;padding:14px 16px';
+    const btnBase = 'width:100%;border:0;border-radius:14px;box-shadow:inset 0 0 0 2px #101010;min-height:48px;font-size:14px;font-weight:700;cursor:pointer;'
+      + 'transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s';
+    const tone = dark
+      ? { orange: '#C9A063', slate: '#B9C2C6', teal: '#C8CFC7', matcha: '#A9C06F', jam: '#9A94F5' }
+      : { orange: '#8A4D0C', slate: '#4A555C', teal: '#39444A', matcha: '#55662B', jam: '#2B23A8' };
+    const threads = {
+      game: [
+        { kicker: 'Escape room · ESC-4H7K', tag: tone.slate, text: 'Your game is at 7:30 PM. Come to the escape-room door on Level 6 now — the game master splits your group at the door.', time: '7:20 PM' },
+        { kicker: 'You are half B — the desk', tag: tone.slate, text: 'Your half works the desk and gets the phone. The other half is inside the flat. You will need each other.', time: '7:29 PM' },
+        { kicker: 'Game live · 15:00 on the clock', tag: tone.teal, text: 'The phone has been handed over, already unlocked. Open it here.', time: '7:30 PM', cta: 'Open the phone', view: 'phone', btn: btnBase + ';background:#1C2024;color:#C8CFC7' }
+      ],
+      food: [
+        { kicker: 'Drinks booth', tag: tone.matcha, text: 'Your matcha is being made now. Come to the drinks booth and show your pass — code 7K3M-Q9XT.', time: '7:12 PM', cta: 'Show my pass', view: 'food', btn: btnBase + ';background:#8FA65B;color:#101010' },
+        { kicker: 'Collected', tag: tone.matcha, text: 'Matcha handed over at 7:14 PM, Booth 1, Wei. Your panini spot is still open until 9:30 PM.', time: '7:14 PM' }
+      ],
+      jam: [
+        { kicker: 'Jam room · JAM-4QK7', tag: tone.jam, text: 'Payment approved. 8:30–9:00 PM is yours. Backline is set up: drums, two amps, keys, four mics.', time: '7:41 PM', cta: 'See booking', view: 'jamwait', btn: btnBase + ';background:#3B32C4;color:#F2EFE8' },
+        { kicker: 'Starting in 10 minutes', tag: tone.jam, text: 'Head to the jam room. If you are running late, tell the front desk — the slot after yours is booked.', time: '8:20 PM' }
+      ]
+    };
+    const botMsgs = (threads[s.notif] || threads.game).map(m => ({
+      kicker: m.kicker, tag: m.tag, text: m.text, time: m.time, bubble: bubbleBase,
+      cta: m.cta || '', btn: m.btn || btnBase, tap: m.view ? () => this.nav(m.view) : () => {}
+    }));
+    const notifDefs = [['game', 'Game live → the phone'], ['food', 'Matcha ready → the pass'], ['jam', 'Jam approved → booking']];
+    const notifs = notifDefs.map(([k, label]) => ({
+      label, fire: () => this.setState({ notif: k, view: 'bot', dragX: 0 }),
+      style: 'background:' + (s.notif === k && s.view === 'bot' ? '#101010' : 'transparent') + ';color:' + (s.notif === k && s.view === 'bot' ? '#F2EFE8' : '#101010')
+        + ';box-shadow:inset 0 0 0 2px #101010;border:0;border-radius:12px;min-height:38px;font-size:12px;font-weight:600;text-align:left;padding:0 12px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+    }));
+    const navs = navDefs.map(([k, label]) => ({
+      label, go: () => this.nav(k),
+      style: 'background:' + (s.view === k ? '#AE7338' : '#101010') + ';color:' + (s.view === k ? '#101010' : '#F2EFE8')
+        + ';border:0;border-radius:999px;box-shadow:inset 0 0 0 2px #101010;min-height:34px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:0 13px;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s,color .2s'
+    }));
+
+    const mainButtons = { esc: 'Book 7:50 PM', jam: 'Hold 8:30 PM slot', jampay: 'I have paid — upload screenshot' };
+
+    return {
+      ...theme,
+      clock: this.fmt(mins), mins,
+      onClock: e => this.set('mins', Number(e.target.value)),
+      toggleInApp: () => this.set('inApp', !s.inApp),
+      inAppLabel: s.inApp ? 'In-app phone: on' : 'In-app phone: off',
+      inAppStyle: 'background:' + (s.inApp ? '#1F7A4C' : '#A8231B') + ';color:#fff;border:0;border-radius:12px;box-shadow:inset 0 0 0 2px #101010;min-height:40px;font-size:12px;font-weight:700;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s',
+      toggleChecked: () => this.set('checked', !s.checked),
+      checkedLabel: s.checked ? 'Checked in: yes' : 'Checked in: no',
+      checkedStyle: 'background:' + (s.checked ? '#1F7A4C' : '#A8231B') + ';color:#fff;border:0;border-radius:12px;box-shadow:inset 0 0 0 2px #101010;min-height:40px;font-size:12px;font-weight:700;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s',
+      toggleDark: () => this.set('dark', !dark),
+      darkLabel: dark ? 'Telegram theme: dark' : 'Telegram theme: light',
+      darkStyle: 'background:#101010;color:#F2EFE8;border:0;border-radius:12px;box-shadow:inset 0 0 0 2px #101010;min-height:40px;font-size:12px;font-weight:700;cursor:pointer;transition:transform .14s cubic-bezier(.2,.8,.2,1),background .2s',
+      personas, navs,
+
+      dragX: s.dragX,
+      dragEase: s.dragging ? 'none' : 'transform .32s cubic-bezier(.2,.8,.2,1)',
+      dragDown: e => { if (s.view === 'gate') return; this._sx = e.clientX; this._sy = e.clientY; this.setState({ dragging: true }); },
+      dragMove: e => {
+        if (!s.dragging || this._sx == null) return;
+        const dx = e.clientX - this._sx, dy = Math.abs(e.clientY - this._sy);
+        if (dy > 34) { this.setState({ dragging: false, dragX: 0 }); return; }
+        this.set('dragX', Math.max(0, Math.min(dx * 0.65, 130)));
+      },
+      dragUp: () => {
+        const far = s.dragX > 54;
+        this._sx = null;
+        this.setState({ dragging: false, dragX: 0 });
+        if (far) this.nav(s.view === 'home' ? 'gate' : 'home');
+      },
+
+      isGate: s.view === 'gate', isHome: s.view === 'home', isEsc: s.view === 'esc',
+      isTicket: s.view === 'ticket', isFood: s.view === 'food', isJam: s.view === 'jam',
+      isJamPay: s.view === 'jampay', isJamWait: s.view === 'jamwait', isBookings: s.view === 'bookings',
+      isBot: s.view === 'bot', isPhone: s.view === 'phone', notifs, botMsgs,
+      navTitle: titles[s.view], viewLabel: labels[s.view], note: notes[s.view],
+
+      gateTone: g.tone, gateMark: g.mark, gateTitle: g.title, gateBody: g.body, gateCta: g.cta, gateFoot: g.foot, showGateFoot: !!g.foot,
+      showHandleBox: gp === 'notlist',
+      startTap: () => {
+        if (['allowed', 'receipt', 'desk', 'flat', 'owner'].includes(P)) this.nav('home');
+        else if (gp === 'notlist') this.set('sent', true);
+      },
+
+      firstName: names[P] || 'Nadia', fullName: fulls[P] || 'Nadia Rahim',
+      showReceiptBanner: P === 'receipt',
+      receiptTitle: 'We have not seen your payment',
+      receiptBody: 'Entrance covers one matcha and one panini. Upload the screenshot and the front desk verifies it — usually within a few minutes.',
+      nextTime: booked ? this.fmt(myStart) : this.fmt(1230),
+      nextWhat: booked ? 'The Last Guest' : 'Jam room',
+      nextCountdown: mins < myStart ? 'in ' + (myStart - mins) + ' min' : mins < myEnd ? 'running now' : 'done',
+      nextRef: booked ? 'ESC-4H7K · half ' + half + ' decided at the door' : 'JAM-4QK7 · awaiting approval',
+      foodSub: P === 'receipt' ? 'Payment not verified' : 'Matcha ready · panini collected',
+      payBlocked: P === 'receipt',
+
+      games, phoneTitle, phoneBody, phoneOpenable,
+      phoneCountdown,
+      phoneTimer: (mins >= myStart && mins < myEnd ? (myEnd - mins) : 15) + ':00 LEFT',
+      jamSlots, jamPicked: s.jam === null ? '8:30–9:00 PM' : this.short(1080 + 30 * s.jam) + '–' + this.short(1110 + 30 * s.jam) + ' PM',
+      holdLeft: '9:41',
+
+      mainButton: mainButtons[s.view] || '',
+      mainTap: () => { if (s.view === 'esc') this.nav('ticket'); else if (s.view === 'jam') this.setState({ jam: 5, view: 'jampay', dragX: 0 }); else if (s.view === 'jampay') this.nav('jamwait'); },
+      back: () => this.nav(s.view === 'phone' ? 'esc' : s.view === 'home' || s.view === 'gate' ? 'gate' : 'home'),
+      goEsc: () => this.nav('esc'), goFood: () => this.nav('food'),
+      goJam: () => this.nav('jam'), goJamWait: () => this.nav('jamwait'),
+      goBookings: () => this.nav('bookings'), goTicket: () => this.nav('ticket'),
+
+      stateList: [
+        { code: 'NOT_ON_LIST', where: 'Gate · persona "Not on the list"' },
+        { code: 'NO_USERNAME', where: 'Gate · persona "No username"' },
+        { code: 'LINKED_ELSEWHERE', where: 'Gate · persona "Linked elsewhere"' },
+        { code: 'GATE_CLOSED', where: 'Gate · persona "Gate closed"' },
+        { code: 'network', where: 'Gate · persona "Server unreachable" — retry, never denied' },
+        { code: 'SLOT_FULL', where: 'Escape board · 5:30, 5:50, 6:30, 7:10 PM' },
+        { code: 'SLOT_CLOSED', where: 'Escape board · within 5 min of a start' },
+        { code: 'SLOT_STARTED', where: 'Escape board · past games, drag the clock' },
+        { code: 'PHONE_LOCKED', where: 'Phone card before 7:30 PM' },
+        { code: 'PHONE_NOT_YOUR_HALF', where: 'Phone card · persona "Half A"' },
+        { code: 'NOT_CHECKED_IN', where: 'Phone card · Checked in: no' },
+        { code: 'PHONE_OFF', where: 'Phone card · In-app phone: off' },
+        { code: 'relocked', where: 'Phone card after 7:47 PM — case closed' },
+        { code: 'PAYMENT_NOT_VERIFIED', where: 'Pass · persona "Receipt missing"' },
+        { code: 'ALREADY_CLAIMED', where: 'Pass · panini punch' },
+        { code: 'HOLD_EXPIRED', where: 'Jam · hold countdown runs out' }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

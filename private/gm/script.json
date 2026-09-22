@@ -1,0 +1,21 @@
+{
+  "_read_me": "Spoilers. The GM console loads this for gm and admin sign-ins only. Edit the lines freely; the times come from Settings (hint_1, hint_2, hint_3, forced_merge).",
+  "cues": [
+    {"key": "hint1", "time_setting": "hint_1", "action": "Send",
+     "line": "Dispatcher: \"Units are fifteen out. Anything on the guests?\""},
+    {"key": "hint2", "time_setting": "hint_2", "action": "Send",
+     "line": "Dispatcher: \"We have a name. Ask about the kitchen.\""},
+    {"key": "merge", "time_setting": "forced_merge", "action": "Merge",
+     "line": "Forced merge — both halves in the same room from here."},
+    {"key": "hint3", "time_setting": "hint_3", "action": "Send",
+     "line": "Dispatcher: \"Two minutes. Give us something.\""}
+  ],
+  "reset": [
+    "Reset the flat: chairs back, drawer closed, note under the lamp.",
+    "Both desk devices back to the phone's home screen — the file's own reset, top-left of its lock screen.",
+    "Wipe the whiteboard, re-hang the timeline board face down.",
+    "Collect the lock and set it to 0000.",
+    "Split the next group at the door and read them their half.",
+    "Press Start only once the desk half is seated."
+  ]
+}

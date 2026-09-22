@@ -1,0 +1,38 @@
+# The Yard — what never goes to GitHub.
+# Keep the repository PRIVATE: it still holds the escape room's solution
+# (private/, ESCAPE_ROOM_FLOW.md, context/) and attendees' Telegram usernames
+# in the tests. See DEPLOY.md.
+
+# Secrets: bot token, Flask key, password and PIN hashes.
+.env
+
+# The live database, its backups, and anything with attendees' personal
+# details (names, emails, payment screenshots, Paperform exports).
+data/
+imports/
+private/receipts/
+context/The_Yard_Sign_Up_Responses.xlsx
+*.xlsx
+
+# Built from the sign-up list by scripts/build_design_file.py, so they carry
+# real names. Rebuild them locally instead.
+design/answers.json
+design/the-yard-design.html
+design/index.html.bak
+
+# Python and tooling.
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log
+
+# Editors and the OS.
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Empty leftover folders from the first setup.
+my-mini-app/

@@ -1,0 +1,2886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Yard — console</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   The Yard — staff console. Design contract:
+   prototypes/The Yard Admin Console. Booth and GM at 390, admin at 1440.
+   =================================================================== */
+
+:root{
+  --paper:#F2EFE8; --ink:#101010; --card:#FFFFFF; --muted:#3C4654; --line:#10101022;
+  --orange:#AE7338; --green:#1F7A4C; --red:#A8231B; --ground:#0D0D0F; --panel:#16161A;
+  --graphite:#1C2024; --bone:#C8CFC7; --stone:#A8A29B; --slate:#9AA4A8;
+  --sand:#C4A98A; --dim:#C9C5BD;
+  --text:'Archivo', system-ui, sans-serif;
+  --num:'Archivo', system-ui, sans-serif;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{ box-sizing:border-box }
+[hidden]{ display:none !important }
+html,body{ height:100% }
+body{
+  margin:0; font-family:var(--text); color:#F2EFE8;
+  background:#1A1A1C var(--grain); -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+button{ font-family:inherit }
+input{ font-family:inherit }
+code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
+@keyframes vIn{ from{ opacity:0; transform:translateY(12px) } to{ opacity:1; transform:none } }
+@keyframes rise{ from{ opacity:0; transform:translateY(14px) } to{ opacity:1; transform:none } }
+@keyframes pop{ from{ opacity:0; transform:scale(.96) } to{ opacity:1; transform:none } }
+@keyframes flash{ from{ opacity:0 } to{ opacity:1 } }
+@keyframes tick{ from{ opacity:.5 } to{ opacity:1 } }
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important } }
+.mono{ font-family:var(--num); font-stretch:112%; font-weight:700; font-variant-numeric:tabular-nums }
+.kicker{ font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase }
+.kicker-s{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+
+#stage{ padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; min-height:100% }
+@media (min-width:900px){ #stage{ padding:36px 48px } }
+
+/* ---- test-clock banner (§9 r35) ------------------------------------ */
+#clockbanner{
+  display:none; width:100%; background:#AE7338; color:#101010; padding:10px 18px;
+  font-size:13px; font-weight:700; letter-spacing:.06em; text-align:center; border-radius:14px;
+}
+#clockbanner.on{ display:block }
+
+/* ---- sign in -------------------------------------------------------- */
+.signin{
+  width:390px; max-width:100%; background:#F2EFE8; color:#101010; border-radius:26px; padding:26px;
+  display:flex; flex-direction:column; gap:14px; animation:pop .3s var(--ease) both;
+}
+.signin .h{ font-family:Anton,sans-serif; font-size:34px; text-transform:uppercase; line-height:1 }
+.signin .p{ font-size:13px; line-height:1.5; color:#3C4654 }
+.signin .tabs{ display:flex; gap:8px }
+.signin .tabs button{
+  flex:1; min-height:40px; border:0; border-radius:12px; box-shadow:inset 0 0 0 2px #101010;
+  background:transparent; color:#101010; font-size:12px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; cursor:pointer; transition:background .2s, color .2s, transform .14s var(--ease);
+}
+.signin .tabs button.on{ background:#101010; color:#F2EFE8 }
+.signin .tabs button:active{ transform:scale(.97) }
+/* The two doors carry a line each, so the choice says what it opens. */
+.signin .doors button{ min-height:64px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; padding:10px 14px; text-align:left }
+.signin .doors .door-t{ font-family:Anton,sans-serif; font-size:22px; letter-spacing:.02em; line-height:1 }
+.signin .doors .door-s{ font-size:11px; font-weight:600; letter-spacing:0; text-transform:none; opacity:.8 }
+.field{ display:flex; flex-direction:column; gap:6px }
+.field label{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+.field input{
+  width:100%; min-height:48px; border:0; outline:none; border-radius:14px; background:#fff;
+  box-shadow:inset 0 0 0 2px #101010; font-size:16px; padding:0 14px; color:#101010;
+}
+.signin .go{
+  min-height:56px; background:#101010; color:#F2EFE8; border:0; border-radius:16px;
+  font-family:Anton,sans-serif; font-size:24px; text-transform:uppercase; letter-spacing:.03em;
+  cursor:pointer; transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.signin .go:hover{ background:#AE7338; color:#101010 }
+.signin .go:active{ transform:scale(.98) }
+.signin .err{ font-size:13px; line-height:1.45; color:#A8231B; font-weight:600 }
+
+/* ---- 390-wide screens (booth, GM) ----------------------------------- */
+.phone390{
+  width:390px; max-width:100%; height:844px; max-height:calc(100vh - 80px);
+  overflow:hidden; border-radius:42px; box-shadow:0 30px 70px #0007, inset 0 0 0 1px #ffffff14;
+  display:flex; flex-direction:column;
+}
+@media (max-width:600px){ .phone390{ height:auto; max-height:none; border-radius:28px } }
+
+/* booth */
+.booth{ background:#F2EFE8; color:#101010 }
+.booth-top{ flex:none; background:#101010; color:#F2EFE8; padding:34px 20px 14px; display:flex; justify-content:space-between; align-items:center }
+.booth-top .who{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+.booth-body{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding:14px 16px 22px }
+.viewfinder{
+  flex:none; background:#0D0D0F; border-radius:22px; aspect-ratio:4/3; position:relative;
+  overflow:hidden; display:grid; place-items:center;
+}
+.viewfinder video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+.vf-box{ position:absolute; width:190px; height:190px; border-radius:26px; box-shadow:inset 0 0 0 3px #AE7338 }
+.vf-line{ position:absolute; width:190px; height:2px; background:#AE7338; animation:tick 1.4s ease-in-out infinite alternate }
+.vf-hint{ position:absolute; bottom:12px; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C9C5BD }
+.coderow{ display:flex; gap:8px }
+.coderow input{
+  flex:1; min-width:0; background:#fff; box-shadow:inset 0 0 0 2px #101010; border:0; outline:none;
+  border-radius:16px; padding:0 14px; min-height:54px; font-family:var(--num); font-stretch:112%;
+  font-size:18px; font-weight:700; letter-spacing:.08em; color:#101010; text-transform:uppercase;
+}
+.coderow button{
+  flex:none; min-width:84px; background:#101010; color:#F2EFE8; border:0; border-radius:16px;
+  font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s; box-shadow:inset 0 0 0 2px #101010;
+}
+.coderow button:hover{ background:#AE7338; color:#101010 }
+.coderow button:active{ transform:scale(.96) }
+.result{ border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:12px; animation:pop .3s var(--ease) both }
+.result-head{ display:flex; gap:14px; align-items:center }
+.result-mark{ width:64px; height:64px; flex:none; border-radius:18px; display:grid; place-items:center; font-size:36px; line-height:1 }
+.result-title{ font-family:Anton,sans-serif; font-size:34px; line-height:.95; text-transform:uppercase }
+.result-kicker{ font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase }
+.result-body{ font-size:14px; line-height:1.45 }
+.personcard{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; padding:16px 18px; display:flex; flex-direction:column; gap:6px; animation:rise .36s .04s var(--ease) both }
+.personcard .n{ font-family:Anton,sans-serif; font-size:30px; line-height:1; text-transform:uppercase }
+.personcard .h{ font-family:var(--num); font-stretch:112%; font-size:15px }
+.personcard .tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
+.tag{ font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 10px; border-radius:999px }
+.tag-dark{ background:#101010; color:#F2EFE8 }
+.tag-half{ background:#1C2024; color:#C8CFC7 }
+.handbox{ display:flex; flex-direction:column; gap:10px; animation:rise .36s .08s var(--ease) both }
+.handover{
+  width:100%; min-height:98px; background:#101010; color:#F2EFE8; border:0; border-radius:20px;
+  font-family:Anton,sans-serif; font-size:32px; text-transform:uppercase; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; padding:0 22px;
+  transition:transform .16s var(--ease), background .2s, color .2s; box-shadow:inset 0 0 0 2px #101010;
+}
+.handover:hover{ background:#1F7A4C }
+.handover:active{ transform:scale(.98) }
+.handkinds{ display:flex; flex-direction:column; gap:8px }
+.hk-t{ font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase }
+.hk-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.handover.hk{ min-height:78px; font-size:22px; line-height:1.05; justify-content:center; text-align:center; padding:0 12px }
+.blocked-item{ background:#A8231B; color:#fff; padding:16px 18px; border-radius:18px; display:flex; gap:12px; align-items:flex-start }
+.blocked-item .x{ font-size:20px; line-height:1 }
+.blocked-item .t{ font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase; line-height:1.05 }
+.blocked-item .w{ font-family:var(--num); font-stretch:112%; font-size:13px; margin-top:4px }
+.boothfoot{ display:flex; gap:8px; margin-top:auto }
+.boothfoot button{
+  flex:1; min-height:52px; background:transparent; border:0; border-radius:999px;
+  box-shadow:inset 0 0 0 2px #101010; color:#101010; font-size:12px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.boothfoot button:hover{ background:#101010; color:#F2EFE8 }
+.boothfoot button:active{ transform:scale(.97) }
+
+/* orders (decision 125): the waiting list, one card per order, and one big
+   button on each — a thumb, a queue, and a hot drink in the other hand. */
+.ord-scan{
+  width:100%; min-height:72px; background:#101010; color:#F2EFE8; border:0; border-radius:20px; cursor:pointer;
+  font-family:Anton,sans-serif; font-size:26px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; transition:transform .16s var(--ease), background .2s;
+}
+.ord-scan:hover{ background:#AE7338; color:#101010 }
+.ord-scan:active{ transform:scale(.98) }
+.ord-note{ font-size:12.5px; line-height:1.45; background:#EDE3D2; color:#5A3D16; border-radius:14px; padding:10px 14px }
+.ord-head{ display:flex; justify-content:space-between; align-items:baseline; padding:8px 2px 0; border-top:2px solid #101010;
+  font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+.ord-empty{ font-size:14px; color:#3C4654; padding:6px 2px }
+.ord-done{ font-size:12.5px; color:#3C4654; padding:4px 2px }
+.ord{ background:#fff; border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:6px;
+  box-shadow:inset 0 0 0 1px #10101022 }
+.ord.called{ box-shadow:inset 0 0 0 2px #1F7A4C }
+.ord-top{ display:flex; justify-content:space-between; align-items:center; gap:10px }
+.ord-item{ background:#101010; color:#F2EFE8; border-radius:999px; padding:5px 12px;
+  font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase }
+.ord-when{ font-family:var(--num); font-stretch:112%; font-size:13px; color:#3C4654 }
+.ord-name{ font-family:Anton,sans-serif; font-size:30px; line-height:1.02 }
+.ord-sub{ font-size:13px; color:#3C4654 }
+.ord-msg{ font-size:13px; font-weight:700; border-radius:12px; padding:8px 12px; background:#EEF4EF; color:#1F7A4C }
+.ord-msg.sending{ background:#F2EFE8; color:#3C4654 }
+.ord-msg.test_mode{ background:#EDE3D2; color:#5A3D16 }
+.ord-msg.cannot_message, .ord-msg.not_sent, .ord-msg.bad, .ord-msg.warn{ background:#F6E3E1; color:#A8231B }
+.ord-call{
+  margin-top:6px; width:100%; min-height:64px; background:#1F7A4C; color:#fff; border:0; border-radius:16px; cursor:pointer;
+  font-family:Anton,sans-serif; font-size:24px; transition:transform .14s var(--ease), filter .2s;
+}
+.ord-call:active{ transform:scale(.98) }
+.ord-btns{ margin-top:6px; display:flex; gap:8px }
+.ord-btns button{ flex:1; min-height:56px; border:0; border-radius:16px; cursor:pointer; font-size:14px; font-weight:700;
+  transition:transform .14s var(--ease) }
+.ord-btns button:active{ transform:scale(.97) }
+.ord-collected{ background:#101010; color:#F2EFE8 }
+.ord-again{ background:transparent; color:#101010; box-shadow:inset 0 0 0 2px #101010 }
+.ord-cancel{ align-self:flex-start; background:none; border:0; padding:8px 0 0; cursor:pointer; font-size:12.5px;
+  color:#3C4654; text-decoration:underline; text-underline-offset:3px }
+.ord-added{ font-size:14px; font-weight:700; color:#1F7A4C; padding:0 2px }
+
+/* On a real phone the console is the phone: no frame drawn inside it, no
+   fake status-bar gap, and no design notes under the screens. */
+@media (max-width:600px){
+  #stage{ padding:10px 10px 24px }
+  .phone390{ border-radius:22px; box-shadow:none }
+  .booth-top, .gm-top{ padding-top:14px }
+  .stagenote{ display:none }
+}
+
+/* GM console */
+.gm{ background:#0D0D0F; color:#F2EFE8 }
+.gm-top{ flex:none; padding:34px 20px 12px; display:flex; justify-content:space-between; align-items:center }
+.gm-top .who{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#9AA4A8 }
+.gm-top .n{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#A8A29B }
+.gm-body{ flex:1; overflow-y:auto; padding:0 16px 24px; display:flex; flex-direction:column; gap:12px }
+.gm-card{ background:#16161A; border-radius:24px; padding:20px; display:flex; flex-direction:column; gap:12px }
+.gm-card.tight{ padding:18px; gap:10px }
+.gm-head{ display:flex; justify-content:space-between; align-items:baseline }
+.gm-head .l{ font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#A8A29B }
+.gm-timer{ font-family:var(--num); font-stretch:112%; font-size:78px; font-weight:700; line-height:.86; letter-spacing:-.02em; font-variant-numeric:tabular-nums }
+.gm-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.gm-btn{ border:0; border-radius:16px; cursor:pointer; transition:transform .14s var(--ease), background .2s, color .2s, filter .2s }
+.gm-btn:active{ transform:scale(.97) }
+.gm-btn[disabled]{ opacity:.45; cursor:default }
+.gm-pick{ max-width:230px; background:#16161A; color:#F2EFE8; border:0; border-radius:12px; box-shadow:inset 0 0 0 1px #FFFFFF33; padding:8px 10px; font:inherit; font-size:12px }
+.gm-pause{ min-height:56px; background:#C8CFC7; color:#16181B; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; box-shadow:inset 0 0 0 2px #101010 }
+.gm-pause:hover{ background:#F2EFE8 }
+.gm-ext{ min-height:56px; background:transparent; color:#F2EFE8; box-shadow:inset 0 0 0 2px #FFFFFF44; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase }
+.gm-ext:hover{ background:#F2EFE8; color:#0D0D0F }
+.gm-lock{ min-height:52px; background:transparent; color:#C8CFC7; box-shadow:inset 0 0 0 2px #C8CFC7; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase }
+.gm-lock:hover{ background:#C8CFC7; color:#16181B }
+.gm-inapp{ min-height:52px; background:transparent; color:#C4A98A; box-shadow:inset 0 0 0 2px #C4A98A; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase }
+.gm-inapp:hover{ background:#C4A98A; color:#101010 }
+.gm-end{ min-height:56px; background:#A8231B; color:#fff; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; box-shadow:inset 0 0 0 2px #101010 }
+.gm-end:hover{ filter:brightness(1.15) }
+.cue{ display:flex; gap:10px; align-items:center; border-radius:14px; padding:10px 12px; transition:background .25s, color .25s }
+.cue .at{ font-family:var(--num); font-stretch:112%; font-size:17px; font-weight:700; flex:none; width:58px; font-variant-numeric:tabular-nums }
+.cue .line{ flex:1; font-size:13px; line-height:1.4 }
+.cue .act{ flex:none; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:6px 10px; border-radius:999px; border:0; cursor:pointer }
+.gm-note{ font-size:11px; line-height:1.5; color:#A8A29B }
+.gm-rebal{ background:transparent; color:#C8CFC7; border:0; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; box-shadow:inset 0 0 0 2px #101010; border-radius:999px; padding:6px 12px }
+.halves{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.half{ display:flex; flex-direction:column; gap:6px }
+.half .h{ font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase }
+.half.b .h{ color:#C8CFC7 }
+.prow{ font-size:13px; border-radius:10px; padding:8px 10px; cursor:pointer; border:0; text-align:left;
+  transition:background .2s, transform .14s var(--ease); background:#2A2A2E; color:#A8A29B }
+.prow.in{ background:#1F7A4C; color:#fff }
+.prow:active{ transform:scale(.96) }
+/* Did the phone's message reach them? (22 Sep, decision 130) */
+.prow .pm{ display:block; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-top:3px; opacity:.85 }
+.prow .pm.bad{ color:#F2B8A8; opacity:1 }
+.gm-phone{ font-size:12px; line-height:1.5; color:#F2EFE8; padding:10px 12px; border-radius:10px; background:#2A2A2E }
+.gm-phone.bad{ background:#5A1F1A }
+.reset-row{ display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.4 }
+.reset-box{ width:20px; height:20px; flex:none; border-radius:6px; box-shadow:inset 0 0 0 2px #FFFFFF44; background:transparent; cursor:pointer }
+.reset-box.done{ background:#1F7A4C; box-shadow:inset 0 0 0 2px #1F7A4C }
+
+/* ---- 1440 screens --------------------------------------------------- */
+.wide{
+  width:1440px; max-width:100%; background:#F2EFE8 var(--grain); color:#101010; border-radius:26px;
+  overflow:hidden; box-shadow:0 30px 70px #0007; animation:vIn .3s var(--ease) both;
+}
+.refreshed{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#A8A29B }
+.refreshed.on{ color:#8FA65B; font-weight:700; letter-spacing:.14em; text-transform:uppercase }
+.refreshed.on::before{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:#8FA65B; margin-right:6px; animation:tick 1.2s ease-in-out infinite alternate }
+.eventday{ background:#1F7A4C; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:6px 12px; border-radius:999px }
+.eventday.test{ background:#A8231B }
+.wide-body{ padding:26px 28px 30px; display:flex; flex-direction:column; gap:18px }
+
+.stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(145px, 1fr)); gap:12px }
+.stat{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:18px; padding:18px; animation:rise .34s var(--ease) both }
+.stat .l{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+.stat .v{ font-family:var(--num); font-stretch:112%; font-size:40px; font-weight:700; line-height:1.05; margin-top:6px; font-variant-numeric:tabular-nums }
+.stat .s{ font-size:12px }
+.twocol{ display:grid; grid-template-columns:1.4fr 1fr; gap:18px }
+@media (max-width:1000px){ .twocol{ grid-template-columns:1fr } }
+.chart{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:12px }
+.chart .h{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+.bars{ display:flex; gap:6px; align-items:flex-end; height:150px }
+.barcol{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:6px; height:100% }
+.bar{ border-radius:8px 8px 4px 4px; background:#101010 }
+.bar.now{ background:#AE7338 }
+.barlbl{ font-family:var(--num); font-stretch:112%; font-size:10px; text-align:center; color:#3C4654 }
+.chart .foot{ font-size:12px; color:#3C4654 }
+.needs{ background:#0D0D0F; color:#F2EFE8; border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:12px }
+.needs .h{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#AE7338 }
+.needrow{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #FFFFFF1A }
+.needrow .w{ font-size:14px; line-height:1.35 }
+button.needrow{ width:100%; background:transparent; border:0; border-bottom:1px solid #FFFFFF1A; color:inherit; font:inherit; text-align:left; cursor:pointer }
+button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
+.needpill{ flex:none; color:#101010; font-family:var(--num); font-stretch:112%; font-size:15px; font-weight:700; padding:4px 12px; border-radius:999px }
+.needs .foot{ font-size:12px; line-height:1.5; color:#A8A29B; margin-top:auto }
+
+/* people */
+.people-top{ background:#101010; color:#F2EFE8; padding:16px 28px; display:flex; gap:18px; align-items:center }
+.searchbox{ flex:1; background:#16161A; border-radius:14px; display:flex; align-items:center; padding:0 16px; min-height:46px; gap:10px }
+.searchbox .at{ font-family:var(--num); font-stretch:112%; font-weight:700; color:#AE7338 }
+.searchbox input{
+  flex:1; min-width:0; background:transparent; border:0; outline:none; color:#F2EFE8;
+  font-family:var(--num); font-stretch:112%; font-size:15px;
+}
+.searchbox .hint{ margin-left:auto; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#A8A29B }
+.people-grid{ display:grid; grid-template-columns:300px 1fr 360px }
+@media (max-width:1200px){ .people-grid{ grid-template-columns:1fr } .people-list{ max-height:320px } }
+.people-list{ border-right:1px solid #10101018; padding:20px; display:flex; flex-direction:column; gap:8px; max-height:760px; overflow-y:auto }
+.people-list .count{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+.prowbtn{
+  background:transparent; color:#101010; box-shadow:inset 0 0 0 1px #10101022; border:0; border-radius:12px;
+  padding:10px 12px; text-align:left; cursor:pointer; transition:background .2s, color .2s, transform .14s var(--ease);
+}
+.prowbtn.on{ background:#101010; color:#F2EFE8 }
+.prowbtn:active{ transform:scale(.98) }
+.prowbtn .n{ display:block; font-size:14px; font-weight:600 }
+.prowbtn .s{ display:block; font-family:var(--num); font-stretch:112%; font-size:12px; color:#3C4654 }
+.prowbtn.on .s{ color:#C9C5BD }
+.person-main{ padding:24px; display:flex; flex-direction:column; gap:16px }
+.person-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap }
+.person-name{ font-family:Anton,sans-serif; font-size:46px; line-height:.95; text-transform:uppercase }
+.person-ids{ font-family:var(--num); font-stretch:112%; font-size:15px; margin-top:4px }
+.person-pills{ display:flex; gap:8px; flex-wrap:wrap }
+.bigpill{ font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:8px 14px; border-radius:999px; transition:background .25s }
+.panels{ display:grid; grid-template-columns:1fr 1fr; gap:14px }
+@media (max-width:700px){ .panels{ grid-template-columns:1fr } }
+.panel{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; padding:18px; display:flex; flex-direction:column; gap:10px }
+.panel .h{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+.kv{ display:flex; justify-content:space-between; align-items:center; font-size:14px; gap:10px }
+.kv .v{ font-family:var(--num); font-stretch:112% }
+.smallbtn{
+  align-self:flex-start; min-height:40px; background:transparent; border:0; border-radius:999px;
+  box-shadow:inset 0 0 0 2px #101010; color:#101010; font-size:11px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; padding:0 14px; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.smallbtn:hover{ background:#101010; color:#F2EFE8 }
+.smallbtn:active{ transform:scale(.96) }
+.smallbtn.danger{ box-shadow:inset 0 0 0 2px #A8231B; color:#A8231B }
+.smallbtn.danger:hover{ background:#A8231B; color:#fff }
+.auditrow{ display:flex; gap:14px; font-size:13px; line-height:1.4; padding-bottom:8px; border-bottom:1px solid #10101012 }
+.auditrow .at{ font-family:var(--num); font-stretch:112%; flex:none; width:74px; color:#3C4654 }
+.auditrow .what{ flex:1 }
+.auditrow .who{ font-family:var(--num); font-stretch:112%; color:#3C4654 }
+.person-side{ border-left:1px solid #10101018; padding:24px; display:flex; flex-direction:column; gap:14px }
+.qrbox{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; padding:18px; display:grid; place-items:center }
+.qrbox img{ width:200px; height:200px; image-rendering:pixelated; display:block }
+.side-note{ font-size:12px; line-height:1.5; color:#3C4654 }
+.paybox{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; padding:16px; display:flex; flex-direction:column; gap:12px }
+.receiptrow{ display:flex; gap:12px }
+.receiptthumb{
+  flex:none; width:96px; height:130px; background:#3C4654; border-radius:14px;
+  box-shadow:inset 0 0 0 2px #101010; display:grid; place-items:center; cursor:zoom-in;
+  transition:transform .16s var(--ease); border:0; color:#C9C5BD; font-size:9px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; overflow:hidden; padding:0;
+}
+.receiptthumb:hover{ transform:scale(1.03) }
+.receiptthumb img{ width:100%; height:100%; object-fit:cover; display:block }
+.receiptmeta{ min-width:0; display:flex; flex-direction:column; gap:5px; font-size:12px; line-height:1.4 }
+.receiptmeta .b{ font-weight:700 }
+/* §9 r30 — the duplicate layers warn, they never reject. Sits above the
+   verdict so it is read before Verify is pressed, not after. */
+.dupwarn{ border-radius:14px; padding:11px 13px; font-size:12.5px; line-height:1.45;
+  box-shadow:inset 0 0 0 2px #10101022; background:#F6EEDC; color:#101010 }
+.dupwarn.exact{ background:#A8231B; color:#F2EFE8; box-shadow:none }
+.dupwarn .t{ font-weight:700; letter-spacing:.02em; margin-bottom:3px }
+.dupwarn [data-person]{ background:none; border:0; padding:0; font:inherit; color:inherit;
+  font-weight:700; text-decoration:underline; cursor:pointer }
+.verdict{ border-radius:16px; padding:14px 15px; transition:background .25s }
+.verdict .t{ font-family:Anton,sans-serif; font-size:20px; line-height:1.05; text-transform:uppercase }
+.verdict .b{ font-size:12.5px; line-height:1.45; margin-top:5px }
+.txnfield input{
+  width:100%; min-height:44px; border:0; outline:none; border-radius:14px; background:#F2EFE8;
+  box-shadow:inset 0 0 0 2px #101010; font-family:var(--num); font-stretch:112%; font-size:15px;
+  font-weight:700; padding:0 13px; color:#101010;
+}
+.txnnote{ font-size:11.5px; line-height:1.4; margin-top:6px }
+.verifybtn{
+  min-height:48px; border:0; border-radius:999px; font-size:12px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; transition:transform .14s var(--ease), background .2s;
+}
+.verifybtn.ready{ background:#1F7A4C; color:#fff; box-shadow:inset 0 0 0 2px #101010; cursor:pointer }
+.verifybtn.ready:active{ transform:scale(.97) }
+.verifybtn.off{ background:#C9C5BD; color:#3C4654; box-shadow:inset 0 0 0 2px #10101033; cursor:not-allowed }
+.payactions{ display:flex; gap:8px }
+.payactions button{
+  flex:1; min-height:40px; background:transparent; border:0; border-radius:999px;
+  font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.payactions .skip{ box-shadow:inset 0 0 0 2px #3C4654; color:#3C4654 }
+.payactions .skip:hover{ background:#3C4654; color:#fff }
+.payactions .rej{ box-shadow:inset 0 0 0 2px #A8231B; color:#A8231B }
+.payactions .rej:hover{ background:#A8231B; color:#fff }
+.staffnote{ background:#F2EFE8; box-shadow:inset 0 0 0 1px #10101022; border-radius:14px; padding:12px 14px; font-size:12px; line-height:1.45; color:#3C4654 }
+.paylog{ border-top:1px solid #10101018; padding-top:10px; font-size:11.5px; line-height:1.45; color:#3C4654 }
+
+/* blocked */
+.blocked{
+  width:390px; max-width:100%; background:#F2EFE8; color:#101010; border-radius:26px; padding:26px;
+  display:flex; flex-direction:column; gap:12px; animation:pop .3s var(--ease) both;
+}
+.blocked .t{ font-family:Anton,sans-serif; font-size:30px; text-transform:uppercase; line-height:1.05 }
+.blocked .b{ font-size:14px; line-height:1.5 }
+.blocked .c{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#3C4654 }
+
+.stagenote{ width:100%; max-width:1440px; font-size:12px; line-height:1.5; color:#EDEAE3 }
+
+/* ---- global chrome: the same bar on every screen -------------------- */
+#chrome{
+  position:sticky; top:0; z-index:50; background:#101010; color:#F2EFE8;
+  display:none; flex-direction:column;
+  padding-top:env(safe-area-inset-top, 0px);
+  box-shadow:0 10px 30px #0004;
+}
+#chrome.on{ display:flex }
+.tb-1{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 24px 10px; flex-wrap:wrap }
+.tb-brand{ display:flex; align-items:center; gap:16px; min-width:0 }
+.tb-brand img{ height:26px; filter:invert(1); flex:none }
+.tb-where{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; white-space:nowrap }
+.tb-meta{ display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+.tb-who{ font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#A8A29B; white-space:nowrap }
+.tb-out{
+  background:transparent; border:0; border-radius:999px; box-shadow:inset 0 0 0 2px #F2EFE8;
+  color:#F2EFE8; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  padding:8px 14px; cursor:pointer; transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.tb-out:hover{ background:#F2EFE8; color:#101010 }
+.tb-out:active{ transform:scale(.96) }
+.tb-2{
+  display:flex; gap:4px; padding:0 24px; overflow-x:auto; scrollbar-width:none;
+  border-top:1px solid #FFFFFF14;
+}
+.tb-2::-webkit-scrollbar{ display:none }
+.tb-2 button{
+  flex:none; background:transparent; border:0; color:#A8A29B; font-size:12px; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; cursor:pointer; padding:13px 12px;
+  border-bottom:3px solid transparent; transition:color .2s, border-color .2s;
+}
+.tb-2 button:hover{ color:#F2EFE8 }
+.tb-2 button.on{ color:#F2EFE8; font-weight:700; border-bottom-color:#AE7338 }
+.tb-2 button.locked{ color:#5A5751; cursor:not-allowed }
+.tb-2 button.locked:hover{ color:#5A5751 }
+
+/* Every wide screen opens with the same dark sub-bar. */
+.sub{
+  background:#101010; color:#F2EFE8; padding:16px 28px; display:flex;
+  justify-content:space-between; align-items:center; gap:18px; flex-wrap:wrap;
+}
+.sub .t{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
+.sub .m{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#A8A29B }
+
+/* ---- schedules ------------------------------------------------------ */
+.sched{ padding:24px 28px 30px; display:flex; flex-direction:column; gap:22px }
+.sched h3{ font-family:Anton,sans-serif; font-size:26px; text-transform:uppercase; margin:0; line-height:1 }
+.sched .lead{ font-size:13px; line-height:1.5; color:#3C4654; margin-top:4px }
+.table{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px; overflow:hidden }
+.trow{
+  display:grid; grid-template-columns:110px 1fr 150px 190px 200px; gap:14px; align-items:center;
+  padding:12px 18px; border-bottom:1px solid #10101012; font-size:14px;
+}
+.trow:last-child{ border-bottom:0 }
+.trow.head{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654; background:#FBFAF7 }
+.trow.blocked{ background:#FCF4F3 }
+.trow .time{ font-family:var(--num); font-stretch:112%; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums }
+.trow .halves{ font-family:var(--num); font-stretch:112%; font-size:13px; color:#3C4654 }
+.trow .acts{ display:flex; gap:8px; justify-content:flex-end }
+@media (max-width:900px){
+  .trow{ grid-template-columns:90px 1fr auto; row-gap:6px }
+  .trow .halves, .trow.head{ display:none }
+  .trow .acts{ grid-column:1 / -1; justify-content:flex-start }
+}
+.seatbar{ height:10px; border-radius:999px; background:#10101018; overflow:hidden; max-width:220px }
+.seatbar i{ display:block; height:100%; background:#101010; border-radius:999px }
+.seatbar i.full{ background:#A8231B }
+.seatbar i.now{ background:#AE7338 }
+.statepill{ font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 11px; border-radius:999px; justify-self:start }
+
+/* ---- roster --------------------------------------------------------- */
+.roster{ padding:24px 28px 30px; display:grid; grid-template-columns:1.25fr 1fr; gap:20px }
+@media (max-width:1000px){ .roster{ grid-template-columns:1fr } }
+.drop{
+  background:#fff; box-shadow:inset 0 0 0 2px #101010; border-radius:22px; padding:28px;
+  display:flex; flex-direction:column; gap:12px; align-items:flex-start;
+}
+.drop.over{ background:#F6F1E7; box-shadow:inset 0 0 0 3px #AE7338 }
+.drop .t{ font-family:Anton,sans-serif; font-size:28px; text-transform:uppercase; line-height:1 }
+.drop .p{ font-size:13px; line-height:1.5; color:#3C4654 }
+.counts{ display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:10px }
+.count{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:16px; padding:14px }
+.count .v{ font-family:var(--num); font-stretch:112%; font-size:32px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums }
+.count .l{ font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#3C4654; margin-top:4px }
+.count.bad .v{ color:#A8231B }
+.problems{ background:#FCF4F3; box-shadow:inset 0 0 0 2px #A8231B; border-radius:18px; padding:16px 18px; display:flex; flex-direction:column; gap:8px }
+.problems .t{ font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; color:#A8231B }
+.problem{ display:flex; gap:12px; font-size:13px; line-height:1.45 }
+.problem .row{ font-family:var(--num); font-stretch:112%; color:#3C4654; flex:none; width:64px }
+.commitbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+.commit{
+  min-height:56px; background:#1F7A4C; color:#fff; border:0; border-radius:16px; padding:0 26px;
+  font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase; letter-spacing:.02em;
+  cursor:pointer; box-shadow:inset 0 0 0 2px #101010; transition:transform .14s var(--ease), background .2s;
+}
+.commit:active{ transform:scale(.98) }
+.commit[disabled]{ background:#C9C5BD; color:#3C4654; box-shadow:inset 0 0 0 2px #10101033; cursor:not-allowed }
+.walkin{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:12px }
+.walkin .t{ font-family:Anton,sans-serif; font-size:24px; text-transform:uppercase; line-height:1 }
+.walkin input{
+  width:100%; min-height:46px; border:0; outline:none; border-radius:14px; background:#F2EFE8;
+  box-shadow:inset 0 0 0 2px #101010; font-size:15px; padding:0 13px; color:#101010;
+}
+.runs{ display:flex; flex-direction:column; gap:8px }
+.run{ display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:9px 0; border-bottom:1px solid #10101012 }
+.run .at{ font-family:var(--num); font-stretch:112%; color:#3C4654 }
+
+/* ---- settings ------------------------------------------------------- */
+.settings{ padding:24px 28px 30px; display:flex; flex-direction:column; gap:18px }
+.setgroup{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:22px; overflow:hidden }
+.setgroup > h3{
+  font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase; margin:0;
+  padding:16px 20px; background:#FBFAF7; border-bottom:1px solid #10101012; line-height:1;
+}
+.setrow{
+  display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:center;
+  padding:14px 20px; border-bottom:1px solid #10101012;
+}
+.setrow:last-child{ border-bottom:0 }
+@media (max-width:800px){ .setrow{ grid-template-columns:1fr; gap:8px } }
+.setrow .k{ font-size:14px; font-weight:600 }
+.setrow .h{ font-size:12px; line-height:1.45; color:#3C4654; margin-top:3px }
+.setrow .warn{ color:#A8231B; font-weight:600 }
+.setrow input[type=text], .setrow input[type=number], .setrow input[type=time], .setrow select{
+  width:100%; min-height:44px; border:0; outline:none; border-radius:14px; background:#F2EFE8;
+  box-shadow:inset 0 0 0 2px #101010; font-size:15px; padding:0 13px; color:#101010;
+}
+.setrow input.mono{ font-family:var(--num); font-stretch:112%; font-weight:700 }
+.setrow textarea{
+  width:100%; border:0; outline:none; border-radius:14px; background:#F2EFE8; resize:vertical;
+  box-shadow:inset 0 0 0 2px #101010; font:inherit; font-size:15px; line-height:1.5; padding:12px 13px; color:#101010;
+}
+.setrow.placeholder{ background:#FCFAF4 }
+.setrow.placeholder .k::after{
+  content:'to fill in'; margin-left:10px; background:#AE7338; color:#101010; font-size:9px;
+  font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:4px 8px; border-radius:999px;
+}
+.toggle{
+  min-height:44px; border:0; border-radius:999px; cursor:pointer; font-size:12px; font-weight:700;
+  letter-spacing:.12em; text-transform:uppercase; padding:0 20px; justify-self:start;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.toggle:active{ transform:scale(.96) }
+.toggle.on{ background:#1F7A4C; color:#fff; box-shadow:inset 0 0 0 2px #101010 }
+.toggle.off{ background:transparent; color:#3C4654; box-shadow:inset 0 0 0 2px #3C4654 }
+.toggle.on.danger{ background:#A8231B }
+/* One control per idea (22 Sep, decision 129). A choice shows every option
+   at once; a value that doesn't apply right now is dimmed, not explained. */
+.seg{
+  display:inline-flex; flex-wrap:wrap; gap:2px; justify-self:start; max-width:100%;
+  border-radius:22px; padding:3px; box-shadow:inset 0 0 0 2px #101010; background:#F2EFE8;
+}
+.seg button{
+  min-height:38px; border:0; border-radius:19px; background:transparent; color:#3C4654; cursor:pointer;
+  font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:0 14px;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.seg button:active{ transform:scale(.96) }
+.seg button.on{ background:#101010; color:#F2EFE8 }
+.seg button.on.go{ background:#1F7A4C; color:#fff }
+.seg button.on.warn{ background:#A8231B; color:#fff }
+.setrow .ctl{ display:flex; flex-direction:column; gap:10px; min-width:0 }
+.setrow .ctl .val{ display:flex; align-items:center; gap:10px }
+.setrow .ctl .val input{ flex:1 }
+.setrow .ctl .unit{ font-size:12px; color:#3C4654; white-space:nowrap }
+.setrow .full{ grid-column:1 / -1 }
+.dimmed{ opacity:.32; pointer-events:none; user-select:none }
+/* The test-time slider: the whole evening of the 24th, a minute a step. */
+.tslide{ display:flex; flex-direction:column; gap:8px; padding:14px 16px; border-radius:16px; background:#F2EFE8 }
+.tslide .read{ font-family:var(--num); font-stretch:112%; font-weight:700; font-size:24px; line-height:1 }
+.tslide .read small{ font-family:inherit; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#3C4654; margin-right:10px }
+.tslide .tbar{ display:flex; align-items:center; gap:10px }
+.tslide input[type=range]{ flex:1; min-width:0; accent-color:#A8231B; height:28px; cursor:pointer }
+.tslide .nudge{
+  flex:none; width:40px; height:40px; border:0; border-radius:50%; cursor:pointer; background:#fff;
+  box-shadow:inset 0 0 0 2px #101010; font-size:15px; font-weight:700; font-family:var(--num);
+}
+.tslide .nudge:active{ transform:scale(.94) }
+.tslide .ends{ display:flex; justify-content:space-between; font-size:11px; color:#3C4654; padding:0 50px }
+.savebar{
+  position:sticky; bottom:0; background:#101010; color:#F2EFE8; border-radius:18px; padding:14px 20px;
+  display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.savebar .n{ font-size:13px; line-height:1.4 }
+.savebar button{
+  min-height:48px; background:#AE7338; color:#101010; border:0; border-radius:14px; padding:0 24px;
+  font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; cursor:pointer;
+  box-shadow:inset 0 0 0 2px #101010; transition:transform .14s var(--ease), background .2s;
+}
+.savebar button:hover{ background:#F2EFE8 }
+.savebar button:active{ transform:scale(.97) }
+.savebar button[disabled]{ background:#3C4654; color:#A8A29B; cursor:not-allowed }
+
+/* ---- audit + exports ------------------------------------------------ */
+.tabs2{ display:flex; gap:8px; padding:20px 28px 0 }
+.tabs2 button{
+  min-height:42px; border:0; border-radius:999px; box-shadow:inset 0 0 0 2px #101010;
+  background:transparent; color:#101010; font-size:12px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; padding:0 20px; cursor:pointer;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.tabs2 button.on{ background:#101010; color:#F2EFE8 }
+.tabs2 button:active{ transform:scale(.97) }
+.audit{ padding:18px 28px 30px; display:flex; flex-direction:column; gap:14px }
+.filters{ display:flex; gap:10px; flex-wrap:wrap }
+.filters select, .filters input{
+  min-height:44px; border:0; outline:none; border-radius:14px; background:#fff;
+  box-shadow:inset 0 0 0 2px #101010; font-size:14px; padding:0 13px; color:#101010;
+}
+.logrow{
+  display:grid; grid-template-columns:96px 160px 1fr 200px; gap:14px; align-items:baseline;
+  padding:11px 18px; border-bottom:1px solid #10101012; font-size:13px; line-height:1.45;
+}
+.logrow.head{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654; background:#FBFAF7 }
+.logrow .at, .logrow .who{ font-family:var(--num); font-stretch:112%; color:#3C4654 }
+.logrow .act{ font-weight:600 }
+.logrow .det{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#3C4654; overflow-wrap:anywhere }
+@media (max-width:1000px){
+  .logrow{ grid-template-columns:1fr; gap:2px }
+  .logrow.head{ display:none }
+}
+.exports{ padding:18px 28px 30px; display:grid; grid-template-columns:1fr 1fr; gap:18px }
+@media (max-width:900px){ .exports{ grid-template-columns:1fr } }
+.expcard{ background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:22px; padding:20px; display:flex; flex-direction:column; gap:12px }
+.expcard .t{ font-family:Anton,sans-serif; font-size:24px; text-transform:uppercase; line-height:1 }
+.expcard .p{ font-size:13px; line-height:1.5; color:#3C4654 }
+.dl{
+  min-height:52px; background:#101010; color:#F2EFE8; border:0; border-radius:16px;
+  font-size:13px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; cursor:pointer;
+  display:flex; align-items:center; justify-content:space-between; padding:0 20px;
+  transition:transform .14s var(--ease), background .2s, color .2s;
+}
+.dl:hover{ background:#AE7338; color:#101010 }
+.dl:active{ transform:scale(.98) }
+
+/* ---- gate denials panel (People) ------------------------------------ */
+.denials{ display:flex; flex-direction:column; gap:8px }
+.denial{ display:grid; grid-template-columns:76px 1fr auto; gap:12px; align-items:center; font-size:13px; padding:9px 0; border-bottom:1px solid #10101012 }
+.denial .at{ font-family:var(--num); font-stretch:112%; color:#3C4654 }
+.denial .h{ font-family:var(--num); font-stretch:112% }
+
+/* toast */
+#toast{
+  position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90;
+  background:#101010; color:#F2EFE8; padding:12px 20px; border-radius:999px;
+  font-size:13px; font-weight:600; max-width:86%; text-align:center;
+  box-shadow:0 10px 30px #0006; display:none;
+}
+#toast.show{ display:block; animation:rise .24s var(--ease) both }
+#toast.bad{ background:#A8231B }
+#toast.good{ background:#1F7A4C }
+
+/* full-screen booth confirmation (§17.4 — "one full-screen green, one full-screen red") */
+#flash{
+  position:fixed; inset:0; z-index:95; display:none; flex-direction:column; align-items:center;
+  justify-content:center; gap:16px; padding:32px; text-align:center; color:#fff; cursor:pointer;
+}
+#flash.on{ display:flex; animation:flash .2s both }
+#flash .m{ font-size:96px; line-height:1 }
+#flash .t{ font-family:Anton,sans-serif; font-size:52px; text-transform:uppercase; line-height:.95 }
+#flash .b{ font-family:var(--num); font-stretch:112%; font-size:16px; line-height:1.5 }
+#flash .tap{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; opacity:.75 }
+
+</style>
+</head>
+<body>
+
+<header id="chrome"></header>
+<div id="stage">
+  <div id="clockbanner">Test clock is on — times you see are not real. Turn it off in Settings before the event.</div>
+  <div id="root"></div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="flash"></div>
+
+<script>
+/* ===================================================================
+   1. DATA LAYER — every call goes to the server. Nothing is faked.
+   =================================================================== */
+
+let csrfToken = null;
+let timeOffsetMs = 0;
+function now(){ return new Date(Date.now() + timeOffsetMs); }
+function absorbServerTime(iso){
+  if (!iso) return;
+  const t = Date.parse(iso);
+  if (!isNaN(t)) timeOffsetMs = t - Date.now();
+}
+
+async function api(route, opts){
+  return liveCall(route, opts || {});
+}
+
+async function liveCall(route, opts, retried){
+  const method = route.split(' ')[0];
+  const headers = { 'ngrok-skip-browser-warning':'1' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  let body;
+  if (opts.form){ body = opts.form; }
+  else if (opts.json){ headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
+  let path = opts.path;
+  if (opts.filters){
+    const q = new URLSearchParams();
+    Object.keys(opts.filters).forEach(k => { if (opts.filters[k]) q.set(k, opts.filters[k]); });
+    if ([...q].length) path += (path.includes('?') ? '&' : '?') + q.toString();
+  }
+  let res;
+  try {
+    res = await fetch(path, { method, headers, body, credentials:'same-origin', cache:'no-store' });
+  } catch (e){
+    return { ok:false, error:{ code:'NETWORK', message:"Can't reach The Yard" } };
+  }
+  let out;
+  // A reply that isn't JSON is the server answering with an error page, not a
+  // network fault. Saying "Can't reach The Yard" here once sent the organiser
+  // hunting through the tunnel while the real fault was a crash in app.py.
+  try { out = await res.json(); }
+  catch (e){
+    return { ok:false, error:{ code:'SERVER_ERROR',
+      message:"The Yard answered with an error (HTTP " + res.status + "), so nothing was saved. "
+            + "The app.py window has the details." } };
+  }
+  absorbServerTime(out.server_time);
+  if (out.ok && out.data && out.data.csrf_token) csrfToken = out.data.csrf_token;
+  // Another tab reloaded and took a fresh token: fetch ours again, retry once.
+  if (!out.ok && out.error && out.error.code === 'STALE_TOKEN' && !retried){
+    const again = await liveCall('GET /admin/api/session', { path:'/admin/api/session' }, true);
+    if (again.ok) return liveCall(route, opts, true);
+  }
+  // The server ended this sign-in (expired, or signed out elsewhere): back to
+  // the sign-in screen rather than leaving a console that can't do anything.
+  if (!out.ok && out.error && out.error.code === 'SIGNED_OUT' && S.session
+      && route !== 'POST /admin/api/logout'){
+    endSession('Your sign-in has ended. Sign in again.');
+  }
+  return out;
+}
+
+/* ---- booth result cards ------------------------------------------- */
+
+const SCANS = {
+  valid:    { card:'#1F7A4C', fg:'#fff', mark:'✓', title:'Valid', kicker:'Payment verified',
+              body:'Something still to collect — tap it below to hand it over.', person:true, hand:true },
+  claimed:  { card:'#A8231B', fg:'#fff', mark:'✕', title:'Already collected', kicker:'Everything included has been handed over',
+              body:'Nothing to hand over. Send them to the front desk rather than arguing at the booth.', person:true, hand:false },
+  unpaid:   { card:'#AE7338', fg:'#101010', mark:'!', title:'Not verified', kicker:'Payment submitted, not checked',
+              body:'You cannot hand over. An admin can override with a reason, and it goes in the log under their name.', person:true, hand:false },
+  unknown:  { card:'#3C4654', fg:'#fff', mark:'?', title:'Unknown code', kicker:'A Yard code, but nobody has it',
+              body:'Probably a typo. Search their username or name instead.', person:false, hand:false },
+  foreign:  { card:'#3C4654', fg:'#fff', mark:'?', title:'Not a Yard code', kicker:'Scanned something else',
+              body:'That QR is not ours. Ask them to open The Yard in Telegram and show the pass.', person:false, hand:false },
+  inactive: { card:'#101010', fg:'#F2EFE8', mark:'·', title:'Inactive', kicker:'Removed from the latest roster',
+              body:'They were on an older list and are not on the current one. Front desk decides.', person:true, hand:false }
+};
+function toSec(t){ return Number(t.split(':')[0]) * 60 + Number(t.split(':')[1]); }
+
+/* ===================================================================
+   2. STATE + RENDER
+   =================================================================== */
+
+/* Two front doors since 22 Sep (STATE.md decision 126). Laptop is the admin
+   password and every screen. Mobile is one phone PIN and the four jobs done
+   standing up: the booth, the orders, the game, and looking someone up — in
+   the order a phone shows them. */
+const ALLOWED = {
+  admin:['overview','person','booth','orders','gm','schedules','roster','settings','audit'],
+  mobile:['booth','orders','gm','person']
+};
+/* One nav, in one order. On the laptop, every screen is listed; on a phone,
+   only the phone's four, so the bar fits and nothing on it is a dead end. */
+const NAV = [
+  ['overview','Overview'], ['person','People'], ['booth','Booth'], ['orders','Orders'], ['gm','Game'],
+  ['schedules','Schedules'], ['roster','Roster'],
+  ['settings','Settings'], ['audit','Audit']
+];
+const SCREEN_LABEL = { booth:'Booth mode', orders:'Orders', gm:'Game-master console',
+                       overview:'Overview', person:'People',
+                       schedules:'Schedules', roster:'Roster', settings:'Settings', audit:'Audit' };
+const NOTES = {
+  booth:'One hand, bright light, a queue. The result fills the screen, the words repeat the colour, and the next scan is one tap away.',
+  orders:'Scan the pass when someone orders. When it is made, one tap on Ready sends them a Telegram message.',
+  overview:'Everything an organiser checks between queues, on one screen. Tap a line under "Needs you now" to go there.',
+  person:'Keyboard-first: the search box has focus on load, and @ is fixed in front of it. Every destructive action wants a reason.',
+  gm:'Read in a dim room at arm\'s length. The timer runs on this device from the server\'s clock; every press is logged under your name.',
+  schedules:'Both boards on one screen. Blocking a game takes its seats off the attendee board immediately; people already booked stay booked and are listed for you to move.',
+  roster:'Upload as often as you like. Nothing is written until you press Commit, and re-importing the same file changes nothing.',
+  settings:'Amber rows still need filling in. Changing game or jam times rebuilds the timetable; anyone already booked on a time that disappears is listed for you.',
+  audit:'Every write in the system, with who and when. Exports and backups live on the second tab.'
+};
+
+const S = {
+  session:null,          // { role, name, station }
+  screen:'booth',
+  // A phone opens on the Mobile tab, a laptop on Laptop. Either can switch.
+  signinRole:(window.innerWidth || 1024) < 760 ? 'mobile' : 'admin',
+  signinErr:'',
+  orders:null,
+  orderScan:null,        // null: the list | 'scan': the camera is open | {person}: taking their order
+  orderCode:'', orderScanError:'',
+  overview:null, people:null, person:null, gmState:null,
+  slots:null, roster:null, settings:null, audit:null, denials:null,
+  lookup:null, lookupCode:'',
+  txn:'',
+  resetDone:{}, gmSlot:null, gmAt:0, live:false,
+  selectedPerson:null, peopleQuery:'', focusSearch:false,
+  auditTab:'log',
+  settingsDraft:{},
+  lastCount:{},        // a stock number set back to Not counted, to bring back
+  rosterPreview:null
+};
+
+const root = document.getElementById('root');
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function fmt(d){ const h = d.getHours(), m = d.getMinutes(), ap = h>=12?'PM':'AM'; let hh = h%12; if (hh===0) hh=12; return hh+':'+String(m).padStart(2,'0')+' '+ap; }
+function fmtIso(iso){ return iso ? fmt(new Date(iso)) : '—'; }
+function short(iso){ const d = new Date(iso); let h = d.getHours()%12; if (h===0) h=12; return h+':'+String(d.getMinutes()).padStart(2,'0'); }
+function mmss(sec){ const m = Math.floor(sec/60), s = sec%60; return m+':'+String(s).padStart(2,'0'); }
+
+function toast(msg, kind){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (kind ? ' ' + kind : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = ''; }, 3600);
+}
+
+function bigFlash(bg, mark, title, body){
+  const f = document.getElementById('flash');
+  f.style.background = bg;
+  f.innerHTML = `<div class="m">${esc(mark)}</div><div class="t">${esc(title)}</div>
+                 <div class="b">${esc(body)}</div><div class="tap">Tap to scan the next one</div>`;
+  f.className = 'on';
+  f.onclick = () => { f.className = ''; scanLocked = false; S.lookup = null; S.lookupCode = ''; render(); };
+}
+
+function render(){
+  const banner = document.getElementById('clockbanner');
+  const testing = !!(S.session && S.session.test_clock);
+  banner.classList.toggle('on', testing);
+  if (testing) banner.textContent = 'Test time — the app thinks it is ' + testTimeLabel(S.session.test_clock_at)
+    + ', for everyone using it. Settings → Clock → Real time when you are done.';
+  const chrome = document.getElementById('chrome');
+
+  if (!S.session){
+    chrome.className = ''; chrome.innerHTML = '';
+    root.innerHTML = signinView(); wireSignin();
+    return;
+  }
+
+  chrome.className = 'on';
+  chrome.innerHTML = chromeView();
+  wireChrome();
+
+  const can = ALLOWED[S.session.role].includes(S.screen);
+  let html = can ? (SCREENS[S.screen] ? SCREENS[S.screen]() : '') : blockedView();
+  html += `<div class="stagenote">${esc(can ? NOTES[S.screen] : 'Checked on the server too. A phone PIN cannot reach laptop screens by typing the address.')}</div>`;
+  root.innerHTML = html;
+  wire();
+}
+
+function chromeView(){
+  const role = S.session.role;
+  const list = role === 'admin' ? NAV : ALLOWED[role].map(k => NAV.find(n => n[0] === k));
+  const items = list.map(([k, l]) => {
+    const ok = ALLOWED[role].includes(k);
+    const cls = [S.screen === k ? 'on' : '', ok ? '' : 'locked'].filter(Boolean).join(' ');
+    return `<button data-screen="${k}" class="${cls}"
+             ${ok ? '' : 'title="Not for a ' + esc(role) + ' sign-in"'}>${esc(l)}</button>`;
+  }).join('');
+  const who = S.session.station
+    ? S.session.name + ' · ' + S.session.station
+    : S.session.name + ' · ' + (role === 'admin' ? 'Laptop' : 'Mobile');
+  return `
+  <div class="tb-1">
+    <div class="tb-brand">
+      <img src="/static/yard-logo.png" alt="The Yard">
+      <span class="tb-where">${esc(SCREEN_LABEL[S.screen] || 'Console')}</span>
+    </div>
+    <div class="tb-meta">
+      <span class="refreshed ${S.live ? 'on' : ''}">${S.live ? 'live' : 'updated ' + esc(fmt(now()))}</span>
+      <span class="eventday ${S.session.test_clock ? 'test' : ''}">${S.session.test_clock ? 'Test time ' + esc(hhmmLabel(S.session.test_clock_at)) : 'Real time'}</span>
+      <span class="tb-who">${esc(who)}</span>
+      <button class="tb-out" id="signout">Sign out</button>
+    </div>
+  </div>
+  <nav class="tb-2">${items}</nav>`;
+}
+
+function wireChrome(){
+  const chrome = document.getElementById('chrome');
+  chrome.querySelectorAll('[data-screen]').forEach(b => b.onclick = () => goScreen(b.dataset.screen));
+  const out = document.getElementById('signout');
+  if (out) out.onclick = signout;
+}
+
+/* ---- sign in -------------------------------------------------------- */
+
+/* Two doors (decision 126): Mobile for the jobs done on a phone, Laptop for
+   everything else. The tab a device opens on follows its screen width. */
+function signinView(){
+  const r = S.signinRole;
+  return `
+  <div class="signin">
+    <div class="h">The Yard<br>console</div>
+    <div class="p">A normal browser, not Telegram.</div>
+    <div class="tabs doors">
+      <button data-role="mobile" class="${r==='mobile'?'on':''}">
+        <span class="door-t">Mobile</span><span class="door-s">Booth, orders, the game</span></button>
+      <button data-role="admin" class="${r==='admin'?'on':''}">
+        <span class="door-t">Laptop</span><span class="door-s">Everything, and the stats</span></button>
+    </div>
+    ${r === 'admin' ? `
+      <div class="field"><label for="pw">Admin password</label>
+        <input id="pw" type="password" autocomplete="current-password"></div>
+    ` : `
+      <div class="field"><label for="pin">Phone PIN</label>
+        <input id="pin" type="password" inputmode="numeric" autocomplete="off"></div>
+      <div class="field"><label for="nm">Your name</label>
+        <input id="nm" type="text" autocomplete="off" placeholder="Aisha"></div>
+      <div class="field"><label for="stn">Where you are</label>
+        <input id="stn" type="text" autocomplete="off" placeholder="Booth 1, Loft or Escape room"></div>
+    `}
+    ${S.signinErr ? `<div class="err">${esc(S.signinErr)}</div>` : ''}
+    <button class="go" id="signin">Sign in</button>
+    <div class="p">${r === 'admin'
+      ? 'Payments, receipts, settings, the roster and the audit log are only here.'
+      : 'Your name and where you are go on every hand-over and every call, so the log says who did what.'}</div>
+  </div>`;
+}
+
+function wireSignin(){
+  root.querySelectorAll('[data-role]').forEach(b => b.onclick = () => {
+    S.signinRole = b.dataset.role; S.signinErr = ''; render();
+  });
+  const go = document.getElementById('signin');
+  if (go) go.onclick = doSignin;
+  root.querySelectorAll('input').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') doSignin(); });
+  const first = root.querySelector('input');
+  if (first) first.focus();
+}
+
+async function doSignin(){
+  const role = S.signinRole;
+  const body = { role };
+  if (role === 'admin') body.password = (document.getElementById('pw') || {}).value || '';
+  else {
+    body.pin = (document.getElementById('pin') || {}).value || '';
+    body.name = (document.getElementById('nm') || {}).value || '';
+    body.station = (document.getElementById('stn') || {}).value || '';
+    if (!body.name.trim()){ S.signinErr = 'Your name is required — it goes on every hand-over.'; render(); return; }
+    if (!body.station.trim()){ S.signinErr = 'Say where you are — for example Booth 1, Loft or Escape room.'; render(); return; }
+  }
+  const r = await api('POST /admin/api/login', { path:'/admin/api/login', json:body });
+  if (!r.ok){
+    S.signinErr = r.error.code === 'RATE_LIMITED' ? 'Too many tries. Wait a minute.'
+      : r.error.message || 'That did not match.';
+    render(); return;
+  }
+  startSession(r.data, ALLOWED[r.data.role][0]);
+}
+
+function startSession(d, screen){
+  setTimeout(connectLive, 0);
+  S.session = { role:d.role, name:d.name, station:d.station,
+                test_clock:!!d.test_clock, test_clock_at:d.test_clock_at || '19:30' };
+  S.items = d.items || [];
+  S.screen = ALLOWED[d.role].includes(screen) ? screen : ALLOWED[d.role][0];
+  S.signinErr = '';
+  render();
+  load();
+}
+
+/* A reload keeps the sign-in: the cookie is still there, so ask the server
+   who we are, and return to the screen we were on. */
+async function resumeSession(){
+  let screen = null;
+  try { screen = sessionStorage.getItem('yard_screen'); } catch (e){}
+  const r = await liveCall('GET /admin/api/session', { path:'/admin/api/session' });
+  if (r.ok) startSession(r.data, screen);
+}
+
+async function load(){
+  const s = S.screen;
+  if (s === 'overview') S.overview = (await api('GET /admin/api/overview', { path:'/admin/api/overview' })).data;
+  if (s === 'person'){
+    const pl = await api('GET /admin/api/people', { path:'/admin/api/people', filters:{ q:S.peopleQuery } });
+    if (!pl.ok){ if (S.session) toast(pl.error.message || pl.error.code, 'bad'); return; }
+    S.people = pl.data;
+    const ids = S.people.people.map(x => x.id);
+    // Keep the open person while they are in the results; otherwise open the first.
+    if (!ids.includes(S.selectedPerson)) S.selectedPerson = ids.length ? ids[0] : null;
+    S.person = S.selectedPerson ? await fetchPerson(S.selectedPerson) : null;
+    if (S.session && S.session.role === 'admin'){
+      const ga = await api('GET /admin/api/gate-attempts', { path:'/admin/api/gate-attempts' });
+      S.denials = ga.ok ? ga.data.attempts : [];
+    }
+  }
+  if (s === 'gm'){
+    const r = await api('GET /admin/api/gm/state', { path:'/admin/api/gm/state', filters:{ slot_id:S.gmSlot } });
+    if (r.ok){ S.gmState = r.data; S.gmAt = Date.now(); }
+    else { S.gmState = null; S.gmError = r.error.message || r.error.code; }
+  }
+  if (s === 'orders'){
+    const r = await api('GET /admin/api/orders', { path:'/admin/api/orders' });
+    if (r.ok) S.orders = r.data;
+  }
+  if (s === 'schedules') S.slots = (await api('GET /admin/api/slots', { path:'/admin/api/slots' })).data;
+  if (s === 'roster') S.roster = (await api('GET /admin/api/roster', { path:'/admin/api/roster' })).data;
+  if (s === 'settings'){
+    S.settings = (await api('GET /admin/api/settings', { path:'/admin/api/settings' })).data;
+    S.settingsDraft = {};
+    // The banner and the top bar follow the clock as soon as it is saved,
+    // not at the next sign-in.
+    if (S.settings && S.session){
+      S.session.test_clock = !!S.settings.values.test_clock;
+      S.session.test_clock_at = S.settings.values.test_clock_at;
+    }
+  }
+  if (s === 'audit'){
+    S.audit = (await api('GET /admin/api/audit', {
+      path:'/admin/api/audit', filters:{ actor:S.auditActor, action:S.auditAction, search:S.auditSearch }
+    })).data;
+  }
+  render();
+}
+
+async function fetchPerson(id){
+  const r = await api('GET /admin/api/person', { path:'/admin/api/people/' + id });
+  if (!r.ok){ if (S.session) toast(r.error.message || r.error.code, 'bad'); return null; }
+  return r.data;
+}
+
+function goScreen(s){
+  if (!ALLOWED[S.session.role].includes(s)){ toast('Not for this sign-in — FORBIDDEN', 'bad'); return; }
+  try { sessionStorage.setItem('yard_screen', s); } catch (e){}
+  if (s === 'booth') scanLocked = false;
+  if (s === 'orders'){ S.orderScan = null; S.orderScanError = ''; scanLocked = false; }
+  S.screen = s; render(); load();
+}
+
+/* ---- screens -------------------------------------------------------- */
+
+const SCREENS = {};
+
+SCREENS.booth = function(){
+  const station = S.session.station
+    ? S.session.station + ' · ' + S.session.name
+    : (S.session.role === 'admin' ? 'Admin · ' : 'GM · ') + S.session.name;
+  const l = S.lookup;
+  const sc = l ? resultFor(l) : null;
+  return `
+  <div class="phone390 booth">
+    <div class="booth-top">
+      <span class="who">${esc(station)}</span>
+      <span class="mono" style="font-size:12px">${esc(fmt(now()))}</span>
+    </div>
+    <div class="booth-body">
+      <div class="viewfinder" id="viewfinder">
+        <video id="cam" playsinline muted></video>
+        <div class="vf-box"></div>
+        <div class="vf-line"></div>
+        <div class="vf-hint" id="vfhint">${scanLocked ? 'Tap Scan next to scan again' : 'Point at the pass'}</div>
+      </div>
+      <div class="coderow">
+        <input id="codebox" value="${esc(S.lookupCode)}" placeholder="7K3M-Q9XT"
+               autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <button id="lookup">Look up</button>
+      </div>
+      ${sc ? `
+      <div class="result" style="background:${sc.card};color:${sc.fg}">
+        <div class="result-head">
+          <div class="result-mark" style="background:${sc.fg};color:${sc.card}">${esc(sc.mark)}</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="result-title">${esc(sc.title)}</div>
+            <div class="result-kicker">${esc(sc.kicker)}</div>
+          </div>
+        </div>
+        <div class="result-body">${esc(sc.body)}</div>
+      </div>` : ''}
+      ${sc && sc.person ? `
+      <div class="personcard">
+        <div class="n">${esc(sc.person.name)}</div>
+        <div class="h">@${esc(sc.person.handle)} · Telegram: ${esc(sc.person.tg_first_name || '—')}</div>
+        <div class="tags">
+          ${sc.person.checked_in_at ? `<span class="tag tag-dark">Checked in ${esc(fmtIso(sc.person.checked_in_at))}</span>` : ''}
+          ${sc.person.escape ? `<span class="tag tag-half">Esc ${esc(short(sc.person.escape.starts_at))} · half ${esc(sc.person.escape.zone || '?')} — ${sc.person.escape.zone === 'B' ? 'desk' : 'flat'}</span>` : ''}
+        </div>
+      </div>` : ''}
+      ${sc && sc.hand ? handBox(l) : ''}
+      <div class="boothfoot">
+        <button id="checkin">Check in</button>
+        <button id="scannext">Scan next</button>
+      </div>
+    </div>
+  </div>`;
+};
+
+function resultFor(l){
+  if (l.error) {
+    const key = l.error === 'NOT_A_YARD_CODE' ? 'foreign' : 'unknown';
+    return Object.assign({}, SCANS[key], { person:null, hand:false });
+  }
+  const d = l.data;
+  let key = 'valid';
+  // payment_ok is the server's call — it knows whether Settings relaxed the rule.
+  const paid = 'payment_ok' in d ? d.payment_ok : d.payment_status === 'verified';
+  if (d.code === 'INACTIVE') key = 'inactive';
+  else if (!paid) key = 'unpaid';
+  else if (S.items.every(i => d.claims[i.key].claimed)) key = 'claimed';
+  const base = SCANS[key];
+  // 'claimed' still shows the box: it lists when and where each item went.
+  return Object.assign({}, base, { person:d.person, hand:d.can_hand_over || !!d.can_override || key === 'claimed', claims:d.claims });
+}
+
+function handBox(l){
+  const c = l.data.claims;
+  const override = !l.data.can_hand_over && l.data.can_override;
+  // One button per item still to collect, and a red line per item already gone.
+  return `
+  <div class="handbox">
+    ${S.items.map(i => {
+      const claim = c[i.key];
+      if (claim.claimed) return `
+    <div class="blocked-item">
+      <span class="x">✕</span>
+      <div>
+        <div class="t">${esc(i.label)} already collected</div>
+        <div class="w">${esc([fmtIso(claim.at), claim.variant_label, claim.station, claim.staff].filter(Boolean).join(' · '))}</div>
+      </div>
+    </div>`;
+      const st = l.data.stock ? l.data.stock[i.key] : null;
+      const ov = override ? 'data-override="1"' : '';
+      // The pastry comes in kinds (22 Sep, STATE.md 132): one button per
+      // kind, so the tap that hands it over also says which one went.
+      const hand = (i.choices || []).length ? `
+    <div class="handkinds">
+      <div class="hk-t">${override ? 'Override — hand over a ' : 'Hand over a '}${esc(i.label.toLowerCase())}</div>
+      <div class="hk-grid">${i.choices.map(c => `
+        <button class="handover hk" data-hand="${esc(i.key)}" data-variant="${esc(c.key)}" data-label="${esc(c.label)}" ${ov}>${esc(c.label)}</button>`).join('')}
+      </div>
+    </div>` : `
+    <button class="handover" data-hand="${esc(i.key)}" data-label="${esc(i.label)}" ${ov}>
+      <span>${override ? 'Override — hand over ' : 'Hand over '}${esc(i.label.toLowerCase())}</span><span style="font-size:26px">›</span>
+    </button>`;
+      return `${hand}
+    ${st && st.low ? `<div class="blocked-item"><span class="x">!</span><div>
+      <div class="t">${esc(st.left)} left</div>
+      <div class="w">${st.left <= 0 && st.blocks_at_zero ? 'Out of stock — hand-over is blocked' : 'Stock is low'}</div>
+    </div></div>` : ''}`;
+    }).join('')}
+  </div>`;
+}
+
+/* ---- orders: made-to-order food (decision 125) ------------------------
+   The pass is scanned when someone orders, because by the time it is made
+   they have walked off. The list is the screen; the camera opens only while
+   taking an order, so a phone left on this screen by the counter does not
+   run its camera all night, and the list can redraw freely. What can be
+   ordered comes from the server (config.ORDER_ITEMS), never from here. */
+SCREENS.orders = function(){
+  const d = S.orders;
+  const who = S.session.station ? S.session.station + ' · ' + S.session.name : 'Admin · ' + S.session.name;
+  const scan = S.orderScan;
+  return `
+  <div class="phone390 booth orders">
+    <div class="booth-top">
+      <span class="who">${esc(who)}</span>
+      <span class="mono" style="font-size:12px">${esc(fmt(now()))}</span>
+    </div>
+    <div class="booth-body">
+      ${scan === 'scan' ? orderScanner() : scan ? orderPerson(scan)
+        : `<button class="ord-scan" id="orderscan"><span>Scan a pass to order</span><span style="font-size:26px">›</span></button>`}
+      ${d && d.test_mode ? `<div class="ord-note">Test mode: the "ready" message only reaches test accounts until someone runs <b>python manage.py notify on</b>.</div>` : ''}
+      ${d ? orderList(d) : `<div class="ord-empty">Loading…</div>`}
+    </div>
+  </div>`;
+};
+
+function orderScanner(){
+  return `
+      <div class="viewfinder" id="viewfinder">
+        <video id="cam" playsinline muted></video>
+        <div class="vf-box"></div>
+        <div class="vf-line"></div>
+        <div class="vf-hint" id="vfhint">${scanLocked ? 'Tap Scan again' : 'Point at the pass'}</div>
+      </div>
+      <div class="coderow">
+        <input id="ordercode" value="${esc(S.orderCode)}" placeholder="7K3M-Q9XT"
+               autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <button id="orderlookup">Look up</button>
+      </div>
+      ${S.orderScanError ? `<div class="ord-msg bad">${esc(S.orderScanError)}</div>` : ''}
+      <div class="boothfoot">
+        ${scanLocked ? '<button id="orderrescan">Scan again</button>' : ''}
+        <button id="orderdone">Back to the list</button>
+      </div>`;
+}
+
+function orderPerson(p){
+  const items = (S.orders && S.orders.items) || [];
+  return `
+      <div class="personcard">
+        <div class="n">${esc(p.name)}</div>
+        <div class="h">@${esc(p.handle || '')}</div>
+        ${p.reachable === false ? `<div class="ord-msg warn">Can't get Telegram messages. Call their name when it's ready.</div>` : ''}
+      </div>
+      <div class="handbox">
+        ${items.map(i => `<button class="handover" data-order-item="${esc(i.key)}">
+          <span>${esc(i.label)}</span><span style="font-size:30px">+</span></button>`).join('')}
+      </div>
+      ${p.added && p.added.length ? `<div class="ord-added">On the list: ${esc(p.added.join(', '))}</div>` : ''}
+      <div class="boothfoot">
+        <button id="orderscannext">Scan next</button>
+        <button id="orderdone">Done</button>
+      </div>`;
+}
+
+const ORDER_MESSAGE = {
+  sending:'Sending the message…', sent:'Message sent',
+  test_mode:'Test mode — message not sent',
+  cannot_message:"Can't message them — call their name", not_sent:'Message not sent — call their name'
+};
+
+function orderList(d){
+  const done = (d.items || []).filter(i => d.collected && d.collected[i.key])
+    .map(i => i.label + ' ' + d.collected[i.key]);
+  return `
+      <div class="ord-head"><span>Waiting</span><span class="mono">${esc(d.open.length)}</span></div>
+      ${d.open.length ? d.open.map(orderRow).join('')
+        : `<div class="ord-empty">Nobody waiting. Scan a pass when someone orders.</div>`}
+      ${done.length ? `<div class="ord-done">Collected tonight: ${esc(done.join(' · '))}</div>` : ''}`;
+}
+
+function orderRow(o){
+  const name = o.person.first_name || o.person.name;
+  const msg = o.status === 'called' ? ORDER_MESSAGE[o.message] : '';
+  return `
+      <div class="ord ${esc(o.status)}">
+        <div class="ord-top">
+          <span class="ord-item">${esc(o.label)}</span>
+          <span class="ord-when">${o.status === 'called' ? 'Called ' + esc(fmtIso(o.called_at)) : 'Ordered ' + esc(fmtIso(o.ordered_at))}</span>
+        </div>
+        <div class="ord-name">${esc(name)}</div>
+        <div class="ord-sub">@${esc(o.person.handle || '')}${o.person.reachable ? '' : " · can't get messages"}</div>
+        ${msg ? `<div class="ord-msg ${esc(o.message)}">${esc(msg)}</div>` : ''}
+        ${o.status === 'waiting'
+          ? `<button class="ord-call" data-call="${esc(o.id)}">Ready — call ${esc(name)}</button>`
+          : `<div class="ord-btns">
+              <button class="ord-collected" data-collected="${esc(o.id)}">Collected</button>
+              <button class="ord-again" data-call="${esc(o.id)}">Call again</button>
+            </div>`}
+        <button class="ord-cancel" data-cancel="${esc(o.id)}">Cancel order</button>
+      </div>`;
+}
+
+SCREENS.overview = function(){
+  const d = S.overview;
+  if (!d) return loading();
+  const bars = d.bars.map((b, i) => {
+    const h = Math.max(4, Math.round(b.taken / b.capacity * 120));
+    return `<div class="barcol">
+      <div class="bar ${b.running ? 'now' : ''}" style="height:${h}px;animation:rise .4s ${i*18}ms var(--ease) both"></div>
+      <div class="barlbl">${esc(short(b.starts_at))}</div>
+    </div>`;
+  }).join('');
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Overview</span>
+      <span class="m">${esc(d.stats[0].value)} signed up, ${esc(d.stats[1].value)} checked in</span>
+    </div>
+    <div class="wide-body">
+      <div class="stats">
+        ${d.stats.map(k => `<div class="stat">
+          <div class="l">${esc(k.label)}</div>
+          <div class="v">${esc(k.value)}</div>
+          <div class="s" style="color:${k.tone}">${esc(k.sub)}</div>
+        </div>`).join('')}
+      </div>
+      <div class="twocol">
+        <div class="chart">
+          <div class="h">Escape room · seats by game</div>
+          <div class="bars">${bars}</div>
+          <div class="foot">Orange is the game running now. ${esc(d.capacity)} seats a game, ${esc(d.seats_total)} tonight.</div>
+        </div>
+        <div class="needs">
+          <div class="h">Needs you now</div>
+          ${d.queue.map(q => `<button class="needrow" data-screen="${esc(q.screen)}">
+            <span class="w">${esc(q.what)}</span>
+            <span class="needpill" style="background:${q.tone}">${esc(q.count)}</span>
+          </button>`).join('')}
+          <div class="foot">Messages to attendees: ${d.notify_mode === 'on' ? 'on for everyone' : d.notify_mode === 'off' ? 'off' : 'test mode (only you) — switch on in Settings'}.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+
+SCREENS.person = function(){
+  const list = S.people, p = S.person;
+  if (!list) return loading();
+  const rows = list.people.map(x => `
+    <button class="prowbtn ${x.id === S.selectedPerson ? 'on' : ''}" data-person="${x.id}">
+      <span class="n">${esc(x.name)}</span>
+      <span class="s">${x.handle ? '@' + esc(String(x.handle).replace(/^@/, '')) : '—'} · ${esc(x.tag)}</span>
+    </button>`).join('');
+  const shown = list.shown != null ? list.shown : list.people.length;
+  const count = (shown < list.total ? 'First ' + shown + ' of ' : '') + list.total
+    + (S.peopleQuery ? ' matching' : ' people');
+  const top = `
+    <div class="people-top">
+      <div class="searchbox">
+        <span class="at">@</span>
+        <input id="psearch" value="${esc(S.peopleQuery)}" placeholder="${esc(p ? p.handle : 'search')}" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <span class="hint">name · email · code · booking ref</span>
+      </div>
+    </div>`;
+  const listCol = `
+      <div class="people-list">
+        <div class="count">${esc(count)}</div>
+        ${rows || `<div style="font-size:13px;color:#3C4654">Nobody matches. Try part of the name, or the pass code.</div>`}
+      </div>`;
+  if (!p){
+    return `<div class="wide">${top}<div class="people-grid">${listCol}
+      <div class="person-main"><div class="panel"><div class="h">No one open</div>
+        <div style="font-size:13px;color:#3C4654">Search, then pick someone on the left.</div></div></div>
+    </div></div>`;
+  }
+  const pay = payVals(p);
+  const escB = p.bookings.find(b => b.kind === 'escape');
+  const isAdmin = S.session.role === 'admin';
+  const items = p.items || S.items;
+  const claimLine = i => {
+    const c = p.claims[i.key];
+    return `<div class="kv"><span>${esc(i.label)}</span><span class="v" ${c.claimed?'':'style="color:#3C4654"'}>${c.claimed ? esc([c.variant_label, fmtIso(c.at), c.station, c.staff].filter(Boolean).join(', ')) : 'not collected'}</span></div>`;
+  };
+  const voidBtns = isAdmin ? items.filter(i => p.claims[i.key].claimed).map(i =>
+    `<button class="smallbtn danger" data-void="${esc(p.claims[i.key].id)}" data-item="${esc(i.label.toLowerCase())}">Void ${esc(i.label.toLowerCase())} — reason required</button>`).join('') : '';
+  const jams = p.bookings.filter(b => b.kind === 'jam');
+  return `
+  <div class="wide">
+    ${top}
+    <div class="people-grid">
+      ${listCol}
+
+      <div class="person-main">
+        <div class="person-head">
+          <div>
+            <div class="person-name">${esc(p.name)}</div>
+            <div class="person-ids">@${esc(p.handle)} · tg ${esc(p.tg_user_id || 'not linked yet')} · paperform ${esc(p.paperform_id)}</div>
+          </div>
+          <div class="person-pills">
+            <span class="bigpill" style="background:${pay.pillBg};color:${pay.pillFg}">${esc(pay.pillLabel)}</span>
+            ${p.checked_in_at ? `<span class="bigpill" style="background:#101010;color:#F2EFE8">Checked in ${esc(fmtIso(p.checked_in_at))}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="panels">
+          <div class="panel">
+            <div class="h">Claims</div>
+            ${items.map(claimLine).join('')}
+            ${voidBtns}
+          </div>
+          <div class="panel">
+            <div class="h">Bookings</div>
+            ${escB ? `<div class="kv"><span>${esc(escB.ref)} · ${esc(fmtIso(escB.starts_at))}${escB.booked_by ? ' · added by ' + esc(escB.booked_by) : ''}</span><span class="tag tag-half">Half ${esc(escB.zone || '?')}</span></div>` : ''}
+            ${jams.map(j => `<div class="kv"><span>${esc(j.ref)} · ${esc(fmtIso(j.starts_at))}</span><span class="tag" style="background:#3B32C4;color:#F2EFE8">Jam</span></div>`).join('')}
+            ${!escB && !jams.length ? `<div class="kv"><span style="color:#3C4654">No bookings</span></div>` : ''}
+            ${escB && isAdmin ? `<button class="smallbtn" id="moveesc">Move to another game</button>` : ''}
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="h">Audit trail</div>
+          ${p.audit.map(a => `<div class="auditrow">
+            <span class="at">${esc(a.at)}</span><span class="what">${esc(a.what)}</span><span class="who">${esc(a.who)}</span>
+          </div>`).join('')}
+        </div>
+
+        ${isAdmin ? `<div class="panel">
+          <div class="h">Refused at the gate · ${esc((S.denials && S.denials.length) || 0)} waiting</div>
+          <div class="denials">
+            ${!S.denials || !S.denials.length
+              ? `<div style="font-size:13px;color:#3C4654">Nobody has been turned away since you signed in.</div>`
+              : S.denials.map(d => `<div class="denial">
+                  <span class="at">${esc(d.at)}</span>
+                  <span><span class="h">${esc(d.tg_username ? '@' + d.tg_username : d.tg_first_name)}</span>
+                        · ${esc(d.outcome)}${d.claimed_handle ? ' · says they signed up as <span class="h">@' + esc(d.claimed_handle) + '</span>' : ''}</span>
+                  <span style="display:flex;gap:8px">
+                    <button class="smallbtn" data-link="${esc(d.id)}">Link to this person</button>
+                    <button class="smallbtn" data-dismiss="${esc(d.id)}">Dismiss</button>
+                  </span>
+                </div>`).join('')}
+          </div>
+          <div style="font-size:12px;line-height:1.45;color:#3C4654">Typing a username never lets anyone in by itself (§9 rule 7). Check who they are, then link them to their sign-up.</div>
+        </div>` : ''}
+      </div>
+
+      <div class="person-side">
+        <div class="kicker-s" style="color:#3C4654">Pass · ${esc(p.pass_code)}</div>
+        <div class="qrbox">${p.pass_qr ? `<img src="${esc(p.pass_qr)}" alt="Pass QR code">` : ''}</div>
+        <div class="side-note">For phones that died. Reading it out is the same code.</div>
+        <div class="kicker-s" style="color:#3C4654;margin-top:6px">Entrance payment</div>
+        <div class="paybox">
+          <div class="receiptrow">
+            <button class="receiptthumb" id="openreceipt">${p.receipt.url ? `<img src="${esc(p.receipt.url)}" alt="Receipt">` : 'Open'}</button>
+            <div class="receiptmeta">
+              <span class="b">${esc(p.receipt.source)}</span>
+              <span style="color:${p.receipt.expired || p.payment_status === 'missing' ? '#A8231B' : '#3C4654'};font-weight:600">${esc(p.receipt.note)}</span>
+            </div>
+          </div>
+
+          ${dupWarning(p)}
+
+          <div class="verdict" style="background:${pay.card};color:${pay.fg}">
+            <div class="t">${esc(pay.title)}</div>
+            <div class="b">${esc(pay.body)}</div>
+          </div>
+
+          ${pay.open ? `
+          <div style="display:flex;flex-direction:column;gap:10px;animation:rise .3s var(--ease) both">
+            <div class="txnfield">
+              <div class="kicker-s" style="color:#3C4654;margin-bottom:6px">Transaction reference</div>
+              <input id="txn" value="${esc(S.txn)}" placeholder="read it off the screenshot"
+                     autocapitalize="off" autocorrect="off" spellcheck="false">
+              <div class="txnnote" style="color:${pay.txnTone}">${esc(pay.txnNote)}</div>
+            </div>
+            <button class="verifybtn ${pay.canVerify ? 'ready' : 'off'}" id="verify">${esc(pay.verifyLabel)}</button>
+            <div class="payactions">
+              <button class="skip" id="skipref">No reference on it</button>
+              <button class="rej" id="rejectpay">Reject — reason</button>
+            </div>
+          </div>` : ''}
+
+          ${!isAdmin ? `<div class="staffnote">Only an admin can verify or reject. Ask Maximus.</div>` : ''}
+          ${pay.settled ? `<button class="smallbtn" id="reopen">Change verdict — reason required</button>` : ''}
+          <div class="paylog">Every verdict goes in the audit trail with your name and reason.</div>
+        </div>
+        ${isAdmin && p.tg_user_id ? `<button class="smallbtn" id="unlink" style="min-height:46px">Unlink Telegram account</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+};
+
+/* Payment card — the prototype's five states. Whether a reference is already
+   used is the server's call (DUPLICATE_TXN_REF), never guessed here. */
+function payVals(p){
+  const txn = (S.txn || '').trim();
+  const isAdmin = S.session.role === 'admin';
+  const long = txn.length >= 4;
+  const v = p.payment || {};
+  const when = v.at ? ' at ' + fmtIso(v.at) : '';
+  const status = p.payment_status === 'verified' && v.skip_reason ? 'skipped' : p.payment_status;
+  const defs = {
+    submitted:{ pill:['#AE7338','#101010','Payment submitted'], card:'#AE7338', fg:'#101010',
+      title:'Waiting on you',
+      body:'They uploaded a screenshot at sign-up. Nothing has been handed over and the booth sees an amber card until you decide.',
+      open:true },
+    verified:{ pill:['#1F7A4C','#fff','Payment verified'], card:'#1F7A4C', fg:'#fff',
+      title:'Verified',
+      body:'Verified by ' + (v.by || 'an admin') + when + (v.txn_ref ? ' against reference ' + v.txn_ref : '') + '. The counter can hand over ' + listOf(S.items.map(i => i.label.toLowerCase())) + ', once each.',
+      open:false },
+    skipped:{ pill:['#1F7A4C','#fff','Payment verified'], card:'#1F7A4C', fg:'#fff',
+      title:'Verified without a reference',
+      body:'Recorded by ' + (v.by || 'an admin') + when + ': the screenshot shows no reference number' + (v.skip_reason ? ' ("' + v.skip_reason + '")' : '') + '. This payment is not covered by the reference check.',
+      open:false },
+    rejected:{ pill:['#A8231B','#fff','Payment rejected'], card:'#A8231B', fg:'#fff',
+      title:'Rejected',
+      body:'Rejected by ' + (v.by || 'an admin') + when + (v.reason ? ': "' + v.reason + '"' : '') + '. The bot has told them to see the front desk. Their pass still scans so the counter can find them, but nothing can be handed over.',
+      open:false },
+    missing:{ pill:['#3C4654','#fff','No receipt'], card:'#3C4654', fg:'#fff',
+      title:'No receipt at all',
+      body:'They signed up without a screenshot. If they pay at the front desk, mark it paid here — type the reference, or say why there is none (e.g. "paid cash at the desk").',
+      open:true }
+  };
+  const d = defs[status] || defs.submitted;
+  return {
+    pillBg:d.pill[0], pillFg:d.pill[1], pillLabel:d.pill[2],
+    card:d.card, fg:d.fg, title:d.title, body:d.body,
+    open:d.open && isAdmin, settled:!d.open && isAdmin,
+    canVerify:long,
+    txnNote: !long ? 'Approving needs it, or say the screenshot has none.'
+      : 'Checked against every other payment when you press Verify.',
+    txnTone: '#3C4654',
+    verifyLabel: !long ? 'Type the reference to verify' : 'Verify payment'
+  };
+}
+
+/* §9 r30, layers one and two. These warn and nothing else: no payment is
+   changed, nothing is blocked, and the admin still decides. Two people can
+   honestly send the same screenshot (one paid for both), so the wording asks
+   a question rather than making an accusation. */
+function dupWarning(p){
+  const d = p.duplicates || { exact:[], similar:[] };
+  if (!d.exact.length && !d.similar.length) return '';
+  // Buttons, not links: the existing [data-person] handler opens that person
+  // in place, and an href would scroll the page to the top on the way.
+  const who = list => list.map(x =>
+    `<button type="button" data-person="${x.id}">${esc(x.name)}</button> (@${esc(x.handle)})`).join(', ');
+  let out = '';
+  if (d.exact.length){
+    out += `<div class="dupwarn exact">
+      <div class="t">The same screenshot is on ${d.exact.length} other record${d.exact.length > 1 ? 's' : ''}</div>
+      <div>Byte for byte identical to ${who(d.exact)}. That is one payment unless
+      they tell you otherwise — check the reference before verifying either.</div></div>`;
+  }
+  if (d.similar.length){
+    out += `<div class="dupwarn">
+      <div class="t">Looks like ${d.similar.length} other screenshot${d.similar.length > 1 ? 's' : ''}</div>
+      <div>Close to ${who(d.similar)}. Screens from the same bank do look alike,
+      so this may be nothing — the reference is what settles it.</div></div>`;
+  }
+  return out;
+}
+
+SCREENS.gm = function(){
+  const d = S.gmState;
+  if (!d) return S.gmError ? `<div class="blocked"><div class="t">No game yet</div><div class="b">${esc(S.gmError)}</div></div>` : loading();
+  const elapsed = gmElapsed(d);
+  const remaining = Math.max(0, d.game_seconds - elapsed);
+  const timerTone = !d.started ? '#A8A29B' : remaining <= 120 ? '#C4A98A' : '#F2EFE8';
+  const cues = d.cues.map(c => {
+    const due = d.started && elapsed >= toSec(c.at), sent = c.sent;
+    const bg = (due && !sent) ? '#C8CFC7' : '#1A1A1D';
+    const fg = (due && !sent) ? '#16181B' : '#F2EFE8';
+    const pillStyle = sent ? 'background:#1F7A4C;color:#fff'
+      : due ? 'background:#101010;color:#F2EFE8'
+      : 'box-shadow:inset 0 0 0 1px #FFFFFF33;color:#A8A29B;background:transparent';
+    return `<div class="cue" data-due="${esc(toSec(c.at))}" style="background:${bg};color:${fg}">
+      <span class="at">${esc(c.at)}</span>
+      <span class="line">${esc(c.line)}</span>
+      <button class="act" style="${pillStyle}" data-cue="${esc(c.key)}" ${sent ? 'disabled' : ''}>${esc(sent ? 'Done' : c.action)}</button>
+    </div>`;
+  }).join('');
+  // Everyone in the game gets the phone by bot message (decision 130), so
+  // the GM needs to see whose arrived — anyone it can't reach gets the desk
+  // handset instead.
+  const PM = { sent:'Phone sent', waiting:'Phone on its way', unreachable:'Can\'t reach — desk handset', held:'Not sent (test mode)' };
+  const halfRows = (side) => d.halves[side].length ? d.halves[side].map(p =>
+    `<button class="prow ${p.in ? 'in' : ''}" data-swap="${p.id}" title="${p.in ? 'Checked in' : 'Not checked in'} — tap to move to the other half">${esc(p.name)}${
+      p.phone_msg ? `<span class="pm ${p.phone_msg === 'unreachable' || p.phone_msg === 'held' ? 'bad' : ''}">${esc(PM[p.phone_msg] || p.phone_msg)}</span>` : ''}</button>`).join('')
+    : `<div class="gm-note">Nobody yet.</div>`;
+  const everyone = d.halves.A.concat(d.halves.B);
+  const missed = everyone.filter(p => p.phone_msg === 'unreachable' || p.phone_msg === 'held');
+  const phoneLine = !everyone.some(p => p.phone_msg) ? ''
+    : missed.length
+      ? `<div class="gm-phone bad">The phone can't reach ${esc(missed.map(p => p.name).join(', '))}. ${missed.some(p => p.phone_msg === 'held') ? 'Messages are on testing — Settings → Who gets messages → Everyone. ' : ''}Hand them the desk handset, or let them share with their group.</div>`
+      : `<div class="gm-phone">Everyone in this game has been sent the phone.</div>`;
+  const games = d.games.map(g => `<option value="${g.id}" ${g.id === d.slot_id ? 'selected' : ''}>${esc(short(g.starts_at))} — game ${g.number}, ${esc(g.booked)} booked${g.state === 'upcoming' ? '' : ' (' + g.state + ')'}</option>`).join('');
+  const phone = !d.in_app_phone ? 'In-app phone off' : d.phone_unlocked ? 'Phone open until ' + short(d.relock_at) : 'Phone locked';
+  const run = !d.started
+    ? `<button class="gm-btn gm-pause" data-gm="start">Start game</button>`
+    : d.ended ? `<button class="gm-btn gm-pause" disabled>Ended</button>`
+    : `<button class="gm-btn gm-pause" data-gm="${d.paused ? 'resume' : 'pause'}">${d.paused ? 'Resume' : 'Pause'}</button>`;
+  return `
+  <div class="phone390 gm">
+    <div class="gm-top">
+      <span class="who">GM · ${esc(S.session.name)}</span>
+      <select class="gm-pick" id="gmpick" aria-label="Game">${games}</select>
+    </div>
+    <div class="gm-body">
+      <div class="gm-card">
+        <div class="gm-head">
+          <span class="l">${esc(short(d.starts_at))} — ${d.ended ? 'ended' : d.paused ? 'paused' : d.started ? 'running' : 'not started'}</span>
+          <span class="l" style="color:${d.phone_unlocked ? '#C8CFC7' : '#A8A29B'}">${esc(phone)}</span>
+        </div>
+        <div class="gm-timer" id="gmtimer" style="color:${timerTone}">${esc(mmss(remaining))}</div>
+        <div class="gm-grid">
+          ${run}
+          <button class="gm-btn gm-ext" data-gm="extend" ${d.ended ? 'disabled' : ''}>+1 min</button>
+          <button class="gm-btn gm-lock" data-gm="${d.phone_unlocked ? 'lock' : 'unlock'}">${d.phone_unlocked ? 'Lock phone' : 'Unlock phone'}</button>
+          <button class="gm-btn gm-inapp" data-gm="${d.in_app_phone ? 'phone-off' : 'phone-on'}">In-app phone ${d.in_app_phone ? 'on' : 'off'}</button>
+        </div>
+        ${d.started && !d.ended ? `<button class="gm-btn gm-end" data-gm="end">End game</button>` : ''}
+        ${d.unlock_mode === 'gm_start' && !d.started ? `<div class="gm-note">Start unlocks the phone and messages it to everyone in this game.</div>` : ''}
+        ${d.unlock_mode === 'clock' && !d.started ? `<div class="gm-note">The phone opens by itself at the booked time and is messaged to everyone in this game.</div>` : ''}
+        ${phoneLine}
+      </div>
+
+      <div class="gm-card tight">
+        <div class="l kicker" style="color:#A8A29B">The script</div>
+        ${cues || `<div class="gm-note">No script file on this laptop (private\\gm\\script.json).</div>`}
+        <div class="gm-note">${d.actor_ready ? 'Hint lines go straight to the actor\'s Telegram.' : 'No actor registered, so read hint lines out yourself. The actor sends /actor and the GM PIN to the bot to get them.'} Times are in Settings.</div>
+      </div>
+
+      <div class="gm-card tight">
+        <div class="gm-head">
+          <span class="l">The split — ${esc(d.booked)} booked, ${esc(d.checked_in)} checked in</span>
+          <button class="gm-rebal" data-gm="rebalance">Even out</button>
+        </div>
+        <div class="halves">
+          <div class="half a"><div class="h">A — flat</div>${halfRows('A')}</div>
+          <div class="half b"><div class="h">B — desk</div>${halfRows('B')}</div>
+        </div>
+        <div class="gm-note">Green means checked in. Tap a name to move them to the other half${d.halves_locked_at ? ' — the game has started, so it is logged against you' : ''}.</div>
+      </div>
+
+      <div class="gm-card tight">
+        <div class="l kicker" style="color:#A8A29B">Changeover — ${esc(d.changeover_minutes)} minutes</div>
+        ${d.reset.map((r, i) => `<div class="reset-row">
+          <button class="reset-box ${S.resetDone[d.slot_id + ':' + i] ? 'done' : ''}" data-reset="${d.slot_id}:${i}" aria-label="Done"></button>
+          <span>${esc(r)}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+};
+
+/* Seconds played, counted on this device from the server's figure. */
+function gmElapsed(d){
+  if (!d.started || d.paused || d.ended) return d.elapsed_seconds;
+  return d.elapsed_seconds + Math.floor((Date.now() - S.gmAt) / 1000);
+}
+
+/* ---- Schedules ------------------------------------------------------ */
+
+SCREENS.schedules = function(){
+  const d = S.slots;
+  if (!d) return loading();
+  const esc_ = d.escape, jam = d.jam;
+  const gameRow = (s) => {
+    const pct = Math.round(s.booked / s.capacity * 100);
+    const tone = s.blocked ? '#A8231B' : s.running ? '#AE7338' : s.booked >= s.capacity ? '#A8231B' : '#101010';
+    const state = s.blocked ? 'Blocked' : s.running ? 'Running now' : s.done ? 'Done'
+      : s.booked >= s.capacity ? 'Full' : s.closed ? 'Booking closed' : 'Open';
+    const pillBg = s.blocked ? '#A8231B' : s.running ? '#AE7338' : s.done ? '#3C4654'
+      : s.booked >= s.capacity ? '#101010' : '#8FA65B';
+    const pillFg = (s.blocked || s.done) ? '#fff' : '#101010';
+    return `<div class="trow ${s.blocked ? 'blocked' : ''}">
+      <span class="time">${esc(short(s.starts_at))}</span>
+      <span>
+        <span class="seatbar"><i class="${s.running ? 'now' : s.booked >= s.capacity ? 'full' : ''}"
+              style="width:${pct}%;background:${tone}"></i></span>
+        <span style="font-size:12px;color:#3C4654;display:block;margin-top:5px">${esc(s.booked)} of ${esc(s.capacity)} booked · ${esc(s.checked_in)} checked in</span>
+      </span>
+      <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
+      <span class="halves">A ${esc(s.half_a)} · B ${esc(s.half_b)}</span>
+      <span class="acts">
+        ${s.booked ? `<button class="smallbtn" data-move="${s.id}">Move someone</button>` : ''}
+        <button class="smallbtn ${s.blocked ? '' : 'danger'}" data-block="${s.id}" data-blocked="${s.blocked ? 1 : 0}">${s.blocked ? 'Unblock' : 'Block'}</button>
+      </span>
+    </div>`;
+  };
+  const jamRow = (s) => {
+    const state = s.blocked ? 'Blocked' : s.status === 'open' ? 'Open' : s.status === 'past' ? 'Past' : 'Booked';
+    const pillBg = s.blocked ? '#A8231B' : s.status === 'open' ? '#8FA65B' : s.status === 'past' ? '#3C4654' : '#3B32C4';
+    const pillFg = (s.status === 'open') ? '#101010' : '#fff';
+    return `<div class="trow ${s.blocked ? 'blocked' : ''}">
+      <span class="time">${esc(short(s.starts_at))}</span>
+      <span style="font-size:13px;color:#3C4654">${esc(short(s.starts_at))}–${esc(short(s.ends_at))} · free${s.ref ? ' · ' + esc(s.ref) : ''}${
+        s.booked ? ' · ' + esc(s.booked) + ' of ' + esc(s.capacity) : ''}</span>
+      <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
+      <!-- The booker first, then who they brought: staff at the door look for
+           the name on the booking, then count heads against the party. -->
+      <span class="halves" title="${esc((s.party || []).join(', '))}">${
+        s.who ? esc(s.who) + (s.booked > 1 ? ' +' + esc(s.booked - 1) : '') : '—'}</span>
+      <span class="acts">
+        <button class="smallbtn ${s.blocked ? '' : 'danger'}" data-block="${s.id}" data-blocked="${s.blocked ? 1 : 0}">${s.blocked ? 'Unblock' : 'Block'}</button>
+      </span>
+    </div>`;
+  };
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Schedules</span>
+      <span class="m">${esc(esc_.length)} games · ${esc(d.seats_taken)} of ${esc(d.seats_total)} seats · ${esc(jam.length)} jam slots${
+        d.jam_seats_taken ? ' · ' + esc(d.jam_seats_taken) + ' jamming' : ''}</span>
+    </div>
+    <div class="sched">
+      <div>
+        <h3>The Last Guest</h3>
+        <div class="lead">Every 20 minutes from ${esc(esc_.length ? short(esc_[0].starts_at) : '—')} to ${esc(esc_.length ? short(esc_[esc_.length - 1].starts_at) : '—')} PM, ${esc(esc_.length ? esc_[0].capacity : 12)} a game. Blocking a game hides it from the attendee board straight away. People already booked stay booked — move them first.</div>
+      </div>
+      <div class="table">
+        <div class="trow head"><span>Start</span><span>Seats</span><span>State</span><span>Halves</span><span></span></div>
+        ${esc_.map(gameRow).join('')}
+      </div>
+      <div>
+        <h3>Jamming studio</h3>
+        <div class="lead">Free 30-minute slots, booked as a group like the escape room. The room belongs to whoever booked it for that slot — another group is never seated alongside them — and it does not have to fill. A slot cannot overlap anyone in the group's escape game, counting 5 minutes to walk either side.</div>
+      </div>
+      <div class="table">
+        <div class="trow head"><span>Start</span><span>Slot</span><span>State</span><span>Who</span><span></span></div>
+        ${jam.length ? jam.map(jamRow).join('') : `<div class="trow"><span></span><span style="color:#3C4654">No jam slots yet — run python manage.py generate-slots.</span></div>`}
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---- Roster --------------------------------------------------------- */
+
+SCREENS.roster = function(){
+  const d = S.roster;
+  if (!d) return loading();
+  const p = S.rosterPreview;
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Roster</span>
+      <span class="m">${esc(d.active)} active · ${esc(d.inactive)} inactive · ${esc(d.walk_ins)} walk-ins</span>
+    </div>
+    <div class="roster">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="drop" id="drop">
+          <div class="t">Upload the Paperform export</div>
+          <div class="p">Export from Paperform, then drop the <code>.xlsx</code> here or choose it. Nothing is written until you press Commit, and re-importing the same file changes nothing.</div>
+          <button class="smallbtn" id="pickfile" style="min-height:48px;font-size:12px">Choose a file</button>
+          ${p ? `<div class="p" style="color:#101010;font-weight:600">${esc(p.file_name)}</div>` : ''}
+        </div>
+
+        ${p ? `
+        <div class="counts">
+          <div class="count"><div class="v">${esc(p.counts.new)}</div><div class="l">New</div></div>
+          <div class="count"><div class="v">${esc(p.counts.changed)}</div><div class="l">Changed</div></div>
+          <div class="count"><div class="v">${esc(p.counts.unchanged)}</div><div class="l">Unchanged</div></div>
+          <div class="count"><div class="v">${esc(p.counts.missing)}</div><div class="l">Missing here</div></div>
+          <div class="count ${p.counts.no_receipt ? 'bad' : ''}"><div class="v">${esc(p.counts.no_receipt)}</div><div class="l">No receipt</div></div>
+        </div>
+        ${p.problems.length ? `
+        <div class="problems">
+          <div class="t">${esc(p.problems.length)} problem${p.problems.length === 1 ? '' : 's'} — nothing has been written</div>
+          ${p.problems.map(x => `<div class="problem"><span class="row">row ${esc(x.row)}</span><span>${esc(x.message)}</span></div>`).join('')}
+          <div style="font-size:12px;line-height:1.45;color:#3C4654">Fix them in Paperform, export again, and upload the new file.</div>
+        </div>` : ''}
+        ${p.missing && p.missing.length ? `
+        <div class="staffnote">Not in this file, so they become inactive: ${p.missing.map(m => esc(m.name) + ' (@' + esc(m.handle) + ')').join(', ')}.</div>` : ''}
+        <div class="commitbar">
+          <button class="commit" id="commit" ${p.problems.length ? 'disabled' : ''}>Commit ${esc(p.counts.new + p.counts.changed)} change${(p.counts.new + p.counts.changed) === 1 ? '' : 's'}</button>
+          <span style="font-size:13px;line-height:1.45;color:#3C4654">
+            ${p.problems.length ? 'Blocked until the problems above are fixed.'
+              : p.counts.missing ? esc(p.counts.missing) + ' missing from this file become inactive. Their bookings and claims are kept.'
+              : 'Missing nobody. Safe to commit.'}
+          </span>
+        </div>` : `
+        <div style="font-size:13px;line-height:1.5;color:#3C4654">
+          The ~1,000 blank rows Paperform leaves at the end of the sheet are skipped silently.
+          Handles written as <code>@Name</code>, <code>name&nbsp;</code> or a <code>t.me/</code> link all match the same person.
+        </div>`}
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="walkin">
+          <div class="t">Add a walk-in</div>
+          <div style="font-size:13px;line-height:1.5;color:#3C4654">Someone who turned up without signing up. They go on the list straight away and can open the app.</div>
+          <input id="wiName" type="text" placeholder="Full name">
+          <input id="wiHandle" type="text" placeholder="Telegram username, without the @" autocapitalize="off" spellcheck="false">
+          <input id="wiEmail" type="text" placeholder="Email (optional)" autocapitalize="off" spellcheck="false">
+          <button class="smallbtn" id="addWalkin" style="min-height:48px;font-size:12px">Add and mark unpaid</button>
+        </div>
+        <div class="walkin">
+          <div class="t">Past imports</div>
+          <div class="runs">
+            ${d.runs.map(r => `<div class="run">
+              <span class="at">${esc(r.at)}</span>
+              <span>${esc(r.file_name)}</span>
+              <span>${esc(r.summary)}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---- Settings ------------------------------------------------------- */
+
+/* One control per idea, in plain words (22 Sep, decision 129). The
+   organiser's example: "event-day mode", "test clock" and "test clock set
+   to" were three controls, one forcing another off, and none said what it
+   did. They became one Real time / Test time switch and a slider. The same
+   rule runs through the rest of this screen: a choice shows every option at
+   once; nothing secretly means "off" (stock 0 used to); a value that does
+   not apply right now is dimmed, not explained in small print. Rows that
+   were already plain were left as they were. */
+
+/* "19:30" -> "7:30 PM". */
+function hhmmLabel(t){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ''));
+  if (!m) return String(t || '');
+  const h = Number(m[1]);
+  return (h % 12 || 12) + ':' + m[2] + ' ' + (h >= 12 ? 'PM' : 'AM');
+}
+function toMins(t){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ''));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+}
+function fromMins(n){
+  n = Math.max(0, Math.min(1439, Math.round(n)));
+  return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+}
+/* "Thu 24 Sep" — the day Test time pretends it is (the server's EVENT_DATE). */
+function eventDayLabel(){
+  const iso = (S.session && S.session.event_date) || '2026-09-24';
+  const d = new Date(iso + 'T12:00:00');
+  // Built by hand: browsers disagree on "Sep" and "Sept".
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] + ' ' + d.getDate() + ' '
+    + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+}
+function testTimeLabel(t){ return eventDayLabel() + ', ' + hhmmLabel(t); }
+/* Stock 0 is how the server stores "not counted"; '' is "counted, number
+   not typed yet". */
+function countOn(n){ return !(n === 0 || n === '0' || n === null || n === undefined); }
+function settingValue(key){
+  return (key in S.settingsDraft) ? S.settingsDraft[key] : S.settings.values[key];
+}
+function handlesOf(list){
+  return String(list || '').split(',').map(h => h.trim()).filter(Boolean).map(h => '@' + h).join(', ') || 'test accounts';
+}
+
+/* The whole evening of the 24th, a minute a step: from an hour before the
+   doors-open message to an hour after close, stretched if the saved time
+   sits outside that. */
+function testRange(v){
+  const cur = toMins(v('test_clock_at'));
+  const lo = Math.max(0, Math.min(toMins(v('doors_message_at')) - 60, cur));
+  const hi = Math.min(1439, Math.max(toMins(v('doors_close')) + 60, cur));
+  return [lo, hi];
+}
+function timeSlider(key, val, range, off){
+  const [lo, hi] = range;
+  const dis = off ? 'disabled tabindex="-1"' : '';
+  return `<div class="tslide">
+      <div class="read"><small>${esc(eventDayLabel())}</small><span data-read="${key}">${esc(hhmmLabel(val))}</span></div>
+      <div class="tbar">
+        <button class="nudge" data-nudge="${key}" data-by="-1" aria-label="One minute earlier" ${dis}>−1</button>
+        <input type="range" min="${lo}" max="${hi}" step="1" value="${toMins(val)}" data-set="${key}" data-type="slider" aria-label="Test time" ${dis}>
+        <button class="nudge" data-nudge="${key}" data-by="1" aria-label="One minute later" ${dis}>+1</button>
+      </div>
+      <div class="ends"><span>${esc(hhmmLabel(fromMins(lo)))}</span><span>${esc(hhmmLabel(fromMins(hi)))}</span></div>
+    </div>`;
+}
+
+SCREENS.settings = function(){
+  const d = S.settings;
+  if (!d) return loading();
+  const v = k => (k in S.settingsDraft) ? S.settingsDraft[k] : d.values[k];
+  const dirty = Object.keys(S.settingsDraft).filter(k => String(S.settingsDraft[k]) !== String(d.values[k]));
+
+  // Every option visible; the chosen one filled. `extra` marks the stock
+  // switches, whose "Counted" has no single value of its own.
+  const seg = (key, options, val, extra) => `<div class="seg" role="group">${options.map(([ov, ol, cls]) =>
+      `<button class="${String(ov) === String(val) ? 'on ' + (cls || '') : ''}" data-set="${key}" data-type="seg"
+               data-val="${esc(JSON.stringify(ov))}" ${extra || ''}>${esc(ol)}</button>`).join('')}</div>`;
+  const plain = (f, val, off) => {
+    const dis = off ? 'disabled tabindex="-1"' : '';
+    if (f.type === 'toggle'){
+      const on = !!val;
+      return `<button class="toggle ${on ? 'on' : 'off'} ${f.danger ? 'danger' : ''}" data-set="${f.key}" data-type="toggle" ${dis}>${esc(on ? (f.onLabel || 'On') : (f.offLabel || 'Off'))}</button>`;
+    }
+    if (f.type === 'select') return `<select data-set="${f.key}" data-type="select" ${dis}>${f.options.map(([ov, ol]) =>
+        `<option value="${esc(ov)}" ${String(ov) === String(val) ? 'selected' : ''}>${esc(ol)}</option>`).join('')}</select>`;
+    if (f.type === 'number') return `<input type="number" class="mono" data-set="${f.key}" data-type="number" value="${esc(val)}"
+                  ${f.min != null ? 'min="'+f.min+'"' : ''} ${f.max != null ? 'max="'+f.max+'"' : ''} ${dis}>`;
+    if (f.type === 'time') return `<input type="time" class="mono" data-set="${f.key}" data-type="time" value="${esc(val)}" ${dis}>`;
+    return `<input type="text" data-set="${f.key}" data-type="text" value="${esc(val)}" ${f.mono ? 'class="mono"' : ''} ${dis}>`;
+  };
+
+  const row = (f) => {
+    const val = v(f.key);
+    const isPlaceholder = d.placeholders.includes(f.key) && !dirty.includes(f.key);
+    let control, below = '';
+    if ((d.readonly || []).includes(f.key)){
+      control = `<span class="mono" style="font-size:15px">${esc(val)}</span>`;
+    } else if (f.type === 'seg'){
+      control = seg(f.key, typeof f.options === 'function' ? f.options(d.values) : f.options, val);
+    } else if (f.type === 'clock'){
+      // Real time or Test time; the slider underneath only counts on Test.
+      control = seg(f.key, [[false, 'Real time', 'go'], [true, 'Test time', 'warn']], !!val);
+      below = `<div class="full ${val ? '' : 'dimmed'}">${timeSlider(f.time, v(f.time), testRange(v), !val)}</div>`;
+    } else if (f.type === 'pair'){
+      // On or off, and the one value that goes with it — dimmed when off.
+      const on = !!val;
+      control = `<div class="ctl">
+          ${seg(f.key, [[false, 'Off'], [true, 'On', 'go']], on)}
+          <div class="val ${on ? '' : 'dimmed'}">
+            ${f.value.before ? `<span class="unit">${esc(f.value.before)}</span>` : ''}
+            ${plain(f.value, v(f.value.key), !on)}
+            ${f.value.unit ? `<span class="unit">${esc(f.value.unit)}</span>` : ''}
+          </div>
+        </div>`;
+    } else if (f.type === 'count'){
+      const counted = countOn(val);
+      control = `<div class="ctl">
+          ${seg(f.key, [[0, 'Not counted'], ['count', 'Counted', 'go']], counted ? 'count' : 0, 'data-count')}
+          <div class="val ${counted ? '' : 'dimmed'}">
+            <input type="number" class="mono" min="1" data-set="${f.key}" data-type="count-num"
+                   value="${counted ? esc(val) : ''}" placeholder="How many?" ${counted ? '' : 'disabled tabindex="-1"'}>
+            <span class="unit">to hand out</span>
+          </div>
+        </div>`;
+    } else if (f.type === 'longtext'){
+      // Several lines: the box takes the row's full width, under the label.
+      control = '';
+      below = `<div class="full"><textarea data-set="${f.key}" data-type="text" rows="${Math.min(24, String(val || '').split('\n').length + 1)}" spellcheck="false">${esc(val)}</textarea></div>`;
+    } else if (f.unit){
+      control = `<div class="ctl"><div class="val">${plain(f, val)}<span class="unit">${esc(f.unit)}</span></div></div>`;
+    } else {
+      control = plain(f, val);
+    }
+    const dim = f.dimIf && f.dimIf(v);
+    const help = f.help ? `<div class="h">${esc(f.help)}</div>` : '';
+    return `<div class="setrow ${isPlaceholder ? 'placeholder' : ''}">
+      <div><div class="k">${esc(f.label)}</div>${help}</div>
+      <div class="${dim ? 'dimmed' : ''}">${control}</div>
+      ${below}
+    </div>`;
+  };
+
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Settings</span>
+      <span class="m">${esc(d.placeholders.length)} still to fill in${dirty.length ? ' · ' + dirty.length + ' unsaved' : ''}</span>
+    </div>
+    <div class="settings">
+      ${SETTINGS_SCHEMA.map(g => `
+        <div class="setgroup">
+          <h3>${esc(g.group)}</h3>
+          ${settingFields(g, d).map(row).join('')}
+        </div>`).join('')}
+      <div class="savebar">
+        <span class="n">${dirty.length
+          ? esc(dirty.length) + ' change' + (dirty.length === 1 ? '' : 's') + ' not saved yet. Every change goes in the audit log with your name.'
+          : 'Everything here is saved. Amber rows still carry a placeholder from the brief.'}</span>
+        <button id="saveSettings" ${dirty.length ? '' : 'disabled'}>Save changes</button>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* A group's rows. Food orders has one per item the server says can be
+   ordered; every other group lists its own. */
+function settingFields(g, d){
+  if (g.fields !== 'order_items') return g.fields;
+  return (d.order_items || []).map((o, n) => ({ key:o.key + '_pickup', label:o.label + ' is collected at', type:'text',
+    help:n === 0 ? 'Named in the "your order is ready" message.' : '' }));
+}
+
+/* Low-stock and block-at-zero only mean something when a stock is counted. */
+const NO_STOCK = v => !countOn(v('pastry_stock')) && !countOn(v('photo_stock')) && !countOn(v('vinyl_stock'));
+
+const SETTINGS_SCHEMA = [
+  { group:'The day', fields:[
+    { key:'test_clock', time:'test_clock_at', label:'Clock', type:'clock',
+      help:'Test time makes the app think it is the 24th at the time you pick — for everyone using it — so you can rehearse the night. Back to Real time when you are done.' },
+    { key:'doors_open', label:'Doors open', type:'time' },
+    { key:'doors_close', label:'Doors close', type:'time' },
+    { key:'venue', label:'Venue', type:'text', help:'Shown on the Start screen and in the doors-open message.' },
+    { key:'venue_address', label:'Venue address', type:'text', help:'Shown on the attendee help screen, with a Maps button.' },
+    { key:'entry_fee', label:'Entry fee', type:'text', help:'Shown to people whose payment isn\'t verified.' },
+    { key:'paid_extras', label:'Paid at the front desk', type:'text', help:'Shown on the attendee help screen.' },
+    { key:'price_list', label:'Price list', type:'longtext',
+      help:'Shown on the attendee help screen under "Is there a price list?". One line each, like  Mini Tart: $2.50 . A line with no $ in it starts a new group.' },
+    { key:'meeting_point', label:'Help desk', type:'text',
+      help:'Where attendees are sent for help.' },
+    { key:'help_handle', label:'Help contact', type:'text', mono:true,
+      help:'Shown on the attendee help screen and by /help.' }
+  ]},
+  { group:'Escape room', fields:[
+    { key:'capacity', label:'Players a game', type:'number', min:6, max:16 },
+    { key:'game_minutes', label:'Game length (minutes)', type:'number', min:5, max:30 },
+    { key:'changeover_minutes', label:'Changeover (minutes)', type:'number', min:0, max:20 },
+    { key:'first_game', label:'First game', type:'time' },
+    { key:'last_game', label:'Last game', type:'time' },
+    { key:'escape_meet', label:'Where players gather', type:'text',
+      help:'On the ticket and in the bot\'s messages, e.g. "the escape room entrance".' },
+    { key:'phone_unlock_mode', label:'Phone opens', type:'seg',
+      options:[['gm_start','When the GM presses Start'],['clock','At the booked time']] },
+    { key:'require_checkin', label:'Require check-in for the phone', type:'toggle', onLabel:'Yes', offLabel:'No' },
+    { key:'in_app_phone', label:'Phone in the app', type:'seg',
+      options:[[true,'On','go'],[false,'Off — desk handset only']],
+      help:'The GM can still switch it off for one game from the GM console.' },
+    { key:'phone_minutes', label:'Phone stays open', type:'number', min:5, max:60, unit:'minutes from the start',
+      help:'Longer than the game, so time running out doesn\'t cut anyone off. Lock phone on the GM screen closes it sooner.' },
+    { key:'hint_1', label:'Hint line 1 at', type:'text', mono:true, help:'Minutes:seconds into the game.' },
+    { key:'hint_2', label:'Hint line 2 at', type:'text', mono:true },
+    { key:'hint_3', label:'Hint line 3 at', type:'text', mono:true },
+    { key:'forced_merge', label:'Forced merge at', type:'text', mono:true,
+      help:'Both halves work in the same room from here.' },
+    { key:'booking_cutoff_minutes', label:'Booking closes (minutes before)', type:'number', min:0, max:60 },
+    { key:'cancel_cutoff_minutes', label:'Cancelling closes (minutes before)', type:'number', min:0, max:180 },
+    { key:'max_party', label:'Biggest group one person can book', type:'number', min:1, max:12,
+      help:'Including the person booking.' },
+    { key:'gm_handle', label:'Game master', type:'text', mono:true },
+    { key:'actor_handle', label:'Actor', type:'text', mono:true },
+    { key:'finder_name', label:"The finder's name", type:'text' }
+  ]},
+  { group:'Jamming studio (free)', fields:[
+    { key:'jam_room', label:'Room name', type:'text',
+      help:'On the jam ticket and in the bot\'s messages.' },
+    { key:'jam_first', label:'First slot', type:'time' },
+    { key:'jam_last', label:'Last slot', type:'time' },
+    { key:'jam_slot_minutes', label:'Slot length (minutes)', type:'number', min:10, max:120 },
+    { key:'jam_per_person', label:'Slots a person', type:'number', min:1, max:5 },
+    { key:'jam_capacity', label:'Room holds', type:'number', min:1, max:60,
+      help:'How many fit in the jam room, and so the largest group one booking can bring. Changing this rebuilds the jam timetable.' }
+  ]},
+  { group:'Included with entry', fields:[
+    { key:'pastry_stock', label:'Pastry stock (all kinds together)', type:'count' },
+    { key:'photo_stock', label:'Photo strip stock', type:'count' },
+    { key:'vinyl_stock', label:'Vinyl making stock', type:'count' },
+    { key:'low_stock_at', label:'Call it "low" at', type:'number', min:0, max:999, dimIf:NO_STOCK,
+      help:'The booth warns when this many or fewer are left.' },
+    { key:'block_at_zero', label:'When stock runs out', type:'seg', dimIf:NO_STOCK,
+      options:[[false,'Warn only'],[true,'Block the hand-over','warn']] },
+    { key:'claim_requires', label:'Hand-over needs payment', type:'select',
+      options:[['verified','Verified'],['submitted','Submitted is enough']],
+      help:'Staff may never hand over on an unverified receipt. An admin can override with a reason.' },
+  ]},
+  // One "collected at" row per made-to-order item, from the server's list
+  // (settings_view → order_items), like the Orders screen's buttons.
+  { group:'Food orders', fields:'order_items' },
+  { group:'Bot messages', fields:[
+    { key:'notify_mode', label:'Who gets messages', type:'seg',
+      options:vals => [['owner', 'Only ' + handlesOf(vals.always_allow) + ' (testing)', 'warn'], ['on','Everyone','go'], ['off','Nobody']],
+      help:'Switch to Everyone before the night — the escape-room phone reaches players only as a message.' },
+    { key:'reminder_minutes', label:'Reminder before a game or jam slot (minutes)', type:'number', min:1, max:60 },
+    { key:'doors_message', label:'"The Yard is on today" message', type:'pair',
+      value:{ key:'doors_message_at', type:'time', before:'at' },
+      help:'To everyone on the list, on the 24th. Never sent in test time.' },
+    { key:'last_call', label:'Last call for uncollected items', type:'pair',
+      value:{ key:'last_call_minutes', type:'number', min:1, max:120, unit:'minutes before close' },
+      help:'To checked-in people who still have something to collect. Never sent in test time.' }
+  ]},
+  { group:'Access & safety', fields:[
+    { key:'gate_open', label:'The gate', type:'toggle', onLabel:'Open to the list', offLabel:'Closed to everyone', danger:true,
+      help:'Closed means only always-allowed usernames get in. Everyone else sees "The Yard is closed".' },
+    { key:'always_allow', label:'Always-allowed usernames', type:'text', mono:true,
+      help:'Set in .env, shown here so you can check it. Excluded from headcounts.' },
+    { key:'claimed_handle_limit', label:'"Signed up as" requests an hour', type:'number', min:1, max:20 },
+    { key:'lookup_rate_limit', label:'Code lookups a minute, per staff session', type:'number', min:5, max:120 },
+    { key:'backup_minutes', label:'Automatic backup every (minutes)', type:'number', min:1, max:60 },
+    { key:'backup_keep', label:'Backups to keep', type:'number', min:6, max:200 }
+  ]}
+];
+
+/* ---- Audit and exports ---------------------------------------------- */
+
+SCREENS.audit = function(){
+  const d = S.audit;
+  if (!d) return loading();
+  const tab = S.auditTab;
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Audit</span>
+      <span class="m">${esc(d.total)} entries · last backup ${esc(d.backup.last_at)}</span>
+    </div>
+    <div class="tabs2">
+      <button data-tab="log" class="${tab==='log'?'on':''}">Audit log</button>
+      <button data-tab="exports" class="${tab==='exports'?'on':''}">Exports &amp; backups</button>
+    </div>
+    ${tab === 'log' ? `
+    <div class="audit">
+      <div class="filters">
+        <select id="fActor">
+          <option value="">Everyone</option>
+          ${d.actors.map(a => `<option value="${esc(a)}" ${S.auditActor===a?'selected':''}>${esc(a)}</option>`).join('')}
+        </select>
+        <select id="fAction">
+          <option value="">Every action</option>
+          ${d.actions.map(a => `<option value="${esc(a)}" ${S.auditAction===a?'selected':''}>${esc(a)}</option>`).join('')}
+        </select>
+        <input type="text" id="fSearch" placeholder="Search a name, code or ref" value="${esc(S.auditSearch || '')}">
+      </div>
+      <div class="table">
+        <div class="logrow head"><span>Time</span><span>Who</span><span>What</span><span>Details</span></div>
+        ${d.entries.length ? d.entries.map(e => `<div class="logrow">
+          <span class="at">${esc(e.at)}</span>
+          <span class="who">${esc(e.actor)}${e.station ? ' · ' + esc(e.station) : ''}</span>
+          <span class="act">${esc(e.action)}${e.entity ? ' — ' + esc(e.entity) : ''}</span>
+          <span class="det">${esc(e.details)}</span>
+        </div>`).join('') : `<div class="logrow"><span></span><span></span><span>Nothing matches those filters.</span><span></span></div>`}
+      </div>
+    </div>` : `
+    <div class="exports">
+      <div class="expcard">
+        <div class="t">Exports</div>
+        <div class="p">The Registrations sheet comes back in Paperform's own column order, with the check-in and redeemed columns filled in from our side.</div>
+        <button class="dl" data-export="registrations"><span>Registrations sheet (.xlsx)</span><span>↓</span></button>
+        <button class="dl" data-export="bookings"><span>Bookings — escape and jam (.xlsx)</span><span>↓</span></button>
+        <button class="dl" data-export="claims"><span>Claims and check-ins (.xlsx)</span><span>↓</span></button>
+        <button class="dl" data-export="fallback"><span>Offline fallback list (printable)</span><span>↓</span></button>
+      </div>
+      <div class="expcard">
+        <div class="t">Backups</div>
+        <div class="p">A copy of the database every ${esc(d.backup.every_minutes)} minutes into <code>data\\backups</code>, keeping the last ${esc(d.backup.keep)}. Copy that folder somewhere off the laptop when the night ends.</div>
+        <div class="kv"><span>Last backup</span><span class="v">${esc(d.backup.last_at)}</span></div>
+        <div class="kv"><span>Copies held</span><span class="v">${esc(d.backup.count)}</span></div>
+        <div class="kv"><span>Database size</span><span class="v">${esc(d.backup.db_size)}</span></div>
+        <button class="dl" id="backupNow"><span>Back up now</span><span>⟳</span></button>
+        <div class="p">After the event: export everything, then delete the receipts and anything personal you no longer need.</div>
+      </div>
+      ${receiptCard(d.receipts)}
+    </div>`}
+  </div>`;
+};
+
+/* Paperform signs each receipt link to expire 7 days after that person signed
+   up, so every current link dies before the event. This card exists to get
+   the copies taken while the links still work — which is why it states the
+   deadline rather than just offering a button. */
+function receiptCard(r){
+  if (!r) return '';
+  const urgent = r.not_saved > 0;
+  return `
+  <div class="expcard">
+    <div class="t">Receipt copies</div>
+    <div class="p">Paperform's links expire seven days after each sign-up — before the event.
+    A saved copy lives on this laptop and keeps working on the day, with no tunnel and no Paperform.</div>
+    <div class="kv"><span>Receipts on Paperform</span><span class="v">${esc(r.with_links)}</span></div>
+    <div class="kv"><span>Copies saved here</span><span class="v">${esc(r.saved)}</span></div>
+    <div class="kv"><span>Still to save</span><span class="v" style="color:${urgent ? '#A8231B' : '#1F7A4C'}">${esc(r.not_saved)}</span></div>
+    ${r.already_expired ? `<div class="kv"><span>Links already dead</span><span class="v" style="color:#A8231B">${esc(r.already_expired)}</span></div>` : ''}
+    ${r.next_expiry ? `<div class="p" style="color:#A8231B;font-weight:700">Next link expires ${esc(r.next_expiry)}.</div>` : ''}
+    <button class="dl" id="saveReceipts"><span>${urgent ? 'Save receipt copies' : 'Check again'}</span><span>↧</span></button>
+    ${r.already_expired ? `<div class="p">For the dead ones, open Paperform's own dashboard — the files are still there, only the links we were given have expired.</div>` : ''}
+  </div>`;
+}
+
+function blockedView(){
+  return `
+  <div class="blocked">
+    <div class="t">Not for this sign-in</div>
+    <div class="b">Phone sign-ins run the booth, the orders, the game and look people up. Everything else is on the laptop sign-in.</div>
+    <div class="c">FORBIDDEN · logged with your station name</div>
+  </div>`;
+}
+
+function loading(){ return `<div class="blocked"><div class="b">Loading…</div></div>`; }
+
+/* ---- wiring --------------------------------------------------------- */
+
+function wire(){
+  root.querySelectorAll('[data-screen]').forEach(b => b.onclick = () => goScreen(b.dataset.screen));
+  const so = document.getElementById('signout');
+  if (so) so.onclick = signout;
+
+  // booth
+  const lookup = document.getElementById('lookup');
+  if (lookup) lookup.onclick = doLookup;
+  const codebox = document.getElementById('codebox');
+  if (codebox){
+    codebox.oninput = e => { S.lookupCode = e.target.value; };
+    codebox.onkeydown = e => { if (e.key === 'Enter') doLookup(); };
+  }
+  root.querySelectorAll('[data-hand]').forEach(b => b.onclick = () => {
+    const kind = b.dataset.variant || null;
+    if (!b.dataset.override){ handOver(b.dataset.hand, null, kind); return; }
+    const reason = prompt('Override: why are you handing over ' + b.dataset.label.toLowerCase() + ' without a verified payment? It goes in the log under your name.');
+    if (reason && reason.trim()) handOver(b.dataset.hand, reason.trim(), kind);
+  });
+  const ci = document.getElementById('checkin');
+  if (ci) ci.onclick = doCheckin;
+  const sn = document.getElementById('scannext');
+  if (sn) sn.onclick = () => { scanLocked = false; S.lookup = null; S.lookupCode = ''; render(); startCamera(); };
+  // orders
+  const os = document.getElementById('orderscan');
+  if (os) os.onclick = openOrderScanner;
+  const onx = document.getElementById('orderscannext');
+  if (onx) onx.onclick = openOrderScanner;
+  const ors = document.getElementById('orderrescan');
+  if (ors) ors.onclick = () => { scanLocked = false; S.orderScanError = ''; render(); };
+  root.querySelectorAll('#orderdone').forEach(b => b.onclick = () => {
+    S.orderScan = null; S.orderScanError = ''; S.orderCode = ''; stopCamera(); render(); load();
+  });
+  const oc = document.getElementById('ordercode');
+  if (oc){
+    oc.oninput = e => { S.orderCode = e.target.value; };
+    oc.onkeydown = e => { if (e.key === 'Enter') orderLookup(S.orderCode); };
+  }
+  const ol = document.getElementById('orderlookup');
+  if (ol) ol.onclick = () => orderLookup(S.orderCode);
+  root.querySelectorAll('[data-order-item]').forEach(b => b.onclick = () => placeOrder(b.dataset.orderItem));
+  root.querySelectorAll('[data-call]').forEach(b => b.onclick = () => callOrder(Number(b.dataset.call)));
+  root.querySelectorAll('[data-collected]').forEach(b => b.onclick = () => closeOrder(Number(b.dataset.collected), 'collected'));
+  root.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => closeOrder(Number(b.dataset.cancel), 'cancel'));
+
+  // Scan once: after a read the camera stays off — with a result on screen,
+  // and also when the lookup showed nothing. Only "Scan next", tapping the
+  // full-screen result, or opening Booth mode again clears the lock.
+  if (cameraWanted() && !scanLocked) startCamera();
+  else stopCamera();
+
+  // people
+  root.querySelectorAll('[data-person]').forEach(b => b.onclick = async () => {
+    const id = Number(b.dataset.person);
+    const p = await fetchPerson(id);
+    if (!p) return;
+    S.selectedPerson = id; S.person = p; S.txn = '';
+    render();
+  });
+  const ps = document.getElementById('psearch');
+  if (ps){
+    let t;
+    ps.oninput = () => {
+      clearTimeout(t);
+      t = setTimeout(() => { S.peopleQuery = ps.value.trim(); S.focusSearch = true; load(); }, 300);
+    };
+    // Keep typing across the re-render the results cause.
+    if (S.focusSearch){
+      S.focusSearch = false;
+      ps.focus();
+      ps.setSelectionRange(ps.value.length, ps.value.length);
+    }
+  }
+  const openr = document.getElementById('openreceipt');
+  if (openr) openr.onclick = () => {
+    const rc = S.person && S.person.receipt;
+    if (rc && rc.link){ window.open(rc.link, '_blank', 'noopener'); return; }
+    toast(S.session.role !== 'admin' ? 'Only an admin can open receipts.'
+      : rc && rc.expired ? rc.note
+      : 'No receipt to open.', 'bad');
+  };
+  const txn = document.getElementById('txn');
+  if (txn){
+    // Update the note and button in place — re-rendering would drop the caret
+    // mid-reference, and this box gets typed into with a queue waiting.
+    txn.oninput = e => {
+      S.txn = e.target.value;
+      const pay = payVals(S.person);
+      const note = root.querySelector('.txnnote');
+      if (note){ note.textContent = pay.txnNote; note.style.color = pay.txnTone; }
+      const btn = document.getElementById('verify');
+      if (btn){ btn.textContent = pay.verifyLabel; btn.className = 'verifybtn ' + (pay.canVerify ? 'ready' : 'off'); }
+    };
+    txn.onkeydown = e => { if (e.key === 'Enter') doVerify(); };
+  }
+  const verify = document.getElementById('verify');
+  if (verify) verify.onclick = doVerify;
+  const skip = document.getElementById('skipref');
+  if (skip) skip.onclick = () => doPayment('verified', null, prompt('Why is there no reference on this screenshot?'));
+  const rej = document.getElementById('rejectpay');
+  if (rej) rej.onclick = () => doPayment('rejected', null, prompt('Reason — the bot quotes this back to them verbatim:'));
+  const reopen = document.getElementById('reopen');
+  if (reopen) reopen.onclick = () => doPayment('reopen', null, prompt('Why are you changing the verdict?'));
+  const unlink = document.getElementById('unlink');
+  if (unlink) unlink.onclick = doUnlink;
+  const move = document.getElementById('moveesc');
+  if (move) move.onclick = doMove;
+  root.querySelectorAll('[data-void]').forEach(b => b.onclick = async () => {
+    const reason = prompt('Reason for voiding this ' + b.dataset.item + ' claim (it goes in the log under your name):');
+    if (!reason || !reason.trim()) return;
+    const r = await api('POST /admin/api/claims/void', { path:'/admin/api/claims/' + b.dataset.void + '/void',
+      json:{ reason:reason.trim() } });
+    if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+    toast('Voided — they can collect it again. It is in the audit trail.', 'good');
+    load();
+  });
+
+  // gm
+  root.querySelectorAll('[data-gm]').forEach(b => b.onclick = () => gmAction(b.dataset.gm));
+  root.querySelectorAll('[data-cue]').forEach(b => b.onclick = () => sendCue(b.dataset.cue));
+  root.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => swapHalf(Number(b.dataset.swap)));
+  root.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => {
+    const i = b.dataset.reset; S.resetDone[i] = !S.resetDone[i]; render();
+  });
+  const gmpick = document.getElementById('gmpick');
+  if (gmpick) gmpick.onchange = () => { S.gmSlot = gmpick.value; load(); };
+
+  // gate denials (People)
+  root.querySelectorAll('[data-link]').forEach(b => b.onclick = () => resolveDenial(b.dataset.link, 'link'));
+  root.querySelectorAll('[data-dismiss]').forEach(b => b.onclick = () => resolveDenial(b.dataset.dismiss, 'dismiss'));
+
+  // schedules
+  root.querySelectorAll('[data-block]').forEach(b => b.onclick = () => toggleBlock(b.dataset.block, b.dataset.blocked === '1'));
+  root.querySelectorAll('[data-move]').forEach(b => b.onclick = () => toast('Open the person on People, then "Move to another game".'));
+
+  // roster
+  const pick = document.getElementById('pickfile');
+  if (pick) pick.onclick = pickRosterFile;
+  const drop = document.getElementById('drop');
+  if (drop){
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+    drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = e => {
+      e.preventDefault(); drop.classList.remove('over');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) previewRoster(f);
+    };
+  }
+  const commit = document.getElementById('commit');
+  if (commit) commit.onclick = commitRoster;
+  const addW = document.getElementById('addWalkin');
+  if (addW) addW.onclick = addWalkin;
+
+  // settings
+  root.querySelectorAll('[data-set]').forEach(el => {
+    const key = el.dataset.set, type = el.dataset.type;
+    if (type === 'toggle'){
+      el.onclick = () => {
+        S.settingsDraft[key] = !settingValue(key);
+        render();
+      };
+    } else if (type === 'seg'){
+      el.onclick = () => {
+        const val = JSON.parse(el.dataset.val);
+        if (el.hasAttribute('data-count')){
+          // Stock: Not counted stores 0; Counted brings back the last number
+          // or waits for one to be typed.
+          const cur = settingValue(key);
+          if (val === 'count'){ if (!countOn(cur)) S.settingsDraft[key] = S.lastCount[key] || ''; }
+          else { if (countOn(cur) && cur !== '') S.lastCount[key] = cur; S.settingsDraft[key] = 0; }
+        } else {
+          S.settingsDraft[key] = val;
+        }
+        render();
+        if (val === 'count'){
+          const n = root.querySelector(`[data-set="${key}"][data-type="count-num"]`);
+          if (n && !n.value) n.focus();
+        }
+      };
+    } else if (type === 'slider'){
+      // While dragging, only the readout changes: redrawing the screen on
+      // every step would drop the slider out from under the pointer.
+      el.oninput = () => {
+        S.settingsDraft[key] = fromMins(el.value);
+        const read = root.querySelector(`[data-read="${key}"]`);
+        if (read) read.textContent = hhmmLabel(S.settingsDraft[key]);
+      };
+      el.onchange = () => { S.settingsDraft[key] = fromMins(el.value); render(); };
+    } else if (type === 'count-num'){
+      el.onchange = () => { S.settingsDraft[key] = el.value === '' ? '' : Number(el.value); render(); };
+    } else {
+      el.onchange = () => {
+        S.settingsDraft[key] = type === 'number' ? Number(el.value) : el.value;
+        render();
+      };
+    }
+  });
+  root.querySelectorAll('[data-nudge]').forEach(b => b.onclick = () => {
+    const key = b.dataset.nudge;
+    S.settingsDraft[key] = fromMins(toMins(settingValue(key)) + Number(b.dataset.by));
+    render();
+  });
+  const save = document.getElementById('saveSettings');
+  if (save) save.onclick = saveSettings;
+
+  // audit
+  root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.auditTab = b.dataset.tab; render(); });
+  const fa = document.getElementById('fActor');
+  if (fa) fa.onchange = () => { S.auditActor = fa.value; load(); };
+  const fc = document.getElementById('fAction');
+  if (fc) fc.onchange = () => { S.auditAction = fc.value; load(); };
+  const fs = document.getElementById('fSearch');
+  if (fs){
+    let t;
+    fs.oninput = () => { S.auditSearch = fs.value; clearTimeout(t); t = setTimeout(load, 300); };
+  }
+  root.querySelectorAll('[data-export]').forEach(b => b.onclick = () => doExport(b.dataset.export));
+  const bn = document.getElementById('backupNow');
+  if (bn) bn.onclick = doBackup;
+  const sr = document.getElementById('saveReceipts');
+  if (sr) sr.onclick = saveReceipts;
+}
+
+/* One download per person, so it can run for a while on a slow connection.
+   The button says so and locks, because pressing it twice would otherwise
+   look like nothing happened. */
+async function saveReceipts(){
+  const btn = document.getElementById('saveReceipts');
+  if (btn){ btn.disabled = true; btn.querySelector('span').textContent = 'Saving…'; }
+  const r = await api('POST /admin/api/receipts/archive', { path:'/admin/api/receipts/archive' });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); load(); return; }
+  const c = r.data.counts;
+  toast(c.saved + ' saved' + (c.skipped ? ', ' + c.skipped + ' already had copies' : '')
+        + (c.failed ? ', ' + c.failed + ' failed' : '') + '.', c.failed ? 'bad' : 'good');
+  if (c.failed){
+    // Name them: a failure here means a payment that cannot be checked later.
+    alert('These could not be saved:\n\n'
+      + r.data.failed.map(f => '@' + f.handle + ' — ' + f.why).join('\n')
+      + '\n\nOpen Paperform’s dashboard for those.');
+  }
+  load();
+}
+
+/* ---- new-screen actions --------------------------------------------- */
+
+async function resolveDenial(id, how){
+  if (how === 'link' && !confirm('Link this Telegram account to ' + S.person.name + '?')) return;
+  const r = await api('POST /admin/api/gate-attempts/resolve', {
+    path:'/admin/api/gate-attempts/' + id + '/resolve',
+    json:{ action:how, attendee_id:how === 'link' ? S.selectedPerson : null } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast(how === 'link' ? 'Linked — they can open the app now.' : 'Dismissed.', 'good');
+  load();
+}
+
+async function toggleBlock(id, isBlocked){
+  let reason = null;
+  if (!isBlocked){
+    reason = prompt('Block this slot? It disappears from the attendee board straight away.\nWhy? (goes in the audit log)');
+    if (!reason || !reason.trim()) return;
+  }
+  const r = await api('POST /admin/api/slots/block', { path:'/admin/api/slots/' + id + '/block',
+    json:{ blocked:!isBlocked, reason } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  const still = r.data.still_booked || [];
+  toast(isBlocked ? 'Unblocked.' : still.length ? 'Blocked. Still booked, move them: ' + still.join(', ') : 'Blocked.',
+        still.length && !isBlocked ? 'bad' : 'good');
+  load();
+}
+
+async function doUnlink(){
+  const reason = prompt('Unlink ' + S.person.name + ' from their Telegram account? The next account that opens the app with their username gets linked instead.\nReason (goes in the audit log):');
+  if (!reason || !reason.trim()) return;
+  const r = await api('POST /admin/api/people/unlink', { path:'/admin/api/people/' + S.selectedPerson + '/unlink',
+    json:{ reason:reason.trim() } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast('Unlinked.', 'good');
+  load();
+}
+
+async function doMove(){
+  const sl = await api('GET /admin/api/slots', { path:'/admin/api/slots' });
+  if (!sl.ok){ toast(sl.error.message || sl.error.code, 'bad'); return; }
+  const open = sl.data.escape.filter(g => !g.blocked && !g.done && g.booked < g.capacity);
+  const answer = prompt('Move ' + S.person.name + ' to which game? Type the time.\nOpen: '
+    + open.map(g => short(g.starts_at) + ' (' + (g.capacity - g.booked) + ' free)').join(', '));
+  if (!answer) return;
+  const g = open.find(x => short(x.starts_at) === answer.trim().replace(/\s*(pm|am)$/i, ''));
+  if (!g){ toast('No open game at ' + answer + '.', 'bad'); return; }
+  const r = await api('POST /admin/api/escape/move', { path:'/admin/api/escape/move',
+    json:{ attendee_id:S.selectedPerson, slot_id:g.id, reason:'moved from the People screen' } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast('Moved to ' + fmtIso(r.data.moved_to) + ', half ' + r.data.zone + '. They get a message.', 'good');
+  load();
+}
+
+function pickRosterFile(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  input.onchange = () => { const f = input.files && input.files[0]; if (f) previewRoster(f); };
+  input.click();
+}
+
+async function previewRoster(file){
+  const form = new FormData();
+  form.append('file', file, file.name);
+  const r = await api('POST /admin/api/roster/preview', { path:'/admin/api/roster/preview', form, fileName:file.name });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  S.rosterPreview = r.data;
+  render();
+}
+
+async function commitRoster(){
+  const p = S.rosterPreview;
+  if (!p || p.problems.length) return;
+  if (!confirm('Commit ' + (p.counts.new + p.counts.changed) + ' change(s)?'
+    + (p.counts.missing ? '\n' + p.counts.missing + ' person(s) missing from this file become inactive.' : ''))) return;
+  const r = await api('POST /admin/api/roster/commit', { path:'/admin/api/roster/commit/' + p.run_id });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast('Committed: ' + r.data.committed + ' people.', 'good');
+  S.rosterPreview = null;
+  load();
+}
+
+async function addWalkin(){
+  const name = (document.getElementById('wiName') || {}).value || '';
+  const handle = (document.getElementById('wiHandle') || {}).value || '';
+  if (!name.trim() || !handle.trim()){ toast('Name and username are both needed.', 'bad'); return; }
+  const r = await api('POST /admin/api/people', { path:'/admin/api/people',
+    json:{ name:name.trim(), handle:handle.trim().replace(/^@/, ''),
+           email:((document.getElementById('wiEmail') || {}).value || '').trim(), source:'walk_in' } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast('Added. They can open the app now.', 'good');
+  load();
+}
+
+async function saveSettings(){
+  const changed = {};
+  Object.keys(S.settingsDraft).forEach(k => {
+    if (String(S.settingsDraft[k]) !== String(S.settings.values[k])) changed[k] = S.settingsDraft[k];
+  });
+  if (!Object.keys(changed).length) return;
+  const blank = SETTINGS_SCHEMA.flatMap(g => settingFields(g, S.settings)).filter(f => f.type === 'count' && changed[f.key] === '');
+  if (blank.length){
+    toast('Type how many for ' + blank.map(f => f.label.toLowerCase()).join(' and ') + ', or set it back to Not counted.', 'bad');
+    return;
+  }
+  const r = await api('PUT /admin/api/settings', { path:'/admin/api/settings', json:changed });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  const sc = r.data.schedule;
+  const warnings = r.data.warnings || [];
+  toast('Saved ' + r.data.saved + ' change' + (r.data.saved === 1 ? '' : 's') + '.'
+    + (sc ? ' Timetable rebuilt: ' + sc.escape.total + ' games, ' + sc.jam.total + ' jam slots.' : ''),
+    warnings.length ? 'bad' : 'good');
+  // A stranded time or an over-full game leaves real people in the wrong
+  // place, and a toast that fades is not enough to act on. Say it in a box
+  // that has to be dismissed, with the games named.
+  if (warnings.length) alert('The timetable changed, but this needs your attention:\n\n' + warnings.join('\n\n'));
+  S.settingsDraft = {};
+  load();
+}
+
+function doExport(kind){
+  if (kind === 'fallback') window.open('/admin/api/export/' + kind, '_blank', 'noopener');
+  else window.location.href = '/admin/api/export/' + kind;
+}
+
+async function doBackup(){
+  const r = await api('POST /admin/api/backup', { path:'/admin/api/backup' });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast('Backed up: ' + r.data.file, 'good');
+  load();
+}
+
+async function signout(){
+  await api('POST /admin/api/logout', { path:'/admin/api/logout' });
+  endSession('');
+}
+
+function endSession(message){
+  disconnectLive();
+  stopCamera();
+  scanLocked = false;
+  csrfToken = null;
+  S.session = null;
+  S.overview = S.people = S.person = S.gmState = null; S.gmSlot = null;
+  try { sessionStorage.removeItem('yard_screen'); } catch (e){}
+  S.slots = S.roster = S.settings = S.audit = S.denials = null;
+  S.settingsDraft = {}; S.rosterPreview = null; S.lookup = null; S.lookupCode = '';
+  S.selectedPerson = null; S.peopleQuery = ''; S.txn = '';
+  S.signinErr = message || '';
+  const f = document.getElementById('flash');
+  f.className = '';
+  render();
+}
+
+/* ---- booth actions -------------------------------------------------- */
+
+const CODE_CARDS = ['UNKNOWN_CODE', 'NOT_A_YARD_CODE'];
+
+async function doLookup(code){
+  const raw = (typeof code === 'string' ? code : S.lookupCode || '').trim().toUpperCase();
+  if (!raw) return;
+  S.lookupCode = raw;
+  const r = await api('GET /admin/api/lookup', { path:'/admin/api/lookup/' + encodeURIComponent(raw) });
+  if (!r.ok && !CODE_CARDS.includes(r.error.code)){
+    // Rate limit, network, signed out: say so — it is not a bad code.
+    if (S.session) toast(r.error.message || r.error.code, 'bad');
+    return;
+  }
+  S.lookup = r.ok ? { data:r.data } : { error:r.error.code };
+  render();
+}
+
+function listOf(words){
+  return words.length < 2 ? words.join('') : words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
+}
+
+function label(key){ const i = S.items.find(x => x.key === key); return i ? i.label : key; }
+
+async function handOver(item, overrideReason, variant){
+  const json = { code:S.lookupCode, item };
+  if (overrideReason) json.override_reason = overrideReason;
+  if (variant) json.variant = variant;
+  const r = await api('POST /admin/api/claims', { path:'/admin/api/claims', json });
+  if (r.ok){
+    const st = r.data.stock;
+    bigFlash('#1F7A4C', '✓', (r.data.variant_label || label(item)) + ' handed over',
+      fmtIso(r.data.at) + ' · ' + r.data.station + ' · ' + r.data.staff
+      + (r.data.override ? ' · admin override' : '')
+      + (st && st.low ? ' · ' + st.left + ' left' : ''));
+  } else if (r.error.code === 'ALREADY_CLAIMED'){
+    // Name whoever won, from the server's answer — this screen's own lookup
+    // may be older than the other booth's hand-over (§9 r24).
+    const c = r.error.claim
+      || (S.lookup && S.lookup.data && S.lookup.data.claims[item]) || {};
+    const where = [c.station, c.staff].filter(Boolean).join(', ');
+    bigFlash('#A8231B', '✕', label(item) + ' already collected',
+      (c.at ? 'at ' + fmtIso(c.at) : '') + (where ? ' (' + where + ')' : ''));
+  } else if (r.error.code === 'SIGNED_OUT'){
+    return;
+  } else {
+    const map = { PAYMENT_NOT_VERIFIED:'Payment is not verified — you cannot hand over.',
+                  OUT_OF_STOCK:'Out of stock.', RATE_LIMITED:'Slow down — too many lookups.' };
+    bigFlash('#AE7338', '!', 'Cannot hand over', map[r.error.code] || r.error.message || r.error.code);
+  }
+}
+
+async function doCheckin(){
+  if (!S.lookup || !S.lookup.data) { toast('Look someone up first.', 'bad'); return; }
+  const r = await api('POST /admin/api/checkins', { path:'/admin/api/checkins',
+    json:{ code:S.lookupCode, kind:'event' } });
+  if (r.ok && r.data.already){
+    bigFlash('#3C4654', '✓', 'Already checked in',
+      fmtIso(r.data.checked_in_at) + (r.data.checked_in_by ? ' · ' + r.data.checked_in_by : ''));
+  } else if (r.ok){
+    bigFlash('#1F7A4C', '✓', 'Checked in', fmtIso(r.data.checked_in_at) + ' · ' + (r.data.checked_in_by || S.session.name));
+  } else if (r.error.code !== 'SIGNED_OUT'){
+    toast(r.error.message || r.error.code, 'bad');
+  }
+}
+
+/* ---- order actions (decision 125) ----------------------------------- */
+
+function openOrderScanner(){
+  S.orderScan = 'scan'; S.orderScanError = ''; S.orderCode = ''; scanLocked = false;
+  render();
+}
+
+/* Who is ordering. The same lookup as the booth — it counts against the same
+   limit — but only the person matters here: an order is not a claim, so the
+   pass's own state (paid, collected) is not this screen's business. */
+async function orderLookup(code){
+  const raw = String(code || '').trim().toUpperCase();
+  if (!raw) return;
+  const r = await api('GET /admin/api/lookup', { path:'/admin/api/lookup/' + encodeURIComponent(raw) });
+  if (!r.ok){
+    const map = { UNKNOWN_CODE:'Nobody has that code. Check it, or ask their username.',
+                  NOT_A_YARD_CODE:"That isn't a Yard pass." };
+    if (r.error.code === 'SIGNED_OUT') return;
+    S.orderScanError = map[r.error.code] || r.error.message || r.error.code;
+    scanLocked = true; render(); return;
+  }
+  if (r.data.code === 'INACTIVE'){
+    S.orderScanError = r.data.person.name + " isn't on the current list. Send them to the front desk.";
+    scanLocked = true; render(); return;
+  }
+  const p = r.data.person;
+  S.orderScan = { id:p.id, name:p.name, handle:p.handle, reachable:p.reachable, added:[] };
+  S.orderCode = ''; S.orderScanError = '';
+  render();
+}
+
+async function placeOrder(item){
+  const p = S.orderScan;
+  if (!p || !p.id) return;
+  const r = await api('POST /admin/api/orders', { path:'/admin/api/orders', json:{ attendee_id:p.id, item } });
+  if (!r.ok){ if (r.error.code !== 'SIGNED_OUT') toast(r.error.message || r.error.code, 'bad'); return; }
+  try { navigator.vibrate && navigator.vibrate(30); } catch (e){}
+  p.added.push(r.data.label);
+  p.reachable = r.data.person.reachable;
+  toast(r.data.label + ' for ' + (r.data.person.first_name || p.name) + ' — on the list.', 'good');
+  load();
+}
+
+async function callOrder(id){
+  const r = await api('POST /admin/api/orders/call', { path:'/admin/api/orders/' + id + '/call' });
+  if (!r.ok){ if (r.error.code !== 'SIGNED_OUT') toast(r.error.message || r.error.code, 'bad'); return; }
+  const who = r.data.person.first_name || r.data.person.name;
+  toast(r.data.repeat ? 'Already called ' + who + ' a moment ago.'
+    : r.data.person.reachable ? 'Messaging ' + who + '.' : who + " can't get messages — call their name.",
+    r.data.person.reachable || r.data.repeat ? 'good' : 'bad');
+  load();
+}
+
+async function closeOrder(id, how){
+  if (how === 'cancel' && !confirm('Cancel this order? It comes off the list.')) return;
+  const r = await api('POST /admin/api/orders/close', { path:'/admin/api/orders/' + id + '/' + how });
+  if (!r.ok){ if (r.error.code !== 'SIGNED_OUT') toast(r.error.message || r.error.code, 'bad'); return; }
+  load();
+}
+
+/* Camera. Cameras need HTTPS and permission; the typed code box is always
+   the fallback (RUNBOOK Phase 18). */
+let camStream = null, camLoop = null, detector = null;
+async function startCamera(){
+  const video = document.getElementById('cam');
+  const hint = document.getElementById('vfhint');
+  if (!video) return;
+  // Re-render replaces the <video>, so an existing stream needs re-attaching.
+  if (camStream){
+    if (!video.srcObject){ video.srcObject = camStream; video.play().catch(() => {}); }
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    if (hint) hint.textContent = 'Type the code below';
+    return;
+  }
+  if (camStarting) return;              // "Scan next" and the re-render both ask
+  camStarting = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    const v = document.getElementById('cam');
+    // Left the screen or got a result while the camera was waking up.
+    if (!v || !cameraWanted()){ stream.getTracks().forEach(t => t.stop()); return; }
+    camStream = stream;
+    scanLocked = false;
+    v.srcObject = camStream;
+    await v.play();
+  } catch (e){
+    if (hint) hint.textContent = 'Camera blocked — type the code';
+    return;
+  } finally {
+    camStarting = false;
+  }
+  if (!('BarcodeDetector' in window)){
+    if (hint) hint.textContent = 'Type the code below';
+    return;
+  }
+  try { detector = new BarcodeDetector({ formats:['qr_code'] }); }
+  catch (e){ if (hint) hint.textContent = 'Type the code below'; return; }
+  camLoop = setInterval(async () => {
+    const v = document.getElementById('cam');
+    if (document.hidden || !v || !v.videoWidth) return;
+    if (scanLocked) return;
+    let codes = [];
+    try { codes = await detector.detect(v); } catch (e){ return; }
+    if (!codes.length || scanLocked) return;
+    // One read per scan: lock first, so a detect() already in flight can't
+    // fire a second lookup for the same QR.
+    scanLocked = true;
+    stopCamera();
+    const raw = codes[0].rawValue || '';
+    if (S.screen === 'orders'){
+      if (!/^YARD:/.test(raw)){ S.orderScanError = "That QR isn't a Yard pass."; render(); return; }
+      await orderLookup(raw.replace(/^YARD:/, ''));
+      return;
+    }
+    if (!/^YARD:/.test(raw)){ S.lookup = { error:'NOT_A_YARD_CODE' }; render(); return; }
+    await doLookup(raw.replace(/^YARD:/, ''));
+    // A lookup that showed no result (rate limit, network) leaves the camera
+    // off; say how to get it back rather than silently re-scanning.
+    const h = document.getElementById('vfhint');
+    if (!S.lookup && h) h.textContent = 'Tap Scan next to scan again';
+  }, 400);
+}
+let scanLocked = false, camStarting = false;
+/* The camera runs on the booth until something is on screen, and on Orders
+   only while taking an order. */
+function cameraWanted(){
+  if (S.screen === 'booth') return !S.lookup;
+  if (S.screen === 'orders') return S.orderScan === 'scan';
+  return false;
+}
+function stopCamera(){
+  clearInterval(camLoop); camLoop = null;
+  if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+}
+
+/* ---- payment actions ------------------------------------------------ */
+
+async function doVerify(){
+  const p = S.person;
+  const pay = payVals(p);
+  if (!pay.canVerify) return;
+  await doPayment('verified', S.txn.trim(), null);
+}
+
+async function doPayment(verdict, txnRef, reason){
+  reason = (reason || '').trim();
+  if (!txnRef && !reason) return;          // a prompt was cancelled or left blank
+  const r = await api('POST /admin/api/payment', { path:'/admin/api/people/' + S.selectedPerson + '/payment',
+    json:{ verdict, txn_ref:txnRef, reason } });
+  if (!r.ok){
+    // The server's message names where a reused reference was first used.
+    const map = { DUPLICATE_TXN_REF:'That reference already proved another payment. The database refuses it.',
+                  FORBIDDEN:'Only an admin can do that.' };
+    toast(r.error.message || map[r.error.code] || r.error.code, 'bad');
+    return;
+  }
+  S.txn = '';
+  toast('Recorded — it is in the audit trail.', 'good');
+  load();
+}
+
+/* ---- GM actions ----------------------------------------------------- */
+
+async function gmAction(action){
+  const d = S.gmState;
+  if (!d) return;
+  if (action === 'rebalance'){
+    if (d.halves_locked_at && !confirm('The game has started. Even out the halves anyway?')) return;
+    const r = await api('POST /admin/api/gm/halves', { path:'/admin/api/gm/' + d.slot_id + '/halves', json:{ rebalance:true } });
+    if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+    toast(r.data.moved.length ? 'Moved ' + r.data.moved.map(m => '@' + m.handle).join(', ') + '.' : 'Already even.', 'good');
+    load();
+    return;
+  }
+  if (action === 'end' && !confirm('End the game now? Their phone stays open until ' + short(d.relock_at) + ' — use Lock phone to close it sooner.')) return;
+  if (action === 'start' && !d.booked && !confirm('Nobody is booked on this game. Start it anyway?')) return;
+  const r = await api('POST /admin/api/gm/action', { path:'/admin/api/gm/' + d.slot_id + '/' + action });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  load();
+}
+
+async function sendCue(key){
+  const d = S.gmState;
+  const r = await api('POST /admin/api/gm/cue', { path:'/admin/api/gm/' + d.slot_id + '/cues/' + key });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  toast(r.data.to_actor ? 'Sent to the actor.' : 'Marked done.', 'good');
+  load();
+}
+
+async function swapHalf(id){
+  const d = S.gmState;
+  const r = await api('POST /admin/api/gm/halves', { path:'/admin/api/gm/' + d.slot_id + '/halves', json:{ swap_attendee_id:id } });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  const m = r.data.moved[0];
+  toast('@' + m.handle + ' moved to half ' + m.to + (d.halves_locked_at ? ' — logged.' : '.'), 'good');
+  load();
+}
+
+/* ===================================================================
+   3. BOOT
+   =================================================================== */
+
+/* Live updates. The server holds one request open and says "something
+   changed" within a second (§3 r6: one request per connection, not per
+   poll). The screen reloads unless someone is typing on it. If the stream
+   can't connect, a 30-second refresh takes over. */
+let liveSource = null, liveVersion = null, liveTimer = null;
+
+function typing(){
+  const el = document.activeElement;
+  return !!el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) && el.id !== 'gmpick';
+}
+
+function refreshSoon(){
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => {
+    if (!S.session || document.hidden) return;
+    if (typing() || (S.screen === 'settings' && Object.keys(S.settingsDraft).length)){ refreshSoon(); return; }
+    // Not while a camera is open: a redraw would restart the video under
+    // someone's thumb. The list catches up the moment they are done.
+    if (S.screen !== 'booth' && !(S.screen === 'orders' && S.orderScan === 'scan')) load();
+  }, 600);
+}
+
+function connectLive(){
+  if (liveSource || !S.session || !window.EventSource) return;
+  liveSource = new EventSource('/admin/api/live');
+  liveSource.onopen = () => { S.live = true; renderChromeOnly(); };
+  liveSource.onmessage = e => {
+    let v; try { v = JSON.stringify(JSON.parse(e.data).v); } catch (x){ return; }
+    if (liveVersion !== null && v !== liveVersion) refreshSoon();
+    liveVersion = v;
+  };
+  liveSource.addEventListener('signed_out', () => { disconnectLive(); endSession('Your sign-in has ended. Sign in again.'); });
+  liveSource.onerror = () => { S.live = false; renderChromeOnly(); };
+}
+
+function disconnectLive(){
+  if (liveSource){ liveSource.close(); liveSource = null; }
+  S.live = false; liveVersion = null;
+}
+
+function renderChromeOnly(){
+  const r = document.querySelector('#chrome .refreshed');
+  if (r){ r.className = 'refreshed' + (S.live ? ' on' : ''); r.textContent = S.live ? 'live' : 'updated ' + fmt(now()); }
+}
+
+setInterval(() => {
+  if (document.hidden || !S.session) return;
+  connectLive();
+  if (!S.live && !typing() && ['overview', 'person', 'schedules', 'gm'].includes(S.screen)) load();
+  if (!S.live && !typing() && S.screen === 'orders' && S.orderScan !== 'scan') load();
+}, 30000);
+
+/* The GM timer ticks every second without asking the server. */
+setInterval(() => {
+  if (S.screen !== 'gm' || !S.gmState) return;
+  const d = S.gmState, el = document.getElementById('gmtimer');
+  if (!el) return;
+  const elapsed = gmElapsed(d);
+  el.textContent = mmss(Math.max(0, d.game_seconds - elapsed));
+  if (d.started && !d.ended) el.style.color = d.game_seconds - elapsed <= 120 ? '#C4A98A' : '#F2EFE8';
+  // A cue turns pale when its time comes.
+  root.querySelectorAll('.cue[data-due]').forEach(c => {
+    if (!d.started || c.querySelector('[disabled]')) return;
+    if (elapsed >= Number(c.dataset.due)){ c.style.background = '#C8CFC7'; c.style.color = '#16181B'; }
+  });
+}, 1000);
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); });
+
+render();
+resumeSession();
+</script>
+</body>
+</html>
