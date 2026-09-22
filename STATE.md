@@ -11,7 +11,12 @@ Keep it current. The rule on this project is that after every major decision,
 **every** affected file gets updated in the same pass: this file, `README.md`,
 `BUILD_SPEC.md`, `RUNBOOK.md`, and `context/PROJECT_STATUS.md`.
 
-Last updated: 22 Sep 2026, 18:00. **22 Sep (late):** decisions 132–134,
+Last updated: 22 Sep 2026, 18:50. **Latest (decisions 135–137, live):**
+Overview counts **Opened the app** and **At the event** apart, the second
+only from 3 PM on the 24th; **"the front desk"** is the one name for the desk
+(Registration on the plan); the floorplan is a fixed frame you **pinch,
+double-tap and drag**, with no Zoom button. **432 tests pass.**
+**22 Sep (late):** decisions 132–134,
 live — the pass is **Pastry (four kinds, staff tap which), Photo Strip,
 Vinyl Making**, with no circles; Help has a **price list** (a Settings row)
 and opens one question at a time; a **Floorplan** screen; escape games
@@ -192,7 +197,7 @@ tests/              conftest.py, test_gate.py, test_roster_import.py,
                     test_phone_and_gm.py, test_admin_screens.py,
                     test_receipts.py, test_phone_links.py,
                     test_error_reporting.py, test_invariants.py,
-                    test_orders.py (430 tests)
+                    test_orders.py (432 tests)
 services/orders.py  matcha/panini orders and the "ready" call (decision 125)
 private/receipts/   our own copies of the Paperform screenshots. Random
                     filenames, admin-only, never served without a sign-in
@@ -1234,6 +1239,87 @@ once; `bot.py` still needs a restart). §8 has what was verified.
      `scripts/record_answers.py` finds its own folder now instead of a
      hard-coded `C:\Users\endrw\my-mini-app`.
 
+### 23 Sep — two counters, one name for the front desk, a map you can pinch (organiser-directed)
+
+**Status: built and live at 18:45 on 22 Sep** (dated 23 Sep in the
+organiser's next round of notes; built in a copy while `app.py` stayed up).
+
+135. **Opening the app and being at the event are two different counts.**
+     The organiser believed linking a Telegram account already counted as a
+     check-in. It never has — only the booth's Check in sets `checked_in_at`
+     (`claims.check_in`), and nothing else writes it — but the count they
+     wanted did not exist at all. Overview now shows both:
+     - **Opened the app** — active, non-test people with a `tg_user_id`: they
+       started the bot or opened the Mini App, whenever that was.
+     - **At the event** — people whose check-in is stamped **at or after the
+       doors open on the event day** (`notify.event_local(doors_open)`, 3 PM
+       on the 24th). A rehearsal check-in today is counted separately and
+       named in the card's own line ("1 before that, not counted"), so it
+       never inflates the headcount on the night. Nothing is blocked before
+       3 PM: staff can still check people in, it simply doesn't count as
+       being there yet. The rule follows the `doors_open` Setting, so moving
+       the doors moves the counter.
+     The Overview strapline now reads "N signed up, N opened the app, N at
+     the event", and the console looks stats up **by label** rather than by
+     position, because the list grows. Real numbers when it went live: 168
+     signed up, 5 opened the app, 0 at the event.
+136. **One name for the desk: "the front desk".** The organiser chose it over
+     the floorplan's "Registration". The app already said it everywhere; the
+     Settings row's label was "Help desk" and is now **Front desk**, and the
+     Floorplan screen carries a line tying the two together ("The front desk
+     is marked Registration on the plan"). Left alone: "the counter", which
+     is where food and prints are handed over, not the desk.
+137. **The floorplan is a photo, not a zoomed page.** The organiser: Zoom in
+     "kinda soft locks you on the zoomed in floor plan"; they asked for a
+     fixed frame with pinch and double-tap, "like how a photo app works".
+     The button is gone. The frame keeps the map's own shape (taken from the
+     file, so a replacement of another size still fits) and never changes
+     size; the map moves inside it on pointer events — pinch about the
+     midpoint, double-tap to zoom to 2.6× on the spot you tapped or back to
+     the whole map, drag to pan, wheel on a laptop. Scale is held between 1×
+     and 5×, and every step is clamped to the map's own edges, measured from
+     the map as drawn, so it can neither be dragged into empty space nor
+     left stranded. `touch-action:none` gives the page the gesture before the
+     webview takes it, and a drag on the map no longer starts the back swipe.
+     Opening the screen always shows the whole plan.
+     Driven in headless Edge with real touch events: double-tap 1 → 2.6,
+     drag pans and the screen stays on `floorplan`, a hard drag stops exactly
+     at the clamp (279 of a possible 280), pinch reaches 5×, double-tap
+     returns to 1× at 0,0, no page errors.
+
+138. **Payments are not checked at all any more, and the screenshots stay.**
+     The organiser, the day before: *"make it such that we don't have to
+     verify anything of the payments, but still make it so that we can see the
+     screenshots"*. With 150 of 169 sign-ups still unchecked, verifying each
+     one before 3 PM was not going to happen, and an unverified receipt would
+     have stopped that person collecting anything.
+     - **The switch.** `claim_requires` takes a third value, **`none`**:
+       `claims.payment_ok` returns True for everyone, so the booth hands over
+       to anyone on the list. It is a Settings row (Hand-over needs payment:
+       Verified / Submitted is enough / **Not needed**), so it can be put back
+       in a tap. Set live at 19:04 on 22 Sep through `admin.save_settings`,
+       audited. **The default in `config.py` stays `verified`** — the safe
+       setting for a fresh database, and §9 r25 stands as written for anyone
+       who wants it.
+     - **What it does not change.** Being on the roster still matters: someone
+       inactive is still refused, because that check is not about money. The
+       payment status is still recorded, still shown on the person page, and
+       an admin can still verify or reject if they want to. Nothing is an
+       "override" any more — there is nothing to override, so no reason is
+       asked for and none is logged.
+     - **The screenshots.** Still on the person page, admin-only (§9 r31).
+       Because Paperform's links die 7 days after each sign-up, `manage.py
+       fetch-receipts` was run at 18:55 to save our own copies while they
+       still work — 0 had been saved before tonight, 7 links were already
+       dead. A saved copy is served from the laptop and keeps working on the
+       day with no Paperform and no wifi.
+     - **The console stops nagging**: with the check off, Overview drops the
+       "Payments to check" job from the queue, and the Payments card reads
+       "N unchecked, N with no receipt · not needed to collect" in plain
+       slate rather than red. The Mini App's "We haven't spotted your
+       payment" strip is gone for the same reason — it now follows whether
+       payment actually blocks them, not their payment status.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1277,7 +1363,7 @@ venv\Scripts\activate
 python -m pytest tests -q
 ```
 
-**You should see** `430 passed` (takes about 15–100 seconds).
+**You should see** `432 passed` (takes about 15–100 seconds).
 
 The two pages are checked separately, because pytest never runs their
 JavaScript:
@@ -1288,7 +1374,7 @@ python scripts\record_answers.py design\answers.json
 node scripts\render_views.mjs design\answers.json
 ```
 
-**You should see** `ok` for each page, then `OK` for 33 screen states and
+**You should see** `ok` for each page, then `OK` for 32 screen states and
 `FAILURES: 0`. The second command asks the real server for real answers, so
 the app must be running; the third builds every screen from them, in Node, so
 a template mistake is an exception here rather than a blank screen on
@@ -1391,12 +1477,11 @@ These block nothing, but they need answers before the day.
    whether they could change it on the Settings screen. They could not — it
    was a constant in `config.py` — so it was made a Settings row,
    `low_stock_at`, starting at 5 (decision 94).
-7. **Only `@maxi_muslim` is verified** (as of 17 Sep). The 17 imported
-   people are `submitted` (14) or `missing` (3), so staff cannot hand
-   anything to them until an admin verifies payments on the People screen
-   (live since P0.3). Settings, then Included with entry, then "Hand-over
-   needs payment" can relax this to Submitted. This is the §0 rule working,
-   not a bug.
+7. ~~**Only `@maxi_muslim` is verified.**~~ **Answered 22 Sep (decision
+   138): payments are not checked at all.** "Hand-over needs payment" is set
+   to **Not needed**, so the 150 unchecked and 12 receipt-less sign-ups can
+   all collect. The screenshots are still on each person page, and the switch
+   goes back to Verified in a tap.
 8. **Paperform receipt links expire before the event.** Found 17 Sep: the 14
    links in the imported export are signed links, and each `expires=` is
    **exactly 7 days after that person's "Submitted At"**. The first dies
@@ -1417,6 +1502,26 @@ These block nothing, but they need answers before the day.
 
 ## 8. Next step — `TESTPLAN.md` Part A, and the 22 Sep receipt deadline
 
+### LIVE 22 Sep, 19:04: no payment checking; the receipts are being saved (decision 138)
+
+**Hand-over needs payment = Not needed**, live and audited: anyone on the list
+collects, whatever their payment says. The payment status, the verify/reject
+buttons and the screenshots are all still there — `manage.py fetch-receipts`
+was started at 18:55 to save our own copies of all 152 before Paperform's
+links expire (0 were saved before; 7 links were already dead). **434 tests
+pass.** The repository at github.com/endrwy-code/TheYard was **public** when
+found — the organiser is making it private before the next push.
+
+### LIVE 22 Sep, 18:45: two counters, the front desk, a pinchable map (decisions 135–137)
+
+Overview counts **Opened the app** and **At the event** separately, the second
+only from the doors on the 24th; the Settings row is **Front desk** and the
+Floorplan says it is Registration on the plan; the map is a fixed frame you
+pinch, double-tap and drag. **432 tests pass** (two new: the two counters, and
+the counter following the doors Setting); 32 screen states render; the
+gestures were driven with real touch events in headless Edge. Still to try on
+a phone, and **`bot.py` still needs its restart** (below).
+
 ### LIVE 22 Sep, 17:55: pass, prices, floorplan, games to 9:45, the bot's voice (decisions 132–134)
 
 Verified: **430 tests pass** (428 + the pastry-kind claim and the price-list
@@ -1434,9 +1539,9 @@ What the organiser does next:
    Until then `/start`, `/pass`, `/help` and the timed messages (reminders,
    doors-open, last call) use the old wording; messages the web process
    queues (bookings, orders, the phone) are already new.
-2. On a phone: Home → Floorplan (and Zoom in); The Yard Pass (three items,
-   no circles); Help → Is there a price list? (then open another question —
-   the first closes).
+2. On a phone: Home → Floorplan (pinch and double-tap it); The Yard Pass
+   (three items, no circles); Help → Is there a price list? (then open
+   another question — the first closes).
 3. Booth on the Mobile console: scan a pass, hand over a pastry by kind;
    Overview's Pastry card shows it.
 4. `python manage.py notify-test maxi_muslim` — every message in the new voice.

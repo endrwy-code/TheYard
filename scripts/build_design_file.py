@@ -247,7 +247,6 @@ STATES = [
     ("Help", "help", {}),
     ("Help — price list open", "help", {"__open": 0}),
     ("Floorplan", "floorplan", {}),
-    ("Floorplan — zoomed", "floorplan", {"planZoom": True}),
 ]
 
 PICKER = """
@@ -293,7 +292,7 @@ PICKER = """
     S.me = JSON.parse(JSON.stringify(BASE.me));
     S.pickedSlot = null; S.pickedJam = null; S.jamPick = null;
     S.jamGuests = []; S.jamGuestKit = null; S.jamAddKit = null;
-    S.draft = []; S.badFriends = []; S.booked = null; S.gateCode = null; S.planZoom = false;
+    S.draft = []; S.badFriends = []; S.booked = null; S.gateCode = null;
     S.stack = view === 'home' || view === 'gate' ? [] : [{ view:'home', scroll:0 }];
 
     Object.keys(spec).forEach(function(k){

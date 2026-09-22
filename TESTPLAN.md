@@ -31,7 +31,7 @@ afterwards to fix whatever it finds.
 | `bot.py` running | a **second** window, same folder, venv active |
 | ngrok running | a **third** window; `PUBLIC_URL` matches it; BotFather points at it |
 | Bot messages | **test mode** — only `@maxi_muslim` receives anything |
-| Your own payment | verified on the People screen |
+| Your own payment | nothing to do — payment is not checked any more (`STATE.md` 138) |
 
 Bot messages stay in test mode for the whole of both parts. Real attendees you
 add to a group get a real booking but **no message**. That is deliberate: you
@@ -125,19 +125,24 @@ on the right of each line, and **the price list closes by itself** when you
 open another question. **Included with entry** lists Pastry, Photo Strip,
 Vinyl Making, The Last Guest, The Jamming Studio, Board Games.
 
-7d. Help → **See the floorplan** (also Home → **Floorplan**). Tap **Zoom in**,
-    drag the map sideways, then **Fit to screen**.
+7d. Help → **See the floorplan** (also Home → **Floorplan**). Double-tap the
+    map, drag it about, pinch to zoom in and out, then double-tap again
+    (23 Sep, `STATE.md` 135).
 
-**You should see** the venue map, readable when zoomed, and dragging it moves
-the map rather than going back a screen.
+**You should see** the whole plan sitting in a frame that never changes size.
+Double-tapping zooms in on the spot you tapped, dragging moves the map inside
+the frame and never goes back a screen, pinching zooms as it would in your
+photos, and a double-tap brings the whole map back. You should never end up
+stuck in a zoomed-in map.
 
 ## A3. The booth, against your own pass
 
 8. On the **laptop**, open the console → **Laptop** → admin password →
    **Booth**. Scan your own pass from the phone.
 
-**You should see** your name, "Payment verified", and the two items. Hold the
-QR in view for ten seconds.
+**You should see** your name, a green **Valid** card and the three items —
+whatever your payment says, because payment is not a gate any more
+(`STATE.md` 138). Hold the QR in view for ten seconds.
 
 **You should see exactly one** `GET /admin/api/lookup/…` line in the `app.py`
 window. More than one means the scan lock has regressed — say so.
@@ -155,6 +160,14 @@ most important thing the booth does.
 
 **You should see** "Checked in" on your pass in the Mini App after you reopen
 that screen.
+
+10b. Console → **Overview** (23 Sep, `STATE.md` 135).
+
+**You should see** two separate counts: **Opened the app** — everyone who has
+linked their Telegram account, whenever they did it — and **At the event**,
+which counts only check-ins made from 3 PM on the 24th. Today's rehearsal
+check-in shows as "1 before that, not counted" and leaves **At the event** at
+0. On the night it climbs as people arrive.
 
 ## A3b. Orders and the "ready" call, on a phone (22 Sep)
 
@@ -330,9 +343,13 @@ out; the cue is still recorded.)
 **You should see** "N saved". This takes a copy of every Paperform payment
 screenshot onto the laptop.
 
-**Do this before 22 September, 3:26 PM.** Paperform's links expire seven days
-after each person signed up, and after that a payment you have not already
-verified cannot be checked. The card on that screen shows the exact deadline.
+**Started for you on 22 September at 6:55 PM** — 152 to save, 7 links already
+dead. Paperform's links expire seven days after each person signed up, and a
+dead link cannot be copied afterwards, so run this again if the card still
+shows any not saved. Payment is no longer checked before a hand-over
+(`STATE.md` 138); the copies are so the screenshots can still be *looked at*
+on the day, with no Paperform and no wifi. The card on that screen shows the
+next deadline.
 
 **If any fail**, it names them. Open Paperform's own dashboard for those.
 

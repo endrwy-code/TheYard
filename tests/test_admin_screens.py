@@ -45,11 +45,62 @@ def test_overview_counts_the_real_list(world):
     world.execute("UPDATE attendees SET payment_status='verified' WHERE handle='heidily'")
     d = data(Console("admin").get("/admin/api/overview"))
     labels = [s["label"] for s in d["stats"]]
-    assert labels[:3] == ["Signed up", "Checked in", "Payments verified"]
+    assert labels[:4] == ["Signed up", "Opened the app", "At the event", "Payments verified"]
     assert {"Pastry", "Photo Strip", "Vinyl Making", "Escape seats", "Jam slots"} <= set(labels)
     assert d["stats"][0]["value"] == "17"                    # the owner row is a test account
     assert len(d["bars"]) == 21 and d["seats_total"] == 252
     assert [q["what"] for q in d["queue"]][0] == "Refused at the gate"
+
+
+def stat(d, label):
+    return next(s for s in d["stats"] if s["label"] == label)
+
+
+def test_opening_the_app_and_being_at_the_event_are_counted_apart(world):
+    """23 Sep (STATE.md 135). Linking a Telegram account days early is not
+    being in the room, and a rehearsal check-in is not either: "at the event"
+    starts at the doors on the 24th."""
+    overview = lambda: data(Console("admin").get("/admin/api/overview"))  # noqa: E731
+    assert stat(overview(), "Opened the app")["value"] == "0"
+    assert stat(overview(), "At the event")["value"] == "0"
+
+    # Two people open the app a week early. Nobody is at the event yet.
+    world.execute("UPDATE attendees SET tg_user_id=5001 WHERE handle='heidily'")
+    world.execute("UPDATE attendees SET tg_user_id=5002 WHERE handle='bananabelles'")
+    d = overview()
+    assert stat(d, "Opened the app")["value"] == "2"
+    assert stat(d, "At the event")["value"] == "0"
+
+    # A rehearsal check-in the day before does not count as being there.
+    world.execute("UPDATE attendees SET checked_in_at=? WHERE handle='heidily'",
+                  ("2026-09-23T10:00:00+00:00",))
+    d = overview()
+    assert stat(d, "At the event")["value"] == "0"
+    assert "1 before that, not counted" in stat(d, "At the event")["sub"]
+
+    # 3 PM Singapore on the 24th is 07:00 UTC. A minute before still doesn't
+    # count; the moment the doors open, it does.
+    world.execute("UPDATE attendees SET checked_in_at=? WHERE handle='bananabelles'",
+                  ("2026-09-24T06:59:00+00:00",))
+    assert stat(overview(), "At the event")["value"] == "0"
+    world.execute("UPDATE attendees SET checked_in_at=? WHERE handle='bananabelles'",
+                  ("2026-09-24T07:00:00+00:00",))
+    d = overview()
+    assert stat(d, "At the event")["value"] == "1"
+    assert "from 3:00 PM" in stat(d, "At the event")["sub"]
+    # Opening the app is unchanged by any of it.
+    assert stat(d, "Opened the app")["value"] == "2"
+
+
+def test_at_the_event_follows_the_doors_setting(world):
+    """Move the doors and the counter moves with them — it is not a
+    hard-coded 3 PM."""
+    world.execute("UPDATE attendees SET checked_in_at=? WHERE handle='heidily'",
+                  ("2026-09-24T09:30:00+00:00",))          # 5:30 PM local
+    admin.save_settings(world, {"doors_open": "18:00"}, "Max", BEFORE)
+    assert stat(data(Console("admin").get("/admin/api/overview")), "At the event")["value"] == "0"
+    admin.save_settings(world, {"doors_open": "15:00"}, "Max", BEFORE)
+    assert stat(data(Console("admin").get("/admin/api/overview")), "At the event")["value"] == "1"
 
 
 def test_staff_cannot_see_the_overview(world):

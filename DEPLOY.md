@@ -193,7 +193,7 @@ ngrok or Tailscale Funnel), including the BotFather URL.
   times and stock on the Settings screen, which needs no restart.
 - **Tests** (optional): put the sign-up export at
   `context/The_Yard_Sign_Up_Responses.xlsx`, then `venv/bin/python -m pytest
-  tests -q`, which should say `430 passed`. Without that file, the tests that
+  tests -q`, which should say `432 passed`. Without that file, the tests that
   import the real roster fail; that says nothing about the server.
 
 ---

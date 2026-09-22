@@ -571,11 +571,23 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
 .price-h + .price-row{ border-top:0 }
 .price{ flex:none; font-weight:700; font-variant-numeric:tabular-nums; text-align:right }
 
-/* ---- the floorplan -------------------------------------------------- */
-.plan{ border-radius:18px; overflow:auto; background:#fff; box-shadow:inset 0 0 0 1px var(--rule);
-  -webkit-overflow-scrolling:touch; overscroll-behavior:contain }
-.plan img{ display:block; width:100%; height:auto }
-.plan.zoomed img{ width:220%; max-width:none }
+/* ---- the floorplan ---------------------------------------------------
+   A fixed frame the map moves inside (23 Sep, STATE.md 135). The frame
+   keeps the plan's own shape, so the whole thing is in view at rest;
+   `touch-action:none` hands the pinch to the page instead of the webview. */
+.plan{
+  position:relative; border-radius:18px; overflow:hidden; background:#fff;
+  box-shadow:inset 0 0 0 1px var(--rule); aspect-ratio:2000 / 1414;
+  touch-action:none; overscroll-behavior:contain; cursor:grab;
+}
+.plan img{
+  display:block; width:100%; height:100%; object-fit:contain;
+  transform-origin:center center; will-change:transform;
+  -webkit-user-select:none; user-select:none; -webkit-user-drag:none;
+}
+/* Under the map, not on it: laid over the plan it covered the labels
+   somebody is trying to read. */
+.plan-hint{ margin:10px 2px 0; color:var(--muted) }
 .plan-notes{ margin-top:4px }
 
 /* ---- the phone ------------------------------------------------------- */
@@ -897,6 +909,8 @@ function go(view, opts){
       else S.stack.push({ view:S.view, scroll:screen.scrollTop });
     }
     if (opts.drop) S.stack = S.stack.filter(e => !opts.drop.includes(e.view));
+    // Opening the map shows the whole of it, however it was left last time.
+    if (view === 'floorplan' && S.view !== 'floorplan'){ PLAN.scale = 1; PLAN.x = 0; PLAN.y = 0; }
     if (view !== S.view && !m) navDir = 'fwd';
     S.view = view;
     S.dragX = 0; S.dragging = false;
@@ -1221,7 +1235,11 @@ function gateAllowedBody(){
 VIEWS.home = function(){
   const me = S.me;
   if (!me) return skeleton();
-  const needsPayment = me.payment_status === 'missing' || me.payment_status === 'rejected';
+  // Only worth saying when payment actually stops them collecting. With the
+  // check switched off (23 Sep, STATE.md 138) nobody is held up by it, so the
+  // warning would be a red banner about nothing.
+  const needsPayment = !me.payment_ok
+    && (me.payment_status === 'missing' || me.payment_status === 'rejected');
   const nx = nextUp(me);
   return `
   <div class="page view">
@@ -1950,10 +1968,13 @@ function priceList(sections){
   </div>` };
 }
 
-/* The venue map (22 Sep, STATE.md 132). It is wider than a phone, so it
-   opens fitted to the screen and one tap zooms it to twice the size, to
-   drag around; a second tap fits it again. A map you can't read the names
-   on is no map. */
+/* The venue map (22 Sep, STATE.md 132; the gestures are 23 Sep, 135).
+   A fixed frame with the whole plan in it, and the map moves inside that
+   frame the way a photo does in a photo app: pinch, double-tap, drag. The
+   first version zoomed the whole block to 220% and left you stranded in it,
+   which the organiser said "soft locks you". Here the frame never changes
+   size, the map can never be dragged out of it, and a double-tap always
+   brings it back. */
 VIEWS.floorplan = function(){
   const e = ev();
   const src = e.floorplan;
@@ -1961,16 +1982,122 @@ VIEWS.floorplan = function(){
   <div class="page view">
     <header><h1 class="display big">Floorplan</h1></header>
     ${src ? `
-    <div class="plan ${S.planZoom ? 'zoomed' : ''}" id="plan">
-      <img src="${esc(src)}" alt="The Yard floorplan: the DIY area, two chill rooms, the photo booth, the jamming room, the food stalls, the seating area, registration and the entrance">
+    <div class="plan" id="plan">
+      <img id="planimg" src="${esc(src)}" alt="The Yard floorplan: the DIY area, two chill rooms, the photo booth, the jamming room, the food stalls, the seating area, the front desk and the entrance" draggable="false">
     </div>
-    <button class="btn btn-line" id="planzoom">${S.planZoom ? 'Fit to screen' : 'Zoom in'}</button>
+    <p class="label plan-hint" id="planhint">Pinch or double-tap to zoom</p>
     <ul class="help-list plan-notes">
       <li>The Jamming Studio is the Jamming Room: ${esc(e.jam_room || 'Heaven 2')}</li>
       <li>For The Last Guest, meet at ${esc(e.escape_meet || 'the escape room entrance')}</li>
+      <li>${esc(capFirst(e.meeting_point || 'the front desk'))} is marked Registration on the plan</li>
     </ul>` : `<p class="help-p">The floorplan isn’t up yet. Ask at ${esc(e.meeting_point || 'the front desk')}.</p>`}
   </div>`;
 };
+
+/* Pinch, double-tap and drag on the map. Pointer events, so one path covers
+   touch and a trackpad; `touch-action:none` on the frame stops the webview
+   doing its own thing with the gesture first. The map is clamped to the
+   frame at every step, so there is no state you can get into where the plan
+   is off-screen or smaller than the frame. */
+const PLAN = { scale:1, x:0, y:0, min:1, max:5, ratio:0 };
+function planApply(img){
+  img.style.transform = `translate(${PLAN.x}px, ${PLAN.y}px) scale(${PLAN.scale})`;
+}
+/* Keep the map inside the frame: at 1x it sits exactly in it, and zoomed in
+   you can only pan as far as its own edges. Measured from the map as drawn,
+   not from the frame, so a floorplan of another shape (which `object-fit`
+   letterboxes) can't be dragged off into the empty band. */
+function planClamp(frame){
+  const w = frame.clientWidth, h = frame.clientHeight;
+  const ar = PLAN.ratio || (w / h);
+  const drawnW = Math.min(w, h * ar), drawnH = Math.min(h, w / ar);
+  const roomX = Math.max(0, (drawnW * PLAN.scale - w) / 2);
+  const roomY = Math.max(0, (drawnH * PLAN.scale - h) / 2);
+  PLAN.x = Math.max(-roomX, Math.min(roomX, PLAN.x));
+  PLAN.y = Math.max(-roomY, Math.min(roomY, PLAN.y));
+}
+/* Zoom about a point, so the bit under your fingers stays under them. */
+function planZoomAt(frame, scale, px, py){
+  const next = Math.max(PLAN.min, Math.min(PLAN.max, scale));
+  const r = frame.getBoundingClientRect();
+  const cx = px - r.left - r.width / 2, cy = py - r.top - r.height / 2;
+  const k = next / PLAN.scale;
+  PLAN.x = cx - (cx - PLAN.x) * k;
+  PLAN.y = cy - (cy - PLAN.y) * k;
+  PLAN.scale = next;
+  planClamp(frame);
+}
+function wirePlan(){
+  const frame = document.getElementById('plan');
+  const img = document.getElementById('planimg');
+  if (!frame || !img) return;
+  // The frame takes the map's own shape, so a replaced floorplan of another
+  // size still sits in it exactly rather than in a letterboxed strip.
+  const fit = () => {
+    if (!img.naturalWidth) return;
+    frame.style.aspectRatio = img.naturalWidth + ' / ' + img.naturalHeight;
+    PLAN.ratio = img.naturalWidth / img.naturalHeight;
+  };
+  if (img.complete) fit(); else img.addEventListener('load', fit, { once:true });
+  planClamp(frame); planApply(img);
+  const points = new Map();
+  let pinchFrom = 0, scaleFrom = 1, lastTap = 0, moved = false;
+  const touches = () => [...points.values()];
+  const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  frame.addEventListener('pointerdown', (ev) => {
+    frame.setPointerCapture(ev.pointerId);
+    points.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
+    moved = false;
+    if (points.size === 2){
+      const [a, b] = touches();
+      pinchFrom = gap(a, b); scaleFrom = PLAN.scale;
+    }
+  });
+
+  frame.addEventListener('pointermove', (ev) => {
+    const was = points.get(ev.pointerId);
+    if (!was) return;
+    const now = { x:ev.clientX, y:ev.clientY };
+    points.set(ev.pointerId, now);
+    if (points.size === 2 && pinchFrom){
+      const [a, b] = touches();
+      const mid = { x:(a.x + b.x) / 2, y:(a.y + b.y) / 2 };
+      planZoomAt(frame, scaleFrom * (gap(a, b) / pinchFrom), mid.x, mid.y);
+      moved = true;
+    } else if (points.size === 1 && PLAN.scale > 1){
+      PLAN.x += now.x - was.x; PLAN.y += now.y - was.y;
+      planClamp(frame);
+      moved = true;
+    }
+    planApply(img);
+  });
+
+  const release = (ev) => {
+    points.delete(ev.pointerId);
+    if (points.size < 2) pinchFrom = 0;
+    // A double-tap zooms in where you tapped, or back out if you are in.
+    if (ev.type === 'pointerup' && !moved){
+      const now = Date.now();
+      if (now - lastTap < 320){
+        planZoomAt(frame, PLAN.scale > 1.2 ? 1 : 2.6, ev.clientX, ev.clientY);
+        planApply(img);
+        lastTap = 0;
+      } else {
+        lastTap = now;
+      }
+    }
+  };
+  frame.addEventListener('pointerup', release);
+  frame.addEventListener('pointercancel', release);
+
+  // A trackpad or a mouse wheel, for whoever looks at this on a laptop.
+  frame.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    planZoomAt(frame, PLAN.scale * (ev.deltaY < 0 ? 1.12 : 1 / 1.12), ev.clientX, ev.clientY);
+    planApply(img);
+  }, { passive:false });
+}
 
 /* An old deep link (?go=bookings) from a message sent before 19 Sep. */
 VIEWS.bookings = function(){ return VIEWS.mybookings(); };
@@ -2074,14 +2201,7 @@ function wire(){
     if (d.open) faqs.forEach(o => { if (o !== d && o.open) o.open = false; });
   }));
 
-  const pz = document.getElementById('planzoom');
-  if (pz) pz.onclick = () => {
-    S.planZoom = !S.planZoom;
-    render();
-    // Zoomed, start in the middle of the map rather than its left edge.
-    const plan = document.getElementById('plan');
-    if (plan && S.planZoom) plan.scrollLeft = (plan.scrollWidth - plan.clientWidth) / 2;
-  };
+  wirePlan();
 
   const cta = document.getElementById('gatecta');
   if (cta) cta.onclick = gateTap;
@@ -2555,8 +2675,8 @@ screen.addEventListener('pointerdown', e => {
   // Left edge only. Starting a drag anywhere meant every press on a slot
   // tile also began a back swipe, and it fought the phone's own gesture.
   if (e.clientX - screen.getBoundingClientRect().left > 36) return;
-  // Dragging a zoomed floorplan is looking around the map, not going back.
-  if (e.target.closest && e.target.closest('.plan.zoomed')) return;
+  // A drag on the floorplan moves the map, it does not go back a screen.
+  if (e.target.closest && e.target.closest('.plan')) return;
   sx = e.clientX; sy = e.clientY; S.dragging = true;
 });
 screen.addEventListener('pointermove', e => {

@@ -305,10 +305,12 @@ tunnel address, where every browser works.)
 **People** are real: a wrong password is refused, hand-overs, check-ins and
 payment verdicts are written to the database, and People shows your real
 sign-ups, and **Schedules** shows the real games and jam slots. Refreshing
-the page keeps you signed in. The other screens (Overview, GM, Roster,
-Settings, Audit) still show **demo numbers**, such as "17 signed up, 11
-checked in". Those numbers are not your data yet. Each screen switches to real
-data as its part is built; `STATE.md` lists which ones are real.
+the page keeps you signed in. **Every other screen is real too** now —
+Overview, GM, Roster, Settings and Audit all read your own data; nothing in
+the console is a demo any more (`STATE.md` §3). Overview's top line reads
+"N signed up, N opened the app, N at the event": opening the app is anyone who
+has linked their Telegram account, at any time, while **at the event** counts
+only check-ins made from 3 PM on the 24th (23 Sep, `STATE.md` 135).
 
 **If you see** "No admin password is set on this laptop yet" — run
 `python manage.py set-admin-password` (Phase 4), then restart `app.py`.
@@ -518,8 +520,10 @@ under it (like `7K3M-Q9XT`), and three things marked **Ready**: **Pastry**
 (with "Mini tart, brownie, cookie or shiopan" under it), **Photo Strip** and
 **Vinyl Making**.
 
-**If you see** "Payment not verified yet" — you are not signed in to Telegram
-as `@maxi_muslim`. Check the username in Telegram → Settings.
+**If you see** "Payment not verified yet" — payment checking has been switched
+back on (Settings → **Hand-over needs payment**), and this account has not been
+verified. Since 22 Sep it is set to **Not needed** and nobody sees that line
+(`STATE.md` 138).
 
 5. Write your pass code down. You can also see it on the laptop:
 
@@ -603,7 +607,7 @@ there's nothing to undo.
 |---|---|
 | Type `ZZZZ-ZZZZ` → Look up | Slate card: **Unknown code** — "probably a typo" |
 | Point the camera at any other QR (a product, a website) | Slate card: **Not a Yard code** |
-| Type the pass code of an imported person (from `python manage.py roster`) → Look up | Amber card: **Not verified**, and no hand-over button |
+| Type the pass code of an imported person (from `python manage.py roster`) → Look up | Green **Valid** card with the hand-over buttons. *(Since 22 Sep payment is not checked at all — `STATE.md` 138. Set **Settings → Hand-over needs payment** back to **Verified** and this reads amber **Not verified**, with no hand-over button.)* |
 | Look up your own pass → **Check in** | Green: **Checked in**, with the time and "Wei · Booth 1" |
 | Tap **Check in** again | Slate: **Already checked in**, showing the first time and name |
 | Look at the top bar on a Mobile sign-in | Only **Booth, Orders, Game, People** — Settings and the rest are Laptop only |
@@ -612,10 +616,13 @@ there's nothing to undo.
 14. On the laptop, sign in on **Laptop**, open **Booth**, and look up an
     imported person's pass.
 
-**You should see** the amber **Not verified** card with an
-**Override — hand over …** buttons. Tapping it asks for a reason; with a
-reason it hands over and records your reason in the log. Undo it afterwards
-with `void-claim`, using that person's username (step 12).
+**You should see** the green **Valid** card and the hand-over buttons: since
+22 Sep payment is not a gate (`STATE.md` 138), so there is nothing to
+override. *(With **Hand-over needs payment** set back to **Verified**, this is
+the amber **Not verified** card with **Override — hand over …** buttons.
+Tapping one asks for a reason; with a reason it hands over and records your
+reason in the log. Undo it afterwards with `void-claim`, using that person's
+username — step 12.)*
 
 Searching for someone whose phone died is rehearsed in Phase 13b.
 

@@ -1275,11 +1275,16 @@ SCREENS.overview = function(){
       <div class="barlbl">${esc(short(b.starts_at))}</div>
     </div>`;
   }).join('');
+  // By label, not by position: the stat list grows (23 Sep, STATE.md 135).
+  const statValue = (name) => {
+    const found = (d.stats || []).find(x => x.label === name);
+    return found ? found.value : '0';
+  };
   return `
   <div class="wide">
     <div class="sub">
       <span class="t">Overview</span>
-      <span class="m">${esc(d.stats[0].value)} signed up, ${esc(d.stats[1].value)} checked in</span>
+      <span class="m">${esc(statValue('Signed up'))} signed up, ${esc(statValue('Opened the app'))} opened the app, ${esc(statValue('At the event'))} at the event</span>
     </div>
     <div class="wide-body">
       <div class="stats">
@@ -1963,8 +1968,8 @@ const SETTINGS_SCHEMA = [
     { key:'paid_extras', label:'Paid at the front desk', type:'text', help:'Shown on the attendee help screen.' },
     { key:'price_list', label:'Price list', type:'longtext',
       help:'Shown on the attendee help screen under "Is there a price list?". One line each, like  Mini Tart: $2.50 . A line with no $ in it starts a new group.' },
-    { key:'meeting_point', label:'Help desk', type:'text',
-      help:'Where attendees are sent for help.' },
+    { key:'meeting_point', label:'Front desk', type:'text',
+      help:'Where attendees are sent for help and payments. Called Registration on the floorplan; the app says "the front desk" everywhere.' },
     { key:'help_handle', label:'Help contact', type:'text', mono:true,
       help:'Shown on the attendee help screen and by /help.' }
   ]},
@@ -2015,9 +2020,9 @@ const SETTINGS_SCHEMA = [
       help:'The booth warns when this many or fewer are left.' },
     { key:'block_at_zero', label:'When stock runs out', type:'seg', dimIf:NO_STOCK,
       options:[[false,'Warn only'],[true,'Block the hand-over','warn']] },
-    { key:'claim_requires', label:'Hand-over needs payment', type:'select',
-      options:[['verified','Verified'],['submitted','Submitted is enough']],
-      help:'Staff may never hand over on an unverified receipt. An admin can override with a reason.' },
+    { key:'claim_requires', label:'Hand-over needs payment', type:'seg',
+      options:[['verified','Verified'],['submitted','Submitted is enough'],['none','Not needed','warn']],
+      help:'Not needed hands over to anyone on the list, without looking at payments at all — the payment screenshots are still on each person\'s page. On Verified, staff may never hand over on an unverified receipt, though an admin can override with a reason.' },
   ]},
   // One "collected at" row per made-to-order item, from the server's list
   // (settings_view → order_items), like the Orders screen's buttons.

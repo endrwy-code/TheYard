@@ -136,9 +136,19 @@ def find_attendee(conn, code=None, attendee_id=None):
 
 
 def payment_ok(conn, row):
-    """§9 rule 25 — verified, or submitted too when the setting relaxes it."""
+    """§9 rule 25 — verified, or submitted too when the setting relaxes it.
+
+    Since 23 Sep the organiser can also turn the check off altogether
+    (`claim_requires` = "none", STATE.md 138): with 150 receipts still
+    unchecked the day before, they chose to hand over to anyone on the list
+    rather than verify each one. The screenshots are still on the person
+    page; nothing stops an admin looking, it just isn't a gate any more.
+    """
+    requires = db.get_setting(conn, "claim_requires", "verified")
+    if requires == "none":
+        return True
     allowed = {"verified"}
-    if db.get_setting(conn, "claim_requires", "verified") == "submitted":
+    if requires == "submitted":
         allowed.add("submitted")
     return row["payment_status"] in allowed
 

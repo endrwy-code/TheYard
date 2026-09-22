@@ -1256,3 +1256,101 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   room's solution.
 - **Next step:** install Git, create the private repo, push, then hand
   `DEPLOY.md` to the friend.
+
+## 2026-09-22 — Overview counts "Opened the app" and "At the event" apart (STATE.md 135)
+
+- **Changed:** `services/admin.py` `overview()` gained two stats in place of
+  "Checked in": **Opened the app** (active, non-test people with a
+  `tg_user_id`) and **At the event** (check-ins stamped at or after
+  `doors_open` on `EVENT_DATE`, i.e. 3 PM on the 24th). The card's own line
+  names any earlier check-ins ("1 before that, not counted"). The console's
+  strapline reads "N signed up, N opened the app, N at the event" and now
+  looks stats up by label, not by position.
+- **Found:** the organiser believed linking a Telegram account already counted
+  as a check-in. It never did — only `claims.check_in` writes `checked_in_at`
+  — but there was no count of who had opened the app at all, which is what
+  they were missing. Said so plainly rather than "fixing" a bug that wasn't.
+- **Current state:** live. 432 tests pass (two new: the two counters, and the
+  counter following the `doors_open` Setting). Real numbers at 18:44: 168
+  signed up, 5 opened the app, 0 at the event.
+- **Left unfinished on purpose:** nothing blocks a check-in before 3 PM; it
+  simply is not counted as being there.
+- **Next step:** watch both numbers on the night.
+
+## 2026-09-22 — One name for the desk: "the front desk" (STATE.md 136)
+
+- **Changed:** the Settings row label "Help desk" is now **Front desk**, with
+  help text saying the plan calls it Registration; the Floorplan screen
+  carries the same line. The app's copy already said "the front desk"
+  everywhere.
+- **Left unfinished on purpose:** "the counter" still means where food and
+  prints are handed over, which is not the desk.
+
+## 2026-09-22 — The floorplan pinches and double-taps like a photo (STATE.md 137)
+
+- **Changed:** `templates/index.html` — the Zoom in / Fit to screen button is
+  gone. `.plan` is a fixed frame shaped by the image itself, with
+  `touch-action:none`; the map moves inside it on pointer events
+  (`wirePlan`, `planZoomAt`, `planClamp`): pinch about the midpoint,
+  double-tap to 2.6× on the tapped spot or back out, drag to pan, wheel on a
+  laptop, scale held to 1–5× and clamped to the map's drawn edges. Opening the
+  screen resets to the whole map, and a drag on the map no longer starts the
+  back swipe. The hint sits under the frame, not over the labels.
+- **Found:** the first version zoomed the whole block to 220% inside a
+  scrolling box — the organiser: it "kinda soft locks you on the zoomed in
+  floor plan".
+- **Current state:** live. Driven with real touch events in headless Edge:
+  double-tap 1 → 2.6, drag pans with the screen still on `floorplan`, a hard
+  drag stops at the clamp (279 of 280), pinch reaches 5×, double-tap returns
+  to 1× at 0,0, no page errors. 32 screen states render (the "floorplan
+  zoomed" state went with the button).
+- **Next step:** try the pinch on a real phone inside Telegram — a webview can
+  claim the gesture before the page sees it.
+
+## 2026-09-22 — Payments are no longer checked before a hand-over (STATE.md 138)
+
+- **Changed:** `claim_requires` takes a third value, `none`, and
+  `claims.payment_ok` returns True for everyone under it, so the booth hands
+  over to anyone on the list. The Settings row is now a three-way choice
+  (Verified / Submitted is enough / **Not needed**). Overview drops the
+  "Payments to check" job and reads "N unchecked, N with no receipt · not
+  needed to collect" in slate instead of red; the Mini App's "We haven't
+  spotted your payment" strip now follows whether payment actually blocks
+  them, so it is gone. The default in `config.py` stays `verified`.
+- **Why:** 150 of 169 sign-ups were still unchecked the day before, and an
+  unverified receipt stopped that person collecting anything.
+- **Current state:** live and audited at 19:04 (`claim_requires` verified →
+  none). 434 tests pass, two of them new: the check switched off, and the
+  receipts still being reachable with it off.
+- **Left unfinished on purpose:** being on the roster still gates a
+  hand-over — an inactive person is still refused, because that is not about
+  money. Payment status, verify/reject and the screenshots all stay.
+- **Next step:** if it ever needs putting back, Settings → Hand-over needs
+  payment → Verified.
+
+## 2026-09-22 — Saving our own copies of the payment screenshots
+
+- **Changed:** ran `python manage.py fetch-receipts` (18:55). Nothing in the
+  code changed; the mechanism was built on 18 Sep (STATE.md 85) and had never
+  been run — 0 of 152 were saved, and 7 Paperform links had already expired.
+- **Current state:** running; copies land in `private\receipts` and are served
+  admin-only from the person page. A saved copy works on the day with no
+  Paperform, no link and no wifi.
+- **Known bug, left unfixed:** the 7 dead links cannot be recovered from here.
+  Those people's screenshots are only in Paperform's own dashboard.
+- **Next step:** check Audit → Exports & backups shows none left unsaved, and
+  run it again if it does.
+
+## 2026-09-22 — Known risk: the GitHub repository was public
+
+- **Found:** `github.com/endrwy-code/TheYard` was created public, not private.
+  Readable by anyone: `private/phone/the-phone.html` (the escape room's whole
+  content), `private/gm/script.json`, `ESCAPE_ROOM_FLOW.md`,
+  `context/The_Last_Guest_20min.pptx`, attendees' Telegram usernames in the
+  tests, and `design/the-yard-design-kit.zip` (which carries real usernames).
+  **Not** exposed: `.env`, the database, the Paperform export, the receipts —
+  `.gitignore` kept those out.
+- **Current state:** the organiser is switching it to private; no further
+  push until they have.
+- **Next step:** after it is private, consider whether the design kit zip
+  belongs in the repository at all.

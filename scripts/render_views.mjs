@@ -110,7 +110,6 @@ const cases = [
   ["jamticket (another group in the room)", { me: sharedRoom, openJam: jb.ref }],
   ["help", {}],
   ["floorplan", {}],
-  ["floorplan (zoomed)", { planZoom: true }],
   ["bookings (old deep link)", {}],
 ];
 
@@ -130,8 +129,10 @@ const MUST = {
   "food (pastry collected)": ["Mini Tart", "Collected"],
   "help": ["Is there a price list?", "price-row", "Mini Tart", "$2.50", 'name="helpfaq"',
            'data-go="floorplan"', "Board Games"],
-  "floorplan": ['id="planzoom"', "floorplan.png", "Heaven 2", "Zoom in"],
-  "floorplan (zoomed)": ['class="plan zoomed"', "Fit to screen"],
+  // The map moves inside a fixed frame now: pinch, double-tap, drag
+  // (23 Sep, STATE.md 135). No zoom button, and no zoomed-page state.
+  "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png", "Heaven 2",
+                "Pinch or double-tap to zoom", "marked Registration on the plan"],
   "jamticket": ["Heaven 2"],
   "home (nothing booked)": ['data-go="mybookings"', ">None<", "Book something!"],
   // The phone lives on its own screen now, reached from the bot's message.
@@ -158,6 +159,7 @@ const MUST = {
 // What a screen must no longer say. The escape board's phone card went on
 // 22 Sep (decision 130): the bot's message is the only way to the phone.
 const NOT = {
+  "floorplan": ['id="planzoom"', "Fit to screen"],
   "esc": ['id="openphone"', 'id="openphonetab"', 'class="phone"'],
   "ticket": ["with the phone", "escape-room door"],
   // The ring before each pass item read as a tick box; it went on 22 Sep.

@@ -278,6 +278,45 @@ def test_setting_can_relax_to_submitted(roster):
         == "PAYMENT_NOT_VERIFIED"
 
 
+def test_the_payment_check_can_be_switched_off_entirely(roster):
+    """23 Sep (STATE.md 138). With 150 receipts unchecked the day before, the
+    organiser chose to stop checking payments at all: anyone on the list
+    collects. Not an override — there is nothing to override."""
+    db.set_setting(roster, "claim_requires", "none", by="test")
+    for handle, status in (("bananabelles", "submitted"), ("heidily", "missing"),
+                           ("t_shixuan", "rejected")):
+        p = person(roster, handle, status)
+        d = Console().lookup(p["pass_code"]).get_json()["data"]
+        assert d["payment_ok"] is True and d["can_hand_over"] is True
+        assert d["can_override"] is False            # nothing is being overridden
+        assert Console().hand_over(p["pass_code"]).status_code == 200
+    # Nothing was logged as an override, and no reason was ever asked for.
+    rows = roster.execute("SELECT action FROM audit_log WHERE action LIKE '%handed over%'").fetchall()
+    assert rows and not any("override" in r["action"] for r in rows)
+    # Somebody off the list is still refused: that check is not about money.
+    roster.execute("UPDATE attendees SET status='inactive' WHERE handle='joncjy'")
+    gone = roster.execute("SELECT pass_code FROM attendees WHERE handle='joncjy'").fetchone()[0]
+    assert err(Console().hand_over(gone))["code"] == "INACTIVE"
+
+
+def test_switching_the_check_off_does_not_hide_the_receipts(roster):
+    """The screenshots are still there to look at — the organiser asked for
+    both: no verifying, but still able to see them."""
+    db.set_setting(roster, "claim_requires", "none", by="test")
+    # Whoever the real export gave a payment screenshot to.
+    who = roster.execute("SELECT * FROM attendees WHERE paperform_receipt_url IS NOT NULL "
+                         "LIMIT 1").fetchone()
+    roster.execute("UPDATE attendees SET payment_status='submitted' WHERE id=?", (who["id"],))
+    d = Console("admin").get(f"/admin/api/people/{who['id']}").get_json()["data"]
+    assert d["payment_status"] == "submitted"            # still on the record
+    # Still presented to an admin — a live link, our saved copy, or an
+    # honest "this link has expired"; never quietly dropped.
+    assert d["receipt"]["source"] != "No receipt"
+    assert d["receipt"]["url"] or d["receipt"]["expired"]
+    # Staff still never see it; that rule is untouched (§9 r31).
+    assert Console().get(f"/admin/api/people/{who['id']}").get_json()["data"]["receipt"]["url"] is None
+
+
 def test_admin_override_needs_a_reason_and_is_logged(roster):
     p = person(roster, "bananabelles", "missing")
     admin = Console("admin")

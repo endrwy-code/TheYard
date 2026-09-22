@@ -36,22 +36,43 @@ def _reason(text):
 # ---------------------------------------------------------------------------
 
 def overview(conn, now):
+    s = db.get_settings(conn)
     people = conn.execute(
         "SELECT COUNT(*) total, SUM(source='walk_in') walk_ins, SUM(checked_in_at IS NOT NULL) inside, "
+        "SUM(tg_user_id IS NOT NULL) linked, "
         "SUM(payment_status='verified') verified, SUM(payment_status='submitted') pending, "
         "SUM(payment_status='missing') missing, SUM(payment_status='rejected') rejected "
         "FROM attendees WHERE status='active' AND is_test=0").fetchone()
     total = people["total"] or 0
-    pct = round(100 * (people["inside"] or 0) / total) if total else 0
+    # Two different things, counted separately (23 Sep, STATE.md 135).
+    # Opening the app is not being in the room: people link their Telegram
+    # account days early. "At the event" counts only check-ins made from the
+    # moment the doors open on the day, so a rehearsal check-in never counts.
+    doors = notify.event_local(s["doors_open"])
+    here = conn.execute(
+        "SELECT COUNT(*) FROM attendees WHERE status='active' AND is_test=0 AND checked_in_at >= ?",
+        (notify._iso(doors),)).fetchone()[0]
+    early = (people["inside"] or 0) - here
+    pct = round(100 * here / total) if total else 0
+    pct_linked = round(100 * (people["linked"] or 0) / total) if total else 0
     stats = [
         {"label": "Signed up", "value": str(total),
          "sub": f"{people['walk_ins'] or 0} walk-in{'s' if (people['walk_ins'] or 0) != 1 else ''}",
          "tone": "#3C4654"},
-        {"label": "Checked in", "value": str(people["inside"] or 0), "sub": f"{pct}% of the list",
+        {"label": "Opened the app", "value": str(people["linked"] or 0),
+         "sub": f"{pct_linked}% of the list, any time", "tone": "#3C4654"},
+        {"label": "At the event", "value": str(here),
+         "sub": f"{pct}% of the list · checked in from {notify.hhmm_text(s['doors_open'])}"
+                + (f" · {early} before that, not counted" if early else ""),
          "tone": "#3C4654"},
+        # With the payment check off (STATE.md 138) these are still worth
+        # seeing, but none of them is a job to do before the doors.
         {"label": "Payments verified", "value": str(people["verified"] or 0),
-         "sub": f"{people['pending'] or 0} to check, {people['missing'] or 0} missing",
-         "tone": "#A8231B" if (people["pending"] or people["missing"]) else "#1F7A4C"},
+         "sub": (f"{people['pending'] or 0} unchecked, {people['missing'] or 0} with no receipt "
+                 "· not needed to collect" if s["claim_requires"] == "none"
+                 else f"{people['pending'] or 0} to check, {people['missing'] or 0} missing"),
+         "tone": "#3C4654" if s["claim_requires"] == "none"
+                 else ("#A8231B" if (people["pending"] or people["missing"]) else "#1F7A4C")},
     ]
     for key, label in config.ITEMS:
         used = conn.execute(
@@ -93,13 +114,14 @@ def overview(conn, now):
          "screen": "person"},
         {"what": "“Signed up as” requests", "count": requests,
          "tone": "#AE7338" if requests else "#E4E0D6", "screen": "person"},
-        {"what": "Payments to check", "count": people["pending"] or 0,
-         "tone": "#AE7338" if people["pending"] else "#E4E0D6", "screen": "person"},
+        # Only a job while payment is a gate.
+        *([] if s["claim_requires"] == "none" else
+          [{"what": "Payments to check", "count": people["pending"] or 0,
+            "tone": "#AE7338" if people["pending"] else "#E4E0D6", "screen": "person"}]),
         {"what": "Games under half full", "count": thin, "tone": "#E4E0D6", "screen": "schedules"},
         {"what": "Bot messages that failed", "count": failed,
          "tone": "#A8231B" if failed else "#E4E0D6", "screen": "audit"},
     ]
-    s = db.get_settings(conn)
     return {
         "stats": stats,
         "bars": [{"starts_at": gm["starts_at"], "taken": gm["booked"], "capacity": gm["capacity"],
@@ -122,7 +144,7 @@ CUE_KEYS = ("hint_1", "hint_2", "hint_3", "forced_merge")
 HANDLE_KEYS = ("help_handle", "gm_handle", "actor_handle")
 CHOICES = {
     "phone_unlock_mode": ("gm_start", "clock"),
-    "claim_requires": ("verified", "submitted"),
+    "claim_requires": ("verified", "submitted", "none"),
     "notify_mode": notify.MODES,
 }
 MINIMUM = {"capacity": 1, "game_minutes": 1, "phone_minutes": 1, "jam_slot_minutes": 5, "jam_per_person": 1,
