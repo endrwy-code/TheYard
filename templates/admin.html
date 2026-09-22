@@ -2573,9 +2573,17 @@ function endSession(message){
 const CODE_CARDS = ['UNKNOWN_CODE', 'NOT_A_YARD_CODE'];
 
 async function doLookup(code){
-  const raw = (typeof code === 'string' ? code : S.lookupCode || '').trim().toUpperCase();
+  // A camera scan, a paste, and a hand-held scanner that types into the box
+  // all arrive as the QR's own text, "YARD:" and all. Strip it in one place so
+  // every way in behaves the same, and the box only ever holds the code.
+  const raw = (typeof code === 'string' ? code : S.lookupCode || '')
+    .trim().toUpperCase().replace(/^YARD:/, '').trim();
   if (!raw) return;
   S.lookupCode = raw;
+  // In the box before the lookup answers, so the booth can see what was read
+  // and correct a misread by hand instead of guessing at a blank viewfinder.
+  const box = document.getElementById('codebox');
+  if (box && box.value !== raw) box.value = raw;
   const r = await api('GET /admin/api/lookup', { path:'/admin/api/lookup/' + encodeURIComponent(raw) });
   if (!r.ok && !CODE_CARDS.includes(r.error.code)){
     // Rate limit, network, signed out: say so — it is not a bad code.
@@ -2645,8 +2653,11 @@ function openOrderScanner(){
    limit — but only the person matters here: an order is not a claim, so the
    pass's own state (paid, collected) is not this screen's business. */
 async function orderLookup(code){
-  const raw = String(code || '').trim().toUpperCase();
+  const raw = String(code || '').trim().toUpperCase().replace(/^YARD:/, '').trim();
   if (!raw) return;
+  S.orderCode = raw;
+  const box = document.getElementById('ordercode');
+  if (box && box.value !== raw) box.value = raw;
   const r = await api('GET /admin/api/lookup', { path:'/admin/api/lookup/' + encodeURIComponent(raw) });
   if (!r.ok){
     const map = { UNKNOWN_CODE:'Nobody has that code. Check it, or ask their username.',
@@ -2694,9 +2705,71 @@ async function closeOrder(id, how){
   load();
 }
 
+/* The decoder. Chrome ships BarcodeDetector on Android, macOS and ChromeOS
+   only: on Windows and Linux the interface exists but supports no formats, and
+   Firefox and desktop Safari have none at all. Asking `in window` therefore
+   says yes on the event laptop and then reads nothing, forever, which is what
+   a camera that "doesn't detect" looks like from the booth. So ask what it
+   actually supports, and decode with jsQR over a canvas when the answer is
+   nothing. Both paths take the <video> and give back the QR's text, or null.
+
+   jsQR is fetched only when it is needed, so the booth phones — which have a
+   working native detector — never pay for it. */
+let jsqrPromise = null, scanCanvas = null, scanCtx = null;
+
+function loadJsQR(){
+  if (window.jsQR) return Promise.resolve(true);
+  if (jsqrPromise) return jsqrPromise;
+  jsqrPromise = new Promise(resolve => {
+    const el = document.createElement('script');
+    el.src = '/static/jsqr.js';
+    el.onload = () => resolve(!!window.jsQR);
+    el.onerror = () => resolve(false);
+    document.head.appendChild(el);
+  });
+  return jsqrPromise;
+}
+
+async function makeReader(){
+  try {
+    if (window.BarcodeDetector && BarcodeDetector.getSupportedFormats){
+      const formats = await BarcodeDetector.getSupportedFormats();
+      if (formats.indexOf('qr_code') !== -1){
+        const det = new BarcodeDetector({ formats:['qr_code'] });
+        return async (v) => {
+          const codes = await det.detect(v);
+          return codes.length ? (codes[0].rawValue || '') : null;
+        };
+      }
+    }
+  } catch (e){ /* no usable native detector: jsQR below */ }
+  if (!(await loadJsQR())) return null;
+  return (v) => {
+    const w = v.videoWidth, h = v.videoHeight;
+    if (!w || !h) return null;
+    // Decode a downscaled frame. A pass fills a good part of the viewfinder,
+    // so 480px across is plenty to read it and keeps one pass well inside the
+    // 400ms between frames on the laptop.
+    const scale = Math.min(1, 480 / Math.max(w, h));
+    const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+    if (!scanCanvas){
+      scanCanvas = document.createElement('canvas');
+      scanCtx = scanCanvas.getContext('2d', { willReadFrequently:true });
+    }
+    if (scanCanvas.width !== cw || scanCanvas.height !== ch){
+      scanCanvas.width = cw; scanCanvas.height = ch;
+    }
+    if (!scanCtx) return null;
+    scanCtx.drawImage(v, 0, 0, cw, ch);
+    const frame = scanCtx.getImageData(0, 0, cw, ch);
+    const found = window.jsQR(frame.data, cw, ch, { inversionAttempts:'dontInvert' });
+    return found ? found.data : null;
+  };
+}
+
 /* Camera. Cameras need HTTPS and permission; the typed code box is always
    the fallback (RUNBOOK Phase 18). */
-let camStream = null, camLoop = null, detector = null;
+let camStream = null, camLoop = null, readFrame = null;
 async function startCamera(){
   const video = document.getElementById('cam');
   const hint = document.getElementById('vfhint');
@@ -2727,31 +2800,44 @@ async function startCamera(){
   } finally {
     camStarting = false;
   }
-  if (!('BarcodeDetector' in window)){
-    if (hint) hint.textContent = 'Type the code below';
+  if (!readFrame) readFrame = await makeReader();
+  if (!readFrame){
+    const h0 = document.getElementById('vfhint');
+    if (h0) h0.textContent = 'Type the code below';
     return;
   }
-  try { detector = new BarcodeDetector({ formats:['qr_code'] }); }
-  catch (e){ if (hint) hint.textContent = 'Type the code below'; return; }
+  // A decoder that throws on every frame used to do it in silence, 150 times a
+  // minute, which is indistinguishable from a camera nobody is pointing at a
+  // pass. Give it a couple of seconds, then stop and say so.
+  let failures = 0;
   camLoop = setInterval(async () => {
     const v = document.getElementById('cam');
     if (document.hidden || !v || !v.videoWidth) return;
     if (scanLocked) return;
-    let codes = [];
-    try { codes = await detector.detect(v); } catch (e){ return; }
-    if (!codes.length || scanLocked) return;
-    // One read per scan: lock first, so a detect() already in flight can't
+    let raw = null;
+    try { raw = await readFrame(v); failures = 0; }
+    catch (e){
+      if (++failures < 8) return;
+      stopCamera();
+      const hf = document.getElementById('vfhint');
+      if (hf) hf.textContent = 'Scanning failed — type the code';
+      return;
+    }
+    if (!raw || scanLocked) return;
+    // One read per scan: lock first, so a decode already in flight can't
     // fire a second lookup for the same QR.
     scanLocked = true;
     stopCamera();
-    const raw = codes[0].rawValue || '';
-    if (S.screen === 'orders'){
-      if (!/^YARD:/.test(raw)){ S.orderScanError = "That QR isn't a Yard pass."; render(); return; }
-      await orderLookup(raw.replace(/^YARD:/, ''));
+    if (!/^YARD:/.test(raw)){
+      if (S.screen === 'orders'){ S.orderScanError = "That QR isn't a Yard pass."; }
+      else { S.lookup = { error:'NOT_A_YARD_CODE' }; }
+      render();
       return;
     }
-    if (!/^YARD:/.test(raw)){ S.lookup = { error:'NOT_A_YARD_CODE' }; render(); return; }
-    await doLookup(raw.replace(/^YARD:/, ''));
+    // Both lookups strip the prefix and fill their own box, so a scan lands in
+    // the same place a typed code does and can be read off the screen.
+    if (S.screen === 'orders'){ await orderLookup(raw); return; }
+    await doLookup(raw);
     // A lookup that showed no result (rate limit, network) leaves the camera
     // off; say how to get it back rather than silently re-scanning.
     const h = document.getElementById('vfhint');

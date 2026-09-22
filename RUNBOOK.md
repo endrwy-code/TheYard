@@ -551,8 +551,9 @@ makes you wait 5 minutes.
 
 8. On **phone B**, do the same with name `Aisha`, station `Booth 2`.
 9. On both phones, type your pass code into the box and tap **Look up**.
-   (Or point the camera at the QR on your own phone. Scanning works in Chrome on
-   Android. On an iPhone, type the code.)
+   (Or point the camera at the QR on your own phone. If the viewfinder says
+   "Type the code below" or "Scanning failed", use the box below instead — it
+   always works, and a scan fills that same box anyway.)
 
 **You should see** on both: a green **Valid** card, your name, four buttons
 under "Hand over a pastry" — **Mini Tart, Mini Brownie, Mini Cookie,
