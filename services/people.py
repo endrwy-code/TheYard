@@ -209,6 +209,10 @@ def person(conn, attendee_id, role):
         "pass_qr": claims.pass_qr_data_uri(row["pass_code"]) if row["pass_code"] else None,
         "payment_status": row["payment_status"],
         "payment_ok": claims.payment_ok(conn, row),
+        # Whether anyone is meant to check payments at all (STATE.md 138).
+        # With it off, the console shows the screenshot and drops the whole
+        # verdict workflow — there is no step to do.
+        "payment_required": db.get_setting(conn, "claim_requires", "verified") != "none",
         "payment": last_verdict(conn, row["id"]),
         "checked_in_at": claims.local_iso(row["checked_in_at"]),
         "checked_in_by": row["checked_in_by"],

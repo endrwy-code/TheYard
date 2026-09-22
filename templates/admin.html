@@ -1119,7 +1119,10 @@ function resultFor(l){
   if (d.code === 'INACTIVE') key = 'inactive';
   else if (!paid) key = 'unpaid';
   else if (S.items.every(i => d.claims[i.key].claimed)) key = 'claimed';
-  const base = SCANS[key];
+  let base = SCANS[key];
+  // With payments unchecked, a green card must not claim "Payment verified"
+  // about somebody nobody checked (STATE.md 138).
+  if (key === 'valid' && d.payment_status !== 'verified') base = { ...base, kicker:'On the list' };
   // 'claimed' still shows the box: it lists when and where each item went.
   return Object.assign({}, base, { person:d.person, hand:d.can_hand_over || !!d.can_override || key === 'claimed', claims:d.claims });
 }
@@ -1346,6 +1349,8 @@ SCREENS.person = function(){
   const pay = payVals(p);
   const escB = p.bookings.find(b => b.kind === 'escape');
   const isAdmin = S.session.role === 'admin';
+  // Is anyone meant to check payments at all? (STATE.md 138.)
+  const checking = p.payment_required !== false;
   const items = p.items || S.items;
   const claimLine = i => {
     const c = p.claims[i.key];
@@ -1434,7 +1439,7 @@ SCREENS.person = function(){
             <div class="b">${esc(pay.body)}</div>
           </div>
 
-          ${pay.open ? `
+          ${pay.open && checking ? `
           <div style="display:flex;flex-direction:column;gap:10px;animation:rise .3s var(--ease) both">
             <div class="txnfield">
               <div class="kicker-s" style="color:#3C4654;margin-bottom:6px">Transaction reference</div>
@@ -1449,9 +1454,11 @@ SCREENS.person = function(){
             </div>
           </div>` : ''}
 
-          ${!isAdmin ? `<div class="staffnote">Only an admin can verify or reject. Ask Maximus.</div>` : ''}
-          ${pay.settled ? `<button class="smallbtn" id="reopen">Change verdict — reason required</button>` : ''}
-          <div class="paylog">Every verdict goes in the audit trail with your name and reason.</div>
+          ${checking && !isAdmin ? `<div class="staffnote">Only an admin can verify or reject. Ask Maximus.</div>` : ''}
+          ${checking && pay.settled ? `<button class="smallbtn" id="reopen">Change verdict — reason required</button>` : ''}
+          <div class="paylog">${checking
+            ? 'Every verdict goes in the audit trail with your name and reason.'
+            : 'Switch it back on in Settings → Hand-over needs payment.'}</div>
         </div>
         ${isAdmin && p.tg_user_id ? `<button class="smallbtn" id="unlink" style="min-height:46px">Unlink Telegram account</button>` : ''}
       </div>
@@ -1490,6 +1497,22 @@ function payVals(p){
       body:'They signed up without a screenshot. If they pay at the front desk, mark it paid here — type the reference, or say why there is none (e.g. "paid cash at the desk").',
       open:true }
   };
+  // Payments are not being checked (STATE.md 138): the screenshot is here to
+  // look at, not to approve, so nothing on this card asks for a decision.
+  if (p.payment_required === false){
+    const d0 = defs[status] || defs.submitted;
+    const seen = { submitted:'They uploaded a screenshot at sign-up.',
+                   missing:'They signed up without a screenshot.',
+                   rejected:'Marked rejected earlier, before checking was switched off.' };
+    return {
+      pillBg:d0.pill[0], pillFg:d0.pill[1], pillLabel:d0.pill[2],
+      card:'#3C4654', fg:'#fff', title:'Nothing to check',
+      body:(seen[status] || 'Recorded at sign-up.')
+           + ' Payments are not being checked tonight, so everyone on the list can collect. '
+           + 'The screenshot above is here if you want to look.',
+      open:false, settled:false, canVerify:false, txnNote:'', txnTone:'#3C4654', verifyLabel:''
+    };
+  }
   const d = defs[status] || defs.submitted;
   return {
     pillBg:d.pill[0], pillFg:d.pill[1], pillLabel:d.pill[2],

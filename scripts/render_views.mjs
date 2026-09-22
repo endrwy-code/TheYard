@@ -109,6 +109,8 @@ const cases = [
   ["jamticket", { openJam: jb.ref }],
   ["jamticket (another group in the room)", { me: sharedRoom, openJam: jb.ref }],
   ["help", {}],
+  ["help (payments not checked)", { me: { ...answers.me,
+    event: { ...answers.me.event, payment_required: false } } }],
   ["floorplan", {}],
   ["bookings (old deep link)", {}],
 ];
@@ -128,7 +130,9 @@ const MUST = {
   "food": ["Vinyl Making", "Mini tart, brownie, cookie or shiopan", "Your first strip"],
   "food (pastry collected)": ["Mini Tart", "Collected"],
   "help": ["Is there a price list?", "price-row", "Mini Tart", "$2.50", 'name="helpfaq"',
-           'data-go="floorplan"', "Board Games"],
+           'data-go="floorplan"', "Board Games", "You haven’t seen my payment."],
+  // With payment unchecked, Help stops sending people to the desk about it.
+  "help (payments not checked)": ["Is there a price list?", "Board Games"],
   // The map moves inside a fixed frame now: pinch, double-tap, drag
   // (23 Sep, STATE.md 135). No zoom button, and no zoomed-page state.
   "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png", "Heaven 2",
@@ -159,6 +163,7 @@ const MUST = {
 // What a screen must no longer say. The escape board's phone card went on
 // 22 Sep (decision 130): the bot's message is the only way to the phone.
 const NOT = {
+  "help (payments not checked)": ["You haven’t seen my payment."],
   "floorplan": ['id="planzoom"', "Fit to screen"],
   "esc": ['id="openphone"', 'id="openphonetab"', 'class="phone"'],
   "ticket": ["with the phone", "escape-room door"],

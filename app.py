@@ -361,6 +361,9 @@ def event_info():
         "capacity": s["capacity"], "meeting_point": s["meeting_point"], "help_handle": s["help_handle"],
         "phone_minutes": s["phone_minutes"],
         "escape_meet": s["escape_meet"], "jam_room": s["jam_room"],
+        # Whether payment is checked at all (STATE.md 138). Off, and Help
+        # stops telling people to go and show it.
+        "payment_required": s["claim_requires"] != "none",
         "prices": prices.parse(s["price_list"]),
         "items": claims.items_view(),
         "instruments": [{"key": k, "label": v} for k, v in config.INSTRUMENTS],

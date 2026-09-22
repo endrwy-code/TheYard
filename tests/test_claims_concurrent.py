@@ -309,6 +309,13 @@ def test_switching_the_check_off_does_not_hide_the_receipts(roster):
     roster.execute("UPDATE attendees SET payment_status='submitted' WHERE id=?", (who["id"],))
     d = Console("admin").get(f"/admin/api/people/{who['id']}").get_json()["data"]
     assert d["payment_status"] == "submitted"            # still on the record
+    # The console is told there is no checking to do, so it drops the verdict
+    # workflow rather than showing "Waiting on you" about nothing.
+    assert d["payment_required"] is False
+    db.set_setting(roster, "claim_requires", "verified", by="test")
+    assert Console("admin").get(f"/admin/api/people/{who['id']}"
+                                ).get_json()["data"]["payment_required"] is True
+    db.set_setting(roster, "claim_requires", "none", by="test")
     # Still presented to an admin — a live link, our saved copy, or an
     # honest "this link has expired"; never quietly dropped.
     assert d["receipt"]["source"] != "No receipt"

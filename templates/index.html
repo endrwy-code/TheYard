@@ -1906,7 +1906,9 @@ VIEWS.help = function(){
      'Yes, up to 5 minutes before it starts. Tap Up next on Home, open the booking, and add or remove people there.'],
     ['Someone booked me in and I can’t make it.',
      'Open the booking and tap Leave. Everyone else keeps their spot, and whoever booked you gets a heads-up.'],
-    ['You haven’t seen my payment.',
+    // Only while payment is actually checked (STATE.md 138) — otherwise it
+    // sends people to queue at the desk over something nobody is looking at.
+    e.payment_required === false ? null : ['You haven’t seen my payment.',
      'Show it at ' + desk + ' and you’re good to go.'],
     ['How do I open the escape room’s phone?',
      'When your game starts, the bot messages everyone in it with an Open the phone button — that button is the only way in. It stays open for '
@@ -1941,7 +1943,7 @@ VIEWS.help = function(){
     <section class="help-card">
       <h2 class="label">Questions</h2>
       <div class="help-faq">
-        ${faq.filter(([, a]) => a).map(([q, a]) => `<details name="helpfaq"><summary>${esc(q)}</summary>${
+        ${faq.filter(x => x && x[1]).map(([q, a]) => `<details name="helpfaq"><summary>${esc(q)}</summary>${
           typeof a === 'string' ? `<p>${esc(a)}</p>` : a.html}</details>`).join('')}
       </div>
     </section>
