@@ -102,8 +102,16 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .booth-body{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding:14px 16px 22px }
 .viewfinder{
   flex:none; background:#0D0D0F; border-radius:22px; aspect-ratio:4/3; position:relative;
-  overflow:hidden; display:grid; place-items:center;
+  overflow:hidden; display:grid; place-items:center; transition:height .22s var(--ease);
 }
+/* With a result on screen the camera is already off (cameraWanted), so
+   the viewfinder is just a reminder of where you are: a strip, with the
+   frame and the sweep line hidden and the hint still readable. */
+.booth-body.showing .viewfinder{ aspect-ratio:auto; height:52px; border-radius:14px }
+.booth-body.showing .vf-box, .booth-body.showing .vf-line{ display:none }
+.booth-body.showing .vf-hint{ position:static }
+.booth-body.showing .coderow input{ min-height:44px; font-size:15px }
+.booth-body.showing .coderow button{ min-height:44px }
 .viewfinder video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
 .vf-box{ position:absolute; width:190px; height:190px; border-radius:26px; box-shadow:inset 0 0 0 3px #AE7338 }
 .vf-line{ position:absolute; width:190px; height:2px; background:#AE7338; animation:tick 1.4s ease-in-out infinite alternate }
@@ -134,6 +142,7 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .tag{ font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 10px; border-radius:999px }
 .tag-dark{ background:#101010; color:#F2EFE8 }
 .tag-half{ background:#1C2024; color:#C8CFC7 }
+.tag-line{ box-shadow:inset 0 0 0 1px #10101038; color:#3C4654 }
 .handbox{ display:flex; flex-direction:column; gap:10px; animation:rise .36s .08s var(--ease) both }
 .handover{
   width:100%; min-height:98px; background:#101010; color:#F2EFE8; border:0; border-radius:20px;
@@ -151,7 +160,26 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .blocked-item .x{ font-size:20px; line-height:1 }
 .blocked-item .t{ font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase; line-height:1.05 }
 .blocked-item .w{ font-family:var(--num); font-stretch:112%; font-size:13px; margin-top:4px }
-.boothfoot{ display:flex; gap:8px; margin-top:auto }
+/* Already collected: a fact, not a refusal. It used to be a red block
+   the same size as the buttons, so a pass with two items gone read as
+   two errors (23 Sep). */
+.gonebox{ border-top:1px solid #10101022; padding-top:12px; display:flex; flex-direction:column; gap:8px }
+.gone-t{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+.gone-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px }
+.gone-row .n{ font-size:15px; font-weight:700 }
+.gone-row .w{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#3C4654; text-align:right }
+.allgone{ font-size:14px; line-height:1.45; color:#3C4654; padding:2px 2px 4px }
+/* Pinned to the bottom of the phone, clear of the gesture bar, so Scan
+   next is always under a thumb however long the hand-over list is. */
+.boothfoot{
+  display:flex; gap:8px; margin-top:auto; position:sticky; bottom:0; z-index:2;
+  padding:10px 0 max(2px, env(safe-area-inset-bottom, 0px));
+  background:linear-gradient(180deg, #F2EFE800, #F2EFE8 22%);
+}
+.boothfoot button[disabled]{ opacity:.35; cursor:default }
+.boothfoot button[disabled]:hover{ background:transparent; color:#101010 }
+.boothfoot button.go{ background:#101010; color:#F2EFE8 }
+.boothfoot button.go:hover{ background:#AE7338; color:#101010 }
 .boothfoot button{
   flex:1; min-height:52px; background:transparent; border:0; border-radius:999px;
   box-shadow:inset 0 0 0 2px #101010; color:#101010; font-size:12px; font-weight:700;
@@ -1096,13 +1124,21 @@ SCREENS.booth = function(){
     : (S.session.role === 'admin' ? 'Admin · ' : 'GM · ') + S.session.name;
   const l = S.lookup;
   const sc = l ? resultFor(l) : null;
+  /* One thing at a time (23 Sep). The viewfinder, the code box, the verdict,
+     the person and the hand-over buttons used to stack into one scroll, so
+     the thing you had just scanned a pass to find out was below the fold.
+     Scanning: the viewfinder fills the phone. A result: it shrinks to a
+     strip and everything else gets the room.
+
+     Both states keep every id the camera code reaches for, so nothing about
+     the scanning mechanism has to know which one is on screen. */
   return `
   <div class="phone390 booth">
     <div class="booth-top">
       <span class="who">${esc(station)}</span>
       <span class="mono" style="font-size:12px">${esc(fmt(now()))}</span>
     </div>
-    <div class="booth-body">
+    <div class="booth-body ${sc ? 'showing' : 'scanning'}">
       <div class="viewfinder" id="viewfinder">
         <video id="cam" playsinline muted></video>
         <div class="vf-box"></div>
@@ -1130,14 +1166,17 @@ SCREENS.booth = function(){
         <div class="n">${esc(sc.person.name)}</div>
         <div class="h">@${esc(sc.person.handle)} · Telegram: ${esc(sc.person.tg_first_name || '—')}</div>
         <div class="tags">
-          ${sc.person.checked_in_at ? `<span class="tag tag-dark">Checked in ${esc(fmtIso(sc.person.checked_in_at))}</span>` : ''}
-          ${sc.person.escape ? `<span class="tag tag-half">Esc ${esc(short(sc.person.escape.starts_at))} · half ${esc(sc.person.escape.zone || '?')} — ${sc.person.escape.zone === 'B' ? 'desk' : 'flat'}</span>` : ''}
+          ${sc.person.checked_in_at
+            ? `<span class="tag tag-dark">Checked in ${esc(fmtIso(sc.person.checked_in_at))}</span>`
+            : `<span class="tag tag-line">Not checked in</span>`}
+          ${sc.person.escape ? `<span class="tag tag-half">The Last Guest · ${esc(short(sc.person.escape.starts_at))}</span>` : ''}
         </div>
       </div>` : ''}
       ${sc && sc.hand ? handBox(l) : ''}
       <div class="boothfoot">
-        <button id="checkin">Check in</button>
-        <button id="scannext">Scan next</button>
+        <button id="checkin" ${sc && sc.person ? '' : 'disabled'}>${
+          sc && sc.person && sc.person.checked_in_at ? 'Check in again' : 'Check in'}</button>
+        <button id="scannext" ${sc ? 'class="go"' : ''}>${sc ? 'Scan the next pass' : 'Scan next'}</button>
       </div>
     </div>
   </div>`;
@@ -1166,19 +1205,15 @@ function resultFor(l){
 function handBox(l){
   const c = l.data.claims;
   const override = !l.data.can_hand_over && l.data.can_override;
-  // One button per item still to collect, and a red line per item already gone.
+  /* What is still to collect comes first and big; what has already gone sits
+     under a rule at the bottom, quiet (23 Sep). Mixing the two meant the
+     button somebody had come to press could be the third thing down, under
+     two red blocks about things that had already happened. */
+  const left = S.items.filter(i => !c[i.key].claimed);
+  const gone = S.items.filter(i => c[i.key].claimed);
   return `
   <div class="handbox">
-    ${S.items.map(i => {
-      const claim = c[i.key];
-      if (claim.claimed) return `
-    <div class="blocked-item">
-      <span class="x">✕</span>
-      <div>
-        <div class="t">${esc(i.label)} already collected</div>
-        <div class="w">${esc([fmtIso(claim.at), claim.variant_label, claim.station, claim.staff].filter(Boolean).join(' · '))}</div>
-      </div>
-    </div>`;
+    ${left.map(i => {
       const st = l.data.stock ? l.data.stock[i.key] : null;
       const ov = override ? 'data-override="1"' : '';
       // The pastry comes in kinds (22 Sep, STATE.md 132): one button per
@@ -1199,6 +1234,17 @@ function handBox(l){
       <div class="w">${st.left <= 0 && st.blocks_at_zero ? 'Out of stock — hand-over is blocked' : 'Stock is low'}</div>
     </div></div>` : ''}`;
     }).join('')}
+    ${gone.length ? `<div class="gonebox">
+      <div class="gone-t">Already collected</div>
+      ${gone.map(i => {
+        const claim = c[i.key];
+        return `<div class="gone-row">
+        <span class="n">${esc(i.label)}</span>
+        <span class="w">${esc([fmtIso(claim.at), claim.variant_label, claim.station, claim.staff].filter(Boolean).join(' · '))}</span>
+      </div>`;
+      }).join('')}
+    </div>` : ''}
+    ${!left.length ? `<div class="allgone">Everything on this pass has been collected.</div>` : ''}
   </div>`;
 }
 
@@ -1647,7 +1693,9 @@ SCREENS.gm = function(){
     : 'phone opens at ' + short(d.starts_at);
   const got = d.people.filter(p => p.phone_msg === 'sent').length;
   const bits = [esc(GAME_STATE[d.state] || d.state), esc(phone)];
-  if (d.booked) bits.push(esc(got + ' of ' + d.booked + ' have it'));
+  // Only once something has gone out. Before the booked time "0 of 6 have
+  // it" reads as a problem, when nothing has been sent yet by design.
+  if (d.booked && d.people.some(p => p.phone_msg)) bits.push(esc(got + ' of ' + d.booked + ' have it'));
 
   /* The one big button. There is no Start any more, so before the booked
      time it says when the game begins rather than asking for a press that

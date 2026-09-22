@@ -1586,3 +1586,55 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   that "double-tap" has not crept back.
 - **Next step:** the organiser pinches the new plan on a phone and checks the
   stall names are legible zoomed in.
+
+## 2026-09-23 — The booth counter: one thing at a time
+
+- **Changed:** the booth screen (`templates/admin.html`, `SCREENS.booth`,
+  `handBox`) stacked the viewfinder, the code box, the verdict, the person
+  and the hand-over buttons into one scroll. The viewfinder is a 4:3 block,
+  so on a counter phone the thing somebody had just scanned a pass to find
+  out was below the fold. The screen now has two states, on one `.booth-body`
+  class:
+  - **Scanning** (`.scanning`): the viewfinder fills the phone, as before.
+  - **A result** (`.showing`): the camera is already off at that point, so
+    the viewfinder shrinks to a 52px strip — frame and sweep line hidden,
+    the hint still readable — and the verdict, the person and the buttons
+    get the room. The code box tightens to 44px.
+- **What is left to collect comes first.** `handBox` used to render one red
+  `.blocked-item` per item already gone, the same size as the buttons and
+  mixed in with them, so a pass with two items collected read as two errors
+  and pushed the one live button to third place. Items still to collect are
+  now the whole list; what has gone sits under a rule at the bottom as a
+  quiet `.gonebox` — item name, then time, kind, counter and staff. A pass
+  with nothing left says *"Everything on this pass has been collected."*
+- **Scan next is always under a thumb.** `.boothfoot` is `position:sticky;
+  bottom:0` with a fade behind it and
+  `padding-bottom:max(2px, env(safe-area-inset-bottom, 0px))`, so it clears
+  Android's gesture bar however long the hand-over list runs. With a result
+  on screen it reads **Scan the next pass** and goes solid black; **Check in**
+  is disabled until there is somebody to check in, and says **Check in again**
+  for somebody already in.
+- **Two things the booth no longer says.** A person with no check-in gets a
+  plain *Not checked in* tag rather than nothing at all, and the escape tag
+  reads **The Last Guest · 7:05** instead of `Esc 7:05 · half B — desk`:
+  the split went this morning, so there is no half to name.
+- **The scanning mechanism is untouched.** `startCamera`, `stopCamera`,
+  `scanLocked`, `camStarting` and the jsQR decode loop are byte-for-byte what
+  they were, and both states keep every id the camera code reaches for
+  (`#viewfinder`, `#cam`, `#vfhint`, `#codebox`, `#checkin`, `#scannext`).
+  The 17 Sep one-read-per-scan fix stands.
+- **A status line that counted nothing.** The GM card read
+  *"Upcoming · phone opens at 7:05 · 0 of 6 have it"* before the booked time,
+  which reads as a fault when it is the design. The count now appears only
+  once something has actually been sent.
+- **New file `scripts/render_console.mjs`** — the console's answer to
+  `scripts/render_views.mjs`. It pulls the page script out of
+  `templates/admin.html`, stubs the browser, and renders 18 booth and GM
+  states against fixtures, asserting what each must and must not contain.
+- **Current state:** 539 tests pass; `node --check` passes on the page
+  script; 18 console states render with 0 failures.
+- **Left unfinished on purpose:** no browser test covers the camera, for the
+  same reason as 17 Sep — there is no browser harness here.
+- **Next step:** the organiser scans a pass on the counter phone and checks
+  that the verdict and the hand-over buttons are on screen without scrolling,
+  and that **Scan the next pass** sits above the gesture bar.
