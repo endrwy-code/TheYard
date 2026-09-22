@@ -1666,6 +1666,7 @@ VIEWS.ticket = function(){
         ? `<button class="btn btn-bone" id="allowmsgs">Allow messages</button>`
         : `<div class="phone-b">Open our bot in Telegram and tap Start.</div>`}
     </div>` : ''}
+    <button class="btn btn-quiet" data-go="floorplan">Where is it? ${ARROW}</button>
     ${peopleList({
       head:'Your group', count:b.group.length + ' of ' + b.max_party, rows,
       add:b.can_add ? addRow('friendbox', '<button class="prow-add-btn" id="friendlive">Add</button>') : ''
@@ -2060,11 +2061,12 @@ VIEWS.floorplan = function(){
     <header><h1 class="display big">Floorplan</h1></header>
     ${src ? `
     <div class="plan" id="plan">
-      <img id="planimg" src="${esc(src)}" alt="The Yard floorplan: the DIY area, two chill rooms, the photo booth, the jamming room, the food stalls, the seating area, the front desk and the entrance" draggable="false">
+      <img id="planimg" src="${esc(src)}" alt="The Yard floorplan: the DIY area down the left, the jamming room and two chill rooms, the photo booth, the Two Goose, Paninis, Pastries and MUTED. Gelato stalls along the top, the seating area, Registration and the entrance" draggable="false">
     </div>
-    <p class="label plan-hint" id="planhint">Pinch or double-tap to zoom</p>
+    <p class="label plan-hint" id="planhint">Pinch to zoom</p>
     <ul class="help-list plan-notes">
       <li>${esc(capFirst(e.meeting_point || 'the front desk'))} is marked Registration on the plan</li>
+      <li>For The Last Guest: go out of the entrance and take the first door on your right. The sign on it says Escape Room</li>
     </ul>` : `<p class="help-p">The floorplan isn’t up yet. Ask at ${esc(e.meeting_point || 'the front desk')}.</p>`}
   </div>`;
 };
@@ -2116,14 +2118,13 @@ function wirePlan(){
   if (img.complete) fit(); else img.addEventListener('load', fit, { once:true });
   planClamp(frame); planApply(img);
   const points = new Map();
-  let pinchFrom = 0, scaleFrom = 1, lastTap = 0, moved = false;
+  let pinchFrom = 0, scaleFrom = 1;
   const touches = () => [...points.values()];
   const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   frame.addEventListener('pointerdown', (ev) => {
     frame.setPointerCapture(ev.pointerId);
     points.set(ev.pointerId, { x:ev.clientX, y:ev.clientY });
-    moved = false;
     if (points.size === 2){
       const [a, b] = touches();
       pinchFrom = gap(a, b); scaleFrom = PLAN.scale;
@@ -2139,29 +2140,20 @@ function wirePlan(){
       const [a, b] = touches();
       const mid = { x:(a.x + b.x) / 2, y:(a.y + b.y) / 2 };
       planZoomAt(frame, scaleFrom * (gap(a, b) / pinchFrom), mid.x, mid.y);
-      moved = true;
     } else if (points.size === 1 && PLAN.scale > 1){
       PLAN.x += now.x - was.x; PLAN.y += now.y - was.y;
       planClamp(frame);
-      moved = true;
     }
     planApply(img);
   });
 
+  // Pinch only (23 Sep). A double-tap on a map you are already pinching is a
+  // second way to do the same thing, and on a phone it fires by accident:
+  // two quick taps while you are working out where you are, and the plan
+  // jumps to 2.6x somewhere you were not looking.
   const release = (ev) => {
     points.delete(ev.pointerId);
     if (points.size < 2) pinchFrom = 0;
-    // A double-tap zooms in where you tapped, or back out if you are in.
-    if (ev.type === 'pointerup' && !moved){
-      const now = Date.now();
-      if (now - lastTap < 320){
-        planZoomAt(frame, PLAN.scale > 1.2 ? 1 : 2.6, ev.clientX, ev.clientY);
-        planApply(img);
-        lastTap = 0;
-      } else {
-        lastTap = now;
-      }
-    }
   };
   frame.addEventListener('pointerup', release);
   frame.addEventListener('pointercancel', release);

@@ -1562,3 +1562,27 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   failures, which includes the new one.
 - **Next step:** the organiser checks the photograph reads well on a phone —
   it is the one picture on the page and it is doing the work of a header.
+
+## 2026-09-23 — The new floorplan, pinch only, and the way to the escape room
+
+- **Changed:** `static/floorplan.png` is the organiser's new plan — the DIY
+  area down the left, the jamming room and two chill rooms, the photo booth,
+  and Two Goose, Paninis, Pastries and **MUTED. Gelato** along the top. Same
+  2000×1414 shape, so `.plan{aspect-ratio:2000/1414}` and the clamping are
+  unchanged, and `floorplan_url()` cache-busts on the file's modified time by
+  itself. The `alt` text describes the new plan.
+- **Pinch only.** Double-tap-to-zoom is gone. It was a second way to do what
+  pinch already does, and on a phone it fires by accident: two quick taps
+  while you work out where you are, and the plan jumps to 2.6× somewhere you
+  were not looking. The hint reads **Pinch to zoom**. Drag-to-pan and the
+  trackpad wheel are unchanged, and the `lastTap` / `moved` bookkeeping that
+  only double-tap used went with it.
+- **The way to the escape room** is a note under the plan: *go out of the
+  entrance and take the first door on your right. The sign on it says Escape
+  Room.* The escape ticket carries a **Where is it?** button to the plan,
+  which is the moment anybody actually wants it.
+- **Current state:** 539 tests pass; 33 screen states render. The render check
+  now asserts the plan says "Pinch to zoom" and carries the directions, and
+  that "double-tap" has not crept back.
+- **Next step:** the organiser pinches the new plan on a phone and checks the
+  stall names are legible zoomed in.

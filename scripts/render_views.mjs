@@ -140,8 +140,8 @@ const MUST = {
              "shot-prices", "Already yours"],
   // The map moves inside a fixed frame now: pinch, double-tap, drag
   // (23 Sep, STATE.md 135). No zoom button, and no zoomed-page state.
-  "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png",
-                "marked Registration on the plan"],
+  "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png", "Pinch to zoom",
+                "marked Registration on the plan", "first door on your right", "says Escape Room"],
   "jamticket": ["Heaven 2"],
   "home (nothing booked)": ['data-go="mybookings"', ">None<", "Book something!"],
   // The phone lives on its own screen now, reached from the bot's message.
@@ -169,7 +169,9 @@ const MUST = {
 // 22 Sep (decision 130): the bot's message is the only way to the phone.
 const NOT = {
   "help (payments not checked)": ["You haven’t seen my payment."],
-  "floorplan": ['id="planzoom"', "Fit to screen"],
+  // No zoom button (23 Sep, STATE.md 135), and no double-tap either: on a
+  // phone it fires by accident while you are working out where you are.
+  "floorplan": ['id="planzoom"', "Fit to screen", "double-tap"],
   "esc": ['id="openphone"', 'id="openphonetab"', 'class="phone"'],
   "ticket": ["with the phone", "escape-room door", "Where you start",
              "Inside the flat", "At the desk"],
