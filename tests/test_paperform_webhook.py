@@ -25,6 +25,18 @@ def body(name="Ada Lovelace", telegram="@ada_lovelace", email="ada@example.com",
                      for i, (t, v) in enumerate(fields)]}
 
 
+# The screenshot question, as the form actually titles it, in the shapes a
+# file upload arrives in.
+SHOT = "Upload a screenshot of the payment!"
+
+
+def with_shot(value):
+    payload = body(receipt="")
+    payload["data"] = [f for f in payload["data"] if f["title"] != "Submission Receipt"]
+    payload["data"].append({"key": "shot", "title": SHOT, "value": value})
+    return payload
+
+
 def post(client, payload, **kwargs):
     return client.post("/paperform/webhook", json=payload, **kwargs)
 
@@ -78,6 +90,29 @@ def test_a_form_field_beats_a_top_level_key_of_the_same_name():
 def test_a_body_that_is_not_an_object_is_refused():
     with pytest.raises(paperform.WebhookError):
         paperform.parse([1, 2, 3])
+
+
+@pytest.mark.parametrize("value", [
+    "https://paperform.co/r/shot.png",                              # a bare URL
+    ["https://paperform.co/r/shot.png"],                            # a one-file list
+    {"url": "https://paperform.co/r/shot.png", "name": "pay.png"},  # a file object
+    [{"url": "https://paperform.co/r/shot.png"}],                   # a list of one
+    {"value": "https://paperform.co/r/shot.png"},                   # nested once more
+])
+def test_the_payment_screenshot_survives_every_shape_it_arrives_in(value):
+    """It is the one field that is a file, and losing it loses the proof."""
+    assert paperform.parse(with_shot(value))["receipt_url"] == "https://paperform.co/r/shot.png"
+
+
+def test_the_screenshot_decides_the_payment_status(conn):
+    paperform.receive(conn, with_shot({"url": "https://paperform.co/r/shot.png"}))
+    row = one(conn, "ada_lovelace")
+    assert row["paperform_receipt_url"] == "https://paperform.co/r/shot.png"
+    assert row["payment_status"] == "submitted"
+
+
+def test_a_field_too_deep_to_read_is_dropped_rather_than_guessed():
+    assert paperform.parse(with_shot({"meta": {"nested": "x"}}))["receipt_url"] == ""
 
 
 # ---------------------------------------------------------------------------

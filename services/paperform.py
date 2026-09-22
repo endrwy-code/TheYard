@@ -17,8 +17,10 @@ with source 'import' rather than a source of its own. That is deliberate: the
 next export will contain it, and rule 12 should then treat it exactly as if it
 had come from the file.
 
-The form sends the six fields the export has columns for: Submitted At,
-Unique, Name, Telegram, Email, Submission Receipt.
+The form sends the six fields the export has columns for. Five arrive under
+the export's own column names; the screenshot arrives under the question's
+title, "Upload a screenshot of the payment!", and as a file rather than a
+string — see FIELDS and _scalar, which is where a lost receipt hides.
 """
 
 import db
@@ -44,7 +46,10 @@ FIELDS = {
     "name": ("Name", "full name"),
     "telegram": ("Telegram", "telegram username", "telegram handle", "username"),
     "email": ("Email", "email address"),
-    "receipt_url": ("Submission Receipt", "receipt", "submission receipt url"),
+    # "Submission Receipt" is the column Paperform puts in the .xlsx; the
+    # webhook sends the question's own title instead, which is the long one.
+    "receipt_url": ("Upload a screenshot of the payment!", "Submission Receipt",
+                    "payment screenshot", "screenshot", "receipt", "submission receipt url"),
 }
 
 
@@ -52,12 +57,25 @@ def _key(label):
     return "".join(ch for ch in str(label or "").lower() if ch.isalnum())
 
 
+# An uploaded file is not a string. Paperform has sent it as a bare URL, as a
+# list of URLs, and as an object carrying one under several different names —
+# the screenshot question is the only field where this matters, and getting it
+# wrong loses the payment proof silently.
+FILE_KEYS = ("url", "link", "href", "file", "src", "download_url", "value")
+
+
 def _scalar(value):
-    """Paperform sends a plain value for a text field and a one-item list for
-    some others. Anything deeper than that is not one of our six fields."""
+    """One usable value out of whatever shape a field arrives in."""
     if isinstance(value, list):
-        return value[0] if len(value) == 1 and not isinstance(value[0], (dict, list)) else None
-    return None if isinstance(value, dict) else value
+        # A file field with one upload in it; anything else is not ours.
+        return _scalar(value[0]) if len(value) == 1 else None
+    if isinstance(value, dict):
+        for key in FILE_KEYS:
+            found = value.get(key)
+            if isinstance(found, str) and found.strip():
+                return found
+        return None
+    return value
 
 
 def _flatten(payload):
