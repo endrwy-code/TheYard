@@ -338,6 +338,114 @@ def cmd_generate_slots(argv):
     return 0
 
 
+# Everything one run of the event writes, and nothing that describes the event
+# itself. Order matters: children before the rows they point at.
+NIGHT_TABLES = (
+    ("hint_sends", "cues the GM marked sent"),
+    ("game_sessions", "game clocks, pauses and phone locks"),
+    ("phone_tickets", "one-time links to the victim's phone"),
+    ("one_time_links", "other one-time links"),
+    ("claims", "hand-overs at the booth"),
+    ("orders", "matcha and panini orders"),
+    ("escape_bookings", "escape room bookings"),
+    ("jam_bookings", "jamming studio bookings"),
+    ("notifications", "queued and sent Telegram messages"),
+    ("direct_messages", "messages to the actor"),
+    ("gate_attempts", "refused sign-ins at the gate"),
+    ("console_sessions", "staff console sign-ins"),
+)
+
+
+def cmd_reset_event(argv):
+    """Wipe a rehearsal and leave the event ready to run for real.
+
+    What goes: every booking, hand-over, order, game clock, queued message and
+    check-in, plus any payment verdict made while testing. What stays: the
+    people, their pass codes, their Telegram links, every Setting, the receipt
+    files, the import history and the audit log — the audit log especially,
+    because 'what did we delete and when' is the one question a reset has to
+    be able to answer afterwards.
+
+    Backs up first, always, and says exactly what it is about to remove.
+    """
+    db.init_db()
+    conn = db.connect()
+    try:
+        counts = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]  # noqa: S608
+                  for t, _ in NIGHT_TABLES}
+        checked_in = conn.execute(
+            "SELECT COUNT(*) FROM attendees WHERE checked_in_at IS NOT NULL").fetchone()[0]
+        verdicts = conn.execute(
+            "SELECT COUNT(*) FROM attendees WHERE payment_status IN ('verified','rejected')"
+        ).fetchone()[0]
+        people = conn.execute("SELECT COUNT(*) FROM attendees").fetchone()[0]
+
+        _say("This clears the last run and leaves the event ready to go again.")
+        _say("")
+        _say("  Removed:")
+        for table, what in NIGHT_TABLES:
+            if counts[table]:
+                _say(f"    {counts[table]:>5}  {what}")
+        if checked_in:
+            _say(f"    {checked_in:>5}  check-ins")
+        if verdicts:
+            _say(f"    {verdicts:>5}  payment verdicts (back to what the sign-up said)")
+        if not any(counts.values()) and not checked_in and not verdicts:
+            _say("    nothing — this database has no run on it yet")
+        _say("")
+        _say(f"  Kept:  {people} people, their pass codes and Telegram links,")
+        _say("         every Setting, the receipts, the imports and the audit log.")
+        _say("")
+
+        if "--yes" not in argv:
+            if input("  Type RESET to go ahead: ").strip() != "RESET":
+                _say("Nothing was changed.")
+                return 1
+
+        target = db.backup_now(keep=int(db.get_setting(conn, "backup_keep", 36)))
+        _say(f"Backed up first to {target}.")
+
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            for table, _ in NIGHT_TABLES:
+                conn.execute(f"DELETE FROM {table}")  # noqa: S608 - fixed list above
+            conn.execute("UPDATE attendees SET checked_in_at=NULL, checked_in_by=NULL, "
+                         "updated_at=? WHERE checked_in_at IS NOT NULL", (db.utcnow(),))
+            # A verdict made while testing goes back to what the sign-up itself
+            # says, which is exactly what reopening it does (§9 r14).
+            conn.execute(
+                "UPDATE attendees SET payment_status = "
+                "CASE WHEN paperform_receipt_url IS NOT NULL AND paperform_receipt_url != '' "
+                "THEN 'submitted' ELSE 'missing' END, updated_at=? "
+                "WHERE payment_status IN ('verified','rejected')", (db.utcnow(),))
+            # Receipt rows an admin created by marking someone paid at the desk.
+            # A row with a file behind it is the sign-up's own and stays.
+            conn.execute("DELETE FROM receipts WHERE source='admin' AND file_name IS NULL")
+            # Blocks and retirements a rehearsal left on the timetable.
+            conn.execute("UPDATE slots SET is_blocked=0, block_reason=NULL")
+            db.set_setting(conn, "test_clock", False, by="reset-event")
+            db.audit(conn, "system", "Event reset", actor_name="manage.py",
+                     details={"removed": counts, "check_ins": checked_in, "verdicts": verdicts})
+            conn.execute("COMMIT")
+        except BaseException:
+            conn.execute("ROLLBACK")
+            raise
+    finally:
+        conn.close()
+
+    from services import bookings
+    conn = db.connect()
+    try:
+        done = bookings.generate_slots(conn)
+    finally:
+        conn.close()
+    _say("")
+    _say(f"Done. {done['escape']['total']} escape games and {done['jam']['total']} jam slots, "
+         "all empty. Test clock is off.")
+    _say("Reload the console on every device before you start.")
+    return 0
+
+
 def cmd_cancel_group(argv):
     """Take someone's whole escape group off its game, without messaging anyone."""
     from datetime import datetime, timezone
@@ -509,6 +617,7 @@ COMMANDS = {
     "phone-images": cmd_phone_images,
     "void-claim": cmd_void_claim,
     "generate-slots": cmd_generate_slots,
+    "reset-event": cmd_reset_event,
     "cancel-group": cmd_cancel_group,
     "set-public-url": cmd_set_public_url,
     "notify": cmd_notify,
