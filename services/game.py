@@ -8,17 +8,20 @@ and the server's clock, never on a device.
 
 The phone opens for one person when they have a booking in this game and the
 clock has reached their booked time, and for `phone_minutes` after it (§9 r21).
-That is the whole rule since 24 Sep: the GM no longer has to allow anything,
-and check-in no longer gates it. Two things can still close it — the admin's
-in-app phone switch, and the GM's emergency lock for one game — and neither is
-something anybody has to press for the phone to work. `phone_always_handles`
-lets named Telegram accounts open it at any time, for testing.
+That is the whole rule: nobody allows anything, check-in does not gate it, and
+there is no switch anywhere that can have been left off. The one thing that
+closes it early is the game master's lock, which exists for the night
+something goes wrong and is never set otherwise. `phone_always_handles` lets
+named Telegram accounts open it at any time, for testing.
 
-Since 22 Sep (STATE.md 130) that is **everyone in the game**, not only the
-desk half — the halves still decide where people start — and the way in is a
-bot message sent the moment the phone opens, whose button is the only link to
-it. The window runs 25 minutes from the start, so the game ending (the GM's
-End, or the fifteen minutes running out) does not take the phone away.
+Everyone in the game gets it (22 Sep, STATE.md 130). The way in is a bot
+message sent the moment the phone opens, and a button on the escape screen
+that appears only while the phone is genuinely open to that person.
+
+Nobody starts a game either (23 Sep). The booked time starts it and the slot
+is the fact; what a game master has instead is Pause, a minute either way, and
+End — and pausing moves the phone's window with it, so sorting something out
+never costs a group their phone.
 """
 
 import json
@@ -31,16 +34,22 @@ from services import bookings, claims, notify
 from services.claims import ClaimError
 
 ClaimError.STATUS.update({
-    "PHONE_LOCKED": 403, "PHONE_OFF": 403, "PHONE_NOT_YOUR_HALF": 403,
+    "PHONE_LOCKED": 403, "PHONE_OFF": 403,
     "NOT_YET": 403, "RELOCKED": 403, "NO_BOOKING": 403, "GAME_STATE": 409,
 })
 
 EXTEND_SECONDS = 60
 ACTIONS = {
-    "start": "Game started", "pause": "Game paused", "resume": "Game resumed",
-    "extend": "Game extended by a minute", "end": "Game ended",
+    # No Start (23 Sep). The booked time starts the game; a press was one more
+    # thing to remember, and forgetting it held up the room. Pause is the
+    # adjustment for when something happens, and it moves the phone's window
+    # with it so pausing never costs a group their phone.
+    "pause": "Game paused", "resume": "Game resumed",
+    "extend": "Game extended by a minute", "shorten": "Game shortened by a minute",
+    "end": "Game ended",
     # The emergency lock, and undoing it. Neither is needed for the phone to
-    # work: the booked time is what opens it (24 Sep).
+    # work: the booked time is what opens it, and nothing shuts it early
+    # unless a game master reaches for this.
     "lock": "Phone locked", "unlock": "Phone lock lifted",
 }
 
@@ -58,12 +67,17 @@ def _local(dt):
 
 
 def script():
-    """(cues, reset checklist) from the private script file."""
+    """(hints, reset checklist) from the private hint file.
+
+    It used to be a script: cues with times against them, which turned the
+    game master into someone keeping up with a schedule. It is a list now,
+    and the game master gives a hint when the room needs one (23 Sep).
+    """
     try:
         data = json.loads(config.GM_SCRIPT.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
-    return data.get("cues") or [], data.get("reset") or []
+    return data.get("hints") or [], data.get("reset") or []
 
 
 def _slot(conn, slot_id):
@@ -86,17 +100,27 @@ def _session(conn, slot_id):
 # ---------------------------------------------------------------------------
 
 def timing(slot, sess, settings, now):
-    """Where a game is. `started` is None until it starts (the GM's Start,
-    or the scheduled time in 'clock' mode)."""
+    """Where a game is.
+
+    Nobody starts a game any more (23 Sep). The booked time starts it: the
+    slot is the fact, and a press was one more thing to remember in a dim
+    room. `started` is therefore the booked time once it has come, or
+    whatever `started_at` the session already holds — Pause and End stamp it,
+    so a row that has been touched keeps saying what it always said.
+    """
     game_seconds = int(settings["game_minutes"]) * 60 + (sess["extended_seconds"] if sess else 0)
-    started = _dt(sess["started_at"]) if sess else None
     paused_total = sess["paused_seconds"] if sess else 0
     paused_at = _dt(sess["paused_at"]) if sess else None
     ended = _dt(sess["ended_at"]) if sess else None
+    starts_at = _dt(slot["starts_at"])
+
+    started = _dt(sess["started_at"]) if sess and sess["started_at"] else None
+    if started is None and now >= starts_at:
+        started = starts_at
 
     if started is None:
         elapsed = 0
-        end = _dt(slot["starts_at"]) + timedelta(seconds=game_seconds)
+        end = starts_at + timedelta(seconds=game_seconds)
     else:
         stop = ended or paused_at or now
         elapsed = max(0, int((stop - started).total_seconds()) - paused_total)
@@ -106,11 +130,14 @@ def timing(slot, sess, settings, now):
             end = now + timedelta(seconds=max(0, game_seconds - elapsed))
         else:
             end = started + timedelta(seconds=game_seconds + paused_total)
-    # The phone's window belongs to the booked slot, not to the GM's clock
-    # (24 Sep): it opens at the booked time and closes `phone_minutes` later,
-    # whatever Start, Pause and Extend are doing. A 15-minute game inside a
-    # 25-minute window already carries ten minutes of slack.
-    relock_at = _dt(slot["starts_at"]) + timedelta(minutes=int(settings["phone_minutes"]))
+    # The phone's window belongs to the booked slot: it opens at the booked
+    # time and closes `phone_minutes` later. A 15-minute game inside a
+    # 25-minute window already carries ten minutes of slack — but a game that
+    # was paused or extended has spent some of that slack on the clock, so the
+    # window follows it. Pausing to sort something out must never be the
+    # reason a group loses the phone (23 Sep).
+    relock_at = (starts_at + timedelta(minutes=int(settings["phone_minutes"]))
+                 + timedelta(seconds=paused_total + (sess["extended_seconds"] if sess else 0)))
     return {
         "started": started, "ended": ended, "paused": paused_at is not None,
         "elapsed": elapsed, "game_seconds": game_seconds,
@@ -123,16 +150,17 @@ def timing(slot, sess, settings, now):
 def _phone_state(slot, sess, t, settings, now):
     """(open, why-not code, begun) for the game as a whole.
 
-    `begun` is what the halves hang on: it is the booked time arriving, not
-    anybody pressing anything.
+    Two things close the phone and that is all: the booked time not having
+    come, and the window having run out. Nothing closes it by itself in
+    between — no press to wait for, no switch to have left off. The third
+    case is the game master reaching for the lock, which is there for the
+    night something goes wrong and is never set otherwise (23 Sep).
     """
     begun = now >= _dt(slot["starts_at"])
     if not begun:
         return False, "NOT_YET", False
     if now >= t["relock_at"]:
         return False, "RELOCKED", True
-    if not settings["in_app_phone"]:
-        return False, "PHONE_OFF", True
     if sess and sess["phone_locked_at"]:
         return False, "PHONE_LOCKED", True
     return True, None, True
@@ -170,8 +198,8 @@ def phone_access(conn, attendee_id, now):
     if b is None:
         # No booking is still no phone, unless this is one of the test accounts.
         if always_allowed(conn, attendee_id, settings):
-            return {"code": None, "zone": None, "always": True}
-        return {"code": "NO_BOOKING", "zone": None}
+            return {"code": None, "always": True}
+        return {"code": "NO_BOOKING"}
     slot = _slot(conn, b["slot_id"])
     sess = _session(conn, slot["id"])
     t = timing(slot, sess, settings, now)
@@ -179,27 +207,27 @@ def phone_access(conn, attendee_id, now):
         "game_starts_at": claims.local_iso(slot["starts_at"]),
         "game_ends_at": _local(t["end"]),
         "lock_at": _local(t["relock_at"]),
-        "zone": None,
     }
-    is_open, code, begun = _phone_state(slot, sess, t, settings, now)
-    if begun:
-        out["zone"] = b["zone"]         # halves are revealed once the game is on
+    is_open, code, _begun = _phone_state(slot, sess, t, settings, now)
     if not is_open:
         # A test account gets in anyway, and is told that is why.
         if always_allowed(conn, attendee_id, settings):
-            return dict(out, code=None, always=True, zone=b["zone"])
+            return dict(out, code=None, always=True)
         return dict(out, code=code)
-    # No half check since 22 Sep: everyone in the game has the phone. No
-    # check-in check since 24 Sep: the booked time is the whole rule.
+    # Everyone in the game has the phone (22 Sep), and the booked time is the
+    # whole rule (24 Sep): no half to be on, nothing to check in for.
     return dict(out, code=None)
 
 
 PHONE_MESSAGES = {
     "NO_BOOKING": "Book a game first.",
-    "NOT_YET": "The phone opens at your booked time.",
-    "RELOCKED": "Time's up, so the phone is locked again.",
-    "PHONE_OFF": "This game uses the handset at the desk.",
-    "PHONE_LOCKED": "The game master has locked the phone for this game.",
+    "NOT_YET": "Kai Chen's phone opens at your booked time.",
+    "RELOCKED": "Time's up, so Kai Chen's phone has closed.",
+    # PHONE_OFF now means one thing only, and it is a fault: the phone's file
+    # is not on this laptop. It used to double as an admin switch, which is
+    # what sent players to a desk that could not help them (23 Sep).
+    "PHONE_OFF": "Kai Chen's phone isn't on this laptop. Tell the front desk.",
+    "PHONE_LOCKED": "The game master has locked Kai Chen's phone for this game.",
 }
 
 
@@ -355,8 +383,11 @@ def issue_phone_ticket(conn, attendee_id, now):
     """
     access = phone_access(conn, attendee_id, now)
     if access["code"]:
-        raise ClaimError("PHONE_LOCKED" if access["code"] in ("RELOCKED", "NO_BOOKING")
-                         else access["code"], PHONE_MESSAGES.get(access["code"], ""))
+        # The real reason, not a flattened one. The browser fallback used to
+        # answer PHONE_LOCKED for "not yet" and "no booking", so the same
+        # situation was described one way in the app and another through the
+        # link. One rule, one vocabulary (23 Sep).
+        raise ClaimError(access["code"], PHONE_MESSAGES.get(access["code"], ""))
     b = bookings.active_booking(conn, attendee_id)
     token = secrets.token_urlsafe(24)
     expires = now + timedelta(seconds=TICKET_SECONDS)
@@ -397,8 +428,11 @@ def redeem_phone_ticket(conn, token, now):
     # the link must not still open it.
     access = phone_access(conn, row["attendee_id"], now)
     if access["code"]:
-        raise ClaimError("PHONE_LOCKED" if access["code"] in ("RELOCKED", "NO_BOOKING")
-                         else access["code"], PHONE_MESSAGES.get(access["code"], ""))
+        # The real reason, not a flattened one. The browser fallback used to
+        # answer PHONE_LOCKED for "not yet" and "no booking", so the same
+        # situation was described one way in the app and another through the
+        # link. One rule, one vocabulary (23 Sep).
+        raise ClaimError(access["code"], PHONE_MESSAGES.get(access["code"], ""))
     db.audit(conn, "attendee", "Phone link used", entity="attendee", entity_id=row["attendee_id"])
     return _phone_html()
 
@@ -412,14 +446,16 @@ def _games(conn, settings, now):
     for n, sl in enumerate(bookings._slots(conn, "escape"), start=1):
         sess = _session(conn, sl["id"])
         t = timing(sl, sess, settings, now)
+        # Four words, and the console uses these same four everywhere it
+        # says what a game is doing. "Missed" is gone with Start (23 Sep):
+        # nothing has to be pressed, so nothing can be missed. A game whose
+        # time has come is in progress, and it says so.
         if sl["is_blocked"]:
             state = "blocked"
-        elif t["ended"]:
-            state = "ended"
+        elif t["ended"] or now >= t["relock_at"]:
+            state = "finished"
         elif t["started"]:
-            state = "running"
-        elif now >= t["end"] + timedelta(minutes=int(settings["changeover_minutes"])):
-            state = "missed"
+            state = "in_progress"
         else:
             state = "upcoming"
         out.append({"id": sl["id"], "number": n, "starts_at": claims.local_iso(sl["starts_at"]),
@@ -428,12 +464,23 @@ def _games(conn, settings, now):
 
 
 def current_game(games):
-    """The running game, else the next one still to play, else the last."""
-    for state in ("running", "upcoming"):
+    """The game happening now, else the next one still to play, else the last."""
+    for state in ("in_progress", "upcoming"):
         for gm in games:
             if gm["state"] == state:
                 return gm
     return games[-1] if games else None
+
+
+def _next_game_at(games, pick):
+    """When the game after this one starts.
+
+    During a changeover this is the only figure a game master wants, and
+    working it out from a list of twenty-one times in a dim room is not a
+    reasonable thing to ask of anybody.
+    """
+    after = [gm for gm in games if gm["number"] > pick["number"] and gm["state"] != "blocked"]
+    return after[0]["starts_at"] if after else None
 
 
 def state(conn, now, slot_id=None):
@@ -449,7 +496,7 @@ def state(conn, now, slot_id=None):
     phone_open, _, _ = _phone_state(slot, sess, t, settings, now)
 
     rows = conn.execute(
-        "SELECT b.id AS booking_id, b.attendee_id, b.zone, b.status, a.name, a.handle, a.checked_in_at, "
+        "SELECT b.id AS booking_id, b.attendee_id, b.status, a.name, a.handle, a.checked_in_at, "
         "a.tg_user_id, a.can_message "
         "FROM escape_bookings b JOIN attendees a ON a.id=b.attendee_id "
         "WHERE b.slot_id=? AND b.status IN ('booked','checked_in') ORDER BY b.created_at, b.id",
@@ -460,35 +507,37 @@ def state(conn, now, slot_id=None):
         sent = {n["dedupe_key"]: n["status"] for n in conn.execute(
             f"SELECT dedupe_key, status FROM notifications WHERE dedupe_key IN ({','.join('?' * len(keys))})",  # noqa: S608
             keys)}
-    halves = {"A": [], "B": []}
-    for r in rows:
-        halves[r["zone"] if r["zone"] in halves else "A"].append({
-            "id": r["attendee_id"], "name": r["name"], "handle": r["handle"],
-            "in": bool(r["checked_in_at"]) or r["status"] == "checked_in",
-            "phone_msg": _phone_msg(sent.get(f"phone:{r['booking_id']}"), r)})
+    # Who is in the room, in the order they booked. This replaced the halves
+    # on 23 Sep: the split had nothing left to decide once everyone got the
+    # phone, and what a game master actually wants at the door is the list of
+    # names about to walk through it.
+    people = [{
+        "id": r["attendee_id"], "name": r["name"], "handle": r["handle"],
+        "in": bool(r["checked_in_at"]) or r["status"] == "checked_in",
+        "phone_msg": _phone_msg(sent.get(f"phone:{r['booking_id']}"), r)} for r in rows]
 
-    cues, reset = script()
-    done = set()
+    hints, reset = script()
+    done = {}
     if sess:
-        done = {r["hint_key"] for r in conn.execute(
-            "SELECT hint_key FROM hint_sends WHERE session_id=?", (sess["id"],))}
+        done = {r["hint_key"]: claims.local_iso(r["sent_at"]) for r in conn.execute(
+            "SELECT hint_key, sent_at FROM hint_sends WHERE session_id=?", (sess["id"],))}
     return {
         "slot_id": slot["id"], "game_number": pick["number"], "games_total": len(games),
         "games": games,
         "starts_at": claims.local_iso(slot["starts_at"]),
+        "state": pick["state"],
         "started": t["started"] is not None, "paused": t["paused"], "ended": t["ended"] is not None,
         "elapsed_seconds": t["elapsed"], "game_seconds": t["game_seconds"],
         "remaining_seconds": t["remaining"],
         "ends_at": _local(t["end"]), "relock_at": _local(t["relock_at"]),
-        "halves_locked_at": claims.local_iso(sess["halves_locked_at"]) if sess else None,
+        "next_game_at": _next_game_at(games, pick),
         "phone_open": phone_open,
         "phone_locked": bool(sess and sess["phone_locked_at"]),
-        "in_app_phone": bool(settings["in_app_phone"]),
-        "booked": len(rows), "checked_in": sum(p["in"] for side in halves.values() for p in side),
-        "halves": halves,
-        "cues": [{"key": c["key"], "at": str(settings.get(c.get("time_setting"), "")),
-                  "line": c.get("line", ""), "action": c.get("action", "Send"),
-                  "sent": c["key"] in done} for c in cues],
+        "booked": len(rows), "checked_in": sum(p["in"] for p in people),
+        "people": people,
+        "hints": [{"key": h["key"], "title": h.get("title", ""), "line": h.get("line", ""),
+                   "optional": bool(h.get("optional")),
+                   "given": h["key"] in done, "given_at": done.get(h["key"])} for h in hints],
         "reset": reset,
         "changeover_minutes": int(settings["changeover_minutes"]),
         "actor_ready": bool(settings.get("actor_chat_id")),
@@ -512,39 +561,48 @@ def act(conn, slot_id, action, actor, now):
         sess = _ensure_session(conn, slot["id"])
         t = timing(slot, sess, settings, now)
         sets = {}
-        running = sess["started_at"] and not sess["ended_at"]
-        if action == "start":
-            if sess["started_at"]:
-                raise ClaimError("GAME_STATE", "This game has already started.")
-            sets = {"started_at": stamp, "halves_locked_at": stamp, "gm_name": actor["name"]}
-        elif action == "pause":
+        # The booked time is what runs a game, so "running" asks the clock,
+        # not the row. The row is caught up below: the first press writes the
+        # booked time into started_at, so a session anyone has touched says on
+        # its own what timing() would have worked out anyway.
+        running = t["started"] is not None and not sess["ended_at"]
+        if running and not sess["started_at"]:
+            sets = {"started_at": _iso(t["started"]), "gm_name": actor["name"]}
+        if action == "pause":
             if not running or sess["paused_at"]:
-                raise ClaimError("GAME_STATE", "Only a running game can be paused.")
-            sets = {"paused_at": stamp}
+                raise ClaimError("GAME_STATE", "Only a game that has begun can be paused.")
+            sets["paused_at"] = stamp
         elif action == "resume":
             if not sess["paused_at"]:
                 raise ClaimError("GAME_STATE", "This game isn't paused.")
             gap = int((now - _dt(sess["paused_at"])).total_seconds())
-            sets = {"paused_at": None, "paused_seconds": sess["paused_seconds"] + max(0, gap)}
+            sets.update(paused_at=None, paused_seconds=sess["paused_seconds"] + max(0, gap))
         elif action == "extend":
             if sess["ended_at"]:
                 raise ClaimError("GAME_STATE", "This game has ended.")
-            sets = {"extended_seconds": sess["extended_seconds"] + EXTEND_SECONDS}
+            sets["extended_seconds"] = sess["extended_seconds"] + EXTEND_SECONDS
+        elif action == "shorten":
+            if sess["ended_at"]:
+                raise ClaimError("GAME_STATE", "This game has ended.")
+            # Never below the elapsed time: taking a minute off a game that
+            # has already run longer than that would end it by arithmetic.
+            floor = t["elapsed"] - int(settings["game_minutes"]) * 60
+            sets["extended_seconds"] = max(floor, sess["extended_seconds"] - EXTEND_SECONDS)
         elif action == "end":
             if not running:
-                raise ClaimError("GAME_STATE", "Only a running game can be ended.")
-            # The phone is not locked here any more: it stays open to the end
-            # of its window, so the clock running out does not cut anyone off
-            # (22 Sep, STATE.md 130). Lock phone still locks it at once.
-            sets = {"ended_at": stamp, "finish_seconds": t["elapsed"]}
+                raise ClaimError("GAME_STATE", "Only a game that has begun can be ended.")
+            # The phone is not locked here: it stays open to the end of its
+            # window, so the clock running out does not cut anyone off
+            # (22 Sep, STATE.md 130). Lock the phone still locks it at once.
+            sets.update(ended_at=stamp, finish_seconds=t["elapsed"])
             if sess["paused_at"]:
                 gap = int((now - _dt(sess["paused_at"])).total_seconds())
                 sets.update(paused_at=None, paused_seconds=sess["paused_seconds"] + max(0, gap))
         elif action == "lock":
-            sets = {"phone_locked_at": stamp}
+            sets["phone_locked_at"] = stamp
         elif action == "unlock":
             # Lifts the lock rather than granting anything: back to the rule.
-            sets = {"phone_locked_at": None}
+            sets["phone_locked_at"] = None
         conn.execute(
             f"UPDATE game_sessions SET {', '.join(k + '=?' for k in sets)} WHERE id=?",  # noqa: S608
             (*sets.values(), sess["id"]))
@@ -560,82 +618,34 @@ def act(conn, slot_id, action, actor, now):
     return bookings._run(conn, run)
 
 
-def halves(conn, slot_id, actor, *, swap_attendee_id=None, rebalance=False):
-    """Swap one player's half, or even the halves out. Logged every time;
-    after the game starts only gm and admin sign-ins reach this (§9 r22)."""
+def give_hint(conn, slot_id, key, actor, now):
+    """Record that a hint was given; it also goes to the actor's Telegram.
+
+    Once per game: a hint given twice is a hint the room did not need, and
+    the button says so rather than sending it again.
+    """
     slot = _slot(conn, slot_id)
-    sess = _session(conn, slot["id"])
-    locked = bool(sess and sess["halves_locked_at"])
-
-    def run():
-        rows = conn.execute(
-            "SELECT b.id, b.attendee_id, b.zone, a.handle FROM escape_bookings b "
-            "JOIN attendees a ON a.id=b.attendee_id "
-            "WHERE b.slot_id=? AND b.status IN ('booked','checked_in') ORDER BY b.created_at, b.id",
-            (slot["id"],)).fetchall()
-        moved = []
-        if rebalance:
-            # Use the same rule the booking side uses, so the GM's button and
-            # the automatic split cannot disagree: friends who booked together
-            # stay together where the game can still be played from both
-            # rooms (organiser's instruction, 18 Sep). Doing this by hand here
-            # once meant "even out the halves" quietly undid the grouping.
-            before = {r["id"]: r["zone"] for r in rows}
-            bookings._assign_halves(conn, slot["id"], force=True)
-            for r in rows:
-                now_zone = conn.execute("SELECT zone FROM escape_bookings WHERE id=?",
-                                        (r["id"],)).fetchone()["zone"]
-                if now_zone != before[r["id"]]:
-                    conn.execute("UPDATE escape_bookings SET zone_changed_by=? WHERE id=?",
-                                 (actor["name"], r["id"]))
-                    moved.append({"handle": r["handle"], "to": now_zone})
-            action = "Halves re-balanced"
-        else:
-            try:
-                target = int(swap_attendee_id)
-            except (TypeError, ValueError):
-                raise ClaimError("VALIDATION_FAILED", "Pick a player.")
-            r = next((x for x in rows if x["attendee_id"] == target), None)
-            if r is None:
-                raise ClaimError("NOT_FOUND", "That player isn't in this game.")
-            to = "A" if r["zone"] == "B" else "B"
-            conn.execute("UPDATE escape_bookings SET zone=?, zone_changed_by=? WHERE id=?",
-                         (to, actor["name"], r["id"]))
-            moved.append({"handle": r["handle"], "from": r["zone"], "to": to})
-            action = "Half swapped"
-        db.audit(conn, actor["role"], action, actor_name=actor["name"], station=actor.get("station"),
-                 entity="slot", entity_id=slot["id"],
-                 details={"game": claims.clock(slot["starts_at"]), "moved": moved, "after_start": locked})
-        return {"moved": moved}
-
-    return bookings._run(conn, run)
-
-
-def send_cue(conn, slot_id, key, actor, now):
-    """Mark a script cue done; hint lines also go to the actor's Telegram."""
-    slot = _slot(conn, slot_id)
-    cue = next((c for c in script()[0] if c["key"] == key), None)
-    if cue is None:
-        raise ClaimError("NOT_FOUND", "No such cue in the script.")
+    hint = next((h for h in script()[0] if h["key"] == key), None)
+    if hint is None:
+        raise ClaimError("NOT_FOUND", "No such hint.")
     actor_chat = int(db.get_setting(conn, "actor_chat_id", 0) or 0)
-    wants_actor = cue.get("action", "Send") == "Send"
 
     def run():
         sess = _ensure_session(conn, slot["id"])
         if conn.execute("SELECT 1 FROM hint_sends WHERE session_id=? AND hint_key=?",
                         (sess["id"], key)).fetchone():
-            raise ClaimError("GAME_STATE", "Already done for this game.")
+            raise ClaimError("GAME_STATE", "That hint has already been given.")
         conn.execute("INSERT INTO hint_sends (session_id, hint_key, sent_at, sent_by) VALUES (?,?,?,?)",
                      (sess["id"], key, _iso(now), actor["name"]))
-        delivered = bool(wants_actor and actor_chat)
+        delivered = bool(actor_chat)
         if delivered:
             conn.execute("INSERT INTO direct_messages (chat_id, text, created_at) VALUES (?,?,?)",
                          (actor_chat, f"🎭 game at {claims.clock(slot['starts_at'])}\n"
-                                      f"{notify.esc(cue.get('line', ''))}",
+                                      f"{notify.esc(hint.get('line', ''))}",
                           _iso(now)))
-        db.audit(conn, actor["role"], "Hint sent" if wants_actor else "Forced merge called",
-                 actor_name=actor["name"], station=actor.get("station"), entity="slot",
-                 entity_id=slot["id"], details={"cue": key, "to_actor": delivered})
+        db.audit(conn, actor["role"], "Hint given", actor_name=actor["name"],
+                 station=actor.get("station"), entity="slot", entity_id=slot["id"],
+                 details={"hint": key, "to_actor": delivered})
         return {"to_actor": delivered}
 
     return bookings._run(conn, run)

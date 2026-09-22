@@ -199,15 +199,10 @@ DEFAULT_SETTINGS = {
     # or no booking: for testing the room before the doors open. Comma
     # separated, no @. Empty on the night — it hands out the whole solution.
     "phone_always_handles": "",
-    "in_app_phone": True,
-    # How long the phone stays open, from the moment the game starts. A
-    # 15-minute game with leeway, so running out of time doesn't cut anyone
-    # off (22 Sep, STATE.md 130). Replaced relock_minutes (2 after the end).
+    # How long the phone stays open, from the booked time. A 15-minute game
+    # with leeway, so running out of time doesn't cut anyone off (22 Sep,
+    # STATE.md 130). Pausing or extending the game moves the end of it too.
     "phone_minutes": 25,
-    "hint_1": "4:30",
-    "hint_2": "6:45",
-    "hint_3": "10:30",
-    "forced_merge": "7:30",
     "booking_cutoff_minutes": 5,
     "cancel_cutoff_minutes": 30,
     "gm_handle": "",

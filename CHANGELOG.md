@@ -1423,3 +1423,56 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   Telegram and confirms all four dock icons are fully visible and tappable
   with no page scroll, then repeats through "Phone not working? Open it in
   your browser", which serves the same file as a whole page.
+
+## 2026-09-23 — The escape room runs itself: no Start, no switch, no split
+
+- **Changed:** three mechanisms that had each been overtaken, removed together
+  because each was propping up the others.
+  - **The `in_app_phone` setting is gone.** It was an admin switch that
+    answered a player, at their booked minute, with *"This game uses the
+    handset at the desk"* — and the desk could do nothing about it. That is
+    the refusal the organiser hit in rehearsal. `PHONE_OFF` now means one
+    thing only, and it is a fault: the phone's file is not on this laptop.
+  - **Start is gone.** `game.timing()` takes the booked time as the start,
+    and Pause, ±1 min and End stamp it into `game_sessions.started_at` on
+    first use so a touched row still says what it always said. Forgetting
+    Start used to hold a room up with the clock reading zero.
+  - **The split is gone.** Since 22 Sep everyone in the game got the phone,
+    which left the halves deciding only where two groups stood — and the app
+    never enforced that. `_assign_halves`, `_zone`, `game.halves`, the
+    `/halves` route and the A/B columns on four screens all went. The GM card
+    that showed them now lists **who is in this game**: number, name, handle,
+    checked in, and whether the phone's message reached them.
+- **Pausing now holds the phone open.** `relock_at` is the booked time plus
+  `phone_minutes` **plus whatever has been paused or added**. Sorting
+  something out in the room must never be the reason a group loses the phone.
+- **The lock stays, manual and off by default**, moved out of the main button
+  row into a quiet "rare" row with End, both behind a confirm.
+- **The script became a hint list.** `private/gm/script.json` holds `hints`
+  with no times against them; `hint_1`, `hint_2`, `hint_3` and `forced_merge`
+  left Settings with it. Each hint has one button that becomes *Given 6:42*.
+  `game.send_cue` is now `game.give_hint`; `POST /admin/api/gm/<id>/cues/<key>`
+  is now `…/hints/<key>`.
+- **One vocabulary for what a game is doing.** The server emits
+  `upcoming · in_progress · finished · blocked` and the picker, the card and
+  the timetable all print the same four words. `missed` is gone — with no
+  Start, nothing can be missed. This is the "ended" the organiser saw on a
+  game that was happening.
+- **Also:** the one-time browser link now reports the real refusal instead of
+  flattening "not yet" and "no booking" into `PHONE_LOCKED`; the console
+  follows the night to the next game unless a game master has picked one by
+  hand; a changeover shows *Next 7:40 PM*; the changeover ticks survive a
+  reload in `localStorage`; and the console finally uses
+  `env(safe-area-inset-bottom)`, which it has had `viewport-fit=cover` for all
+  along — the booth's last row was sitting under the gesture bar.
+- **Current state:** **532 tests pass.** Both pages pass
+  `node scripts/check_pages.mjs`. Seven of those tests were failing before
+  this change, on `main`, describing behaviour that had been replaced on
+  22–24 Sep and never re-asserted; they are fixed here rather than left.
+- **Left unfinished on purpose:** `escape_bookings.zone`,
+  `escape_bookings.zone_changed_by`, `game_sessions.halves_locked_at` and
+  `game_sessions.in_app_phone` stay in `db.py`. Nothing reads or writes them.
+  Dropping a column from a live SQLite the night before an event buys nothing.
+- **Next step:** the organiser rehearses one game on test time and confirms
+  the phone opens at the booked minute with nothing pressed, that the picker
+  says **In progress**, and that a pause holds the phone open.

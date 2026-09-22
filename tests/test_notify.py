@@ -168,7 +168,12 @@ def test_the_reminder_goes_ten_minutes_before_once(booked):
 
 
 def test_no_reminder_once_the_game_has_started(booked):
-    assert notify.schedule_due(booked, at(15, 6)) == 0
+    """Nothing further is *reminded*. The phone's own message does go out at
+    the booked time (22 Sep, STATE.md 130), so count the reminders rather
+    than everything the sweep queued."""
+    notify.schedule_due(booked, at(15, 6))
+    assert booked.execute(
+        "SELECT COUNT(*) FROM notifications WHERE kind='escape_reminder'").fetchone()[0] == 0
 
 
 def test_a_late_reminder_says_how_long_is_left(booked):
@@ -235,10 +240,14 @@ def test_last_call_only_for_people_with_something_left(roster):
     for item in claims.ITEMS:
         wei.hand_over(code, item)
     assert notify.schedule_due(roster, at(21, 29)) == 0
-    assert notify.schedule_due(roster, at(21, 30)) == 1              # Heidi only
-    row = roster.execute("SELECT * FROM notifications WHERE kind='last_call'").fetchone()
-    assert row["attendee_id"] == pid(roster, "heidily")
-    assert "pastry, photo strip and vinyl making" in row["text"] and "10:00 PM" in row["text"]
+    # Heidi and Shixuan: both still have everything to collect. A screenshot
+    # at sign-up is enough to collect since 24 Sep, so Shixuan's "submitted"
+    # payment no longer keeps them off the list. Wei collected all three and
+    # is the one who hears nothing.
+    assert notify.schedule_due(roster, at(21, 30)) == 2
+    rows = roster.execute("SELECT * FROM notifications WHERE kind='last_call'").fetchall()
+    assert {r["attendee_id"] for r in rows} == {pid(roster, "heidily"), pid(roster, "t_shixuan")}
+    assert "pastry, photo strip and vinyl making" in rows[0]["text"] and "10:00 PM" in rows[0]["text"]
     assert notify.schedule_due(roster, at(22, 0)) == 0               # closed
 
 

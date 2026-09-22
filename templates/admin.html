@@ -204,9 +204,15 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .ord-added{ font-size:14px; font-weight:700; color:#1F7A4C; padding:0 2px }
 
 /* On a real phone the console is the phone: no frame drawn inside it, no
-   fake status-bar gap, and no design notes under the screens. */
+   fake status-bar gap, and no design notes under the screens.
+
+   And room for the bar at the bottom. The page has always carried
+   viewport-fit=cover and never used the inset it buys, so on a gesture-bar
+   Android and a home-indicator iPhone the last row of the booth sat under
+   the system bar and could not be pressed. Take the largest of a floor and
+   what the browser says, the way the Mini App does (23 Sep). */
 @media (max-width:600px){
-  #stage{ padding:10px 10px 24px }
+  #stage{ padding:10px 10px max(24px, env(safe-area-inset-bottom, 0px)) }
   .phone390{ border-radius:22px; box-shadow:none }
   .booth-top, .gm-top{ padding-top:14px }
   .stagenote{ display:none }
@@ -228,30 +234,47 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .gm-btn:active{ transform:scale(.97) }
 .gm-btn[disabled]{ opacity:.45; cursor:default }
 .gm-pick{ max-width:230px; background:#16161A; color:#F2EFE8; border:0; border-radius:12px; box-shadow:inset 0 0 0 1px #FFFFFF33; padding:8px 10px; font:inherit; font-size:12px }
-.gm-pause{ min-height:56px; background:#C8CFC7; color:#16181B; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; box-shadow:inset 0 0 0 2px #101010 }
+.gm-pause{ min-height:60px; background:#C8CFC7; color:#16181B; font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase; box-shadow:inset 0 0 0 2px #101010 }
+.gm-pause.wide{ width:100% }
 .gm-pause:hover{ background:#F2EFE8 }
-.gm-ext{ min-height:56px; background:transparent; color:#F2EFE8; box-shadow:inset 0 0 0 2px #FFFFFF44; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase }
+.gm-pause.on{ background:#C4A98A }
+.gm-ext{ min-height:60px; background:transparent; color:#F2EFE8; box-shadow:inset 0 0 0 2px #FFFFFF44; font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase }
 .gm-ext:hover{ background:#F2EFE8; color:#0D0D0F }
-.gm-lock{ min-height:52px; background:transparent; color:#C8CFC7; box-shadow:inset 0 0 0 2px #C8CFC7; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase }
+/* Ending and locking are rare and hard to undo, so they are quiet, they sit
+   under a rule, and they never share a row with Pause (23 Sep). */
+.gm-rare{ border-top:1px solid #FFFFFF1F; padding-top:12px; display:flex; gap:8px }
+.gm-lock, .gm-end{ flex:1; min-height:44px; background:transparent; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase }
+.gm-lock{ color:#C8CFC7; box-shadow:inset 0 0 0 1px #FFFFFF3D }
 .gm-lock:hover{ background:#C8CFC7; color:#16181B }
-.gm-inapp{ min-height:52px; background:transparent; color:#C4A98A; box-shadow:inset 0 0 0 2px #C4A98A; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase }
-.gm-inapp:hover{ background:#C4A98A; color:#101010 }
-.gm-end{ min-height:56px; background:#A8231B; color:#fff; font-family:Anton,sans-serif; font-size:20px; text-transform:uppercase; box-shadow:inset 0 0 0 2px #101010 }
-.gm-end:hover{ filter:brightness(1.15) }
-.cue{ display:flex; gap:10px; align-items:center; border-radius:14px; padding:10px 12px; transition:background .25s, color .25s }
-.cue .at{ font-family:var(--num); font-stretch:112%; font-size:17px; font-weight:700; flex:none; width:58px; font-variant-numeric:tabular-nums }
-.cue .line{ flex:1; font-size:13px; line-height:1.4 }
-.cue .act{ flex:none; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:6px 10px; border-radius:999px; border:0; cursor:pointer }
+.gm-lock.on{ background:#C4A98A; color:#101010 }
+.gm-end{ color:#E08B82; box-shadow:inset 0 0 0 1px #A8231B }
+.gm-end:hover{ background:#A8231B; color:#fff }
+/* One line that says everything about where this game is. */
+.gm-status{ font-size:12.5px; line-height:1.5; color:#F2EFE8 }
+.gm-status .sep{ color:#7E8A7C; padding:0 6px }
+.gm-next{ font-size:12px; color:#C4A98A; font-weight:700 }
+/* A hint, and the one button that gives it. No clock against it since
+   23 Sep: the room decides when a hint is needed, not a schedule. */
+.hint{ display:flex; gap:12px; align-items:center; border-radius:14px; padding:12px; background:#1A1A1D }
+.hint.given{ background:transparent; box-shadow:inset 0 0 0 1px #FFFFFF1F }
+.hint .body{ flex:1; min-width:0 }
+.hint .h{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#A8A29B }
+.hint.given .h{ color:#7E8A7C }
+.hint .line{ font-size:13.5px; line-height:1.4; margin-top:3px }
+.hint.given .line{ color:#A8A29B }
+.hint .act{ flex:none; min-height:40px; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  padding:0 14px; border-radius:999px; border:0; cursor:pointer; background:#C8CFC7; color:#16181B }
+.hint .act:hover{ background:#F2EFE8 }
+.hint .act[disabled]{ background:transparent; color:#7E8A7C; box-shadow:inset 0 0 0 1px #FFFFFF1F; cursor:default }
 .gm-note{ font-size:11px; line-height:1.5; color:#A8A29B }
-.gm-rebal{ background:transparent; color:#C8CFC7; border:0; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; box-shadow:inset 0 0 0 2px #101010; border-radius:999px; padding:6px 12px }
-.halves{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
-.half{ display:flex; flex-direction:column; gap:6px }
-.half .h{ font-family:Anton,sans-serif; font-size:22px; text-transform:uppercase }
-.half.b .h{ color:#C8CFC7 }
-.prow{ font-size:13px; border-radius:10px; padding:8px 10px; cursor:pointer; border:0; text-align:left;
-  transition:background .2s, transform .14s var(--ease); background:#2A2A2E; color:#A8A29B }
-.prow.in{ background:#1F7A4C; color:#fff }
-.prow:active{ transform:scale(.96) }
+/* Who is in the room. One row per person, in the order they booked. */
+.prow{ display:flex; gap:10px; align-items:baseline; font-size:13.5px; border-radius:10px; padding:9px 11px;
+  border:0; text-align:left; width:100%; background:#1A1A1D; color:#F2EFE8 }
+.prow .n{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#7E8A7C; flex:none; width:16px }
+.prow .who{ flex:1; min-width:0 }
+.prow .at{ display:block; font-size:11px; color:#A8A29B; margin-top:2px }
+.prow .tick{ flex:none; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#8FBF9C }
+.prow.out .tick{ color:#7E8A7C }
 /* Did the phone's message reach them? (22 Sep, decision 130) */
 .prow .pm{ display:block; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-top:3px; opacity:.85 }
 .prow .pm.bad{ color:#F2B8A8; opacity:1 }
@@ -666,7 +689,7 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 
 /* toast */
 #toast{
-  position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90;
+  position:fixed; left:50%; bottom:max(24px, env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:90;
   background:#101010; color:#F2EFE8; padding:12px 20px; border-radius:999px;
   font-size:13px; font-weight:600; max-width:86%; text-align:center;
   box-shadow:0 10px 30px #0006; display:none;
@@ -826,7 +849,7 @@ const S = {
   overview:null, people:null, person:null, gmState:null,
   slots:null, roster:null, settings:null, audit:null, denials:null,
   lookup:null, lookupCode:'',
-  resetDone:{}, gmSlot:null, gmAt:0, live:false,
+  resetDone:loadResetDone(), gmSlot:null, gmPinned:false, gmAt:0, live:false,
   selectedPerson:null, peopleQuery:'', focusSearch:false,
   auditTab:'log',
   settingsDraft:{},
@@ -1022,7 +1045,7 @@ async function load(){
   }
   if (s === 'gm'){
     const r = await api('GET /admin/api/gm/state', { path:'/admin/api/gm/state', filters:{ slot_id:S.gmSlot } });
-    if (r.ok){ S.gmState = r.data; S.gmAt = Date.now(); }
+    if (r.ok){ S.gmState = r.data; S.gmAt = Date.now(); gmFollowOn(); }
     else { S.gmState = null; S.gmError = r.error.message || r.error.code; }
   }
   if (s === 'orders'){
@@ -1556,48 +1579,84 @@ function dupWarning(p){
   return out;
 }
 
+/* The changeover ticks used to live only in memory, so a reload in the middle
+   of a reset — which is what a phone does when you unlock it — threw away
+   what had already been done. They are per-device and per-game, so
+   localStorage is the right size of promise: it survives a reload, it never
+   claims to be shared with the other GM, and losing it costs one glance at
+   the room. */
+function loadResetDone(){
+  try { return JSON.parse(localStorage.getItem('yard_reset') || '{}') || {}; }
+  catch (e){ return {}; }
+}
+function saveResetDone(){
+  try { localStorage.setItem('yard_reset', JSON.stringify(S.resetDone)); } catch (e){}
+}
+
+/* The four words the whole console uses for where a game is. They come from
+   the server (game._games), so the picker, the card and the timetable can
+   never disagree about what a game is doing — which they did, in three
+   different vocabularies, until 23 Sep. */
+const GAME_STATE = { in_progress:'In progress', finished:'Finished', upcoming:'Upcoming', blocked:'Blocked' };
+
 SCREENS.gm = function(){
   const d = S.gmState;
   if (!d) return S.gmError ? `<div class="blocked"><div class="t">No game yet</div><div class="b">${esc(S.gmError)}</div></div>` : loading();
   const elapsed = gmElapsed(d);
   const remaining = Math.max(0, d.game_seconds - elapsed);
   const timerTone = !d.started ? '#A8A29B' : remaining <= 120 ? '#C4A98A' : '#F2EFE8';
-  const cues = d.cues.map(c => {
-    const due = d.started && elapsed >= toSec(c.at), sent = c.sent;
-    const bg = (due && !sent) ? '#C8CFC7' : '#1A1A1D';
-    const fg = (due && !sent) ? '#16181B' : '#F2EFE8';
-    const pillStyle = sent ? 'background:#1F7A4C;color:#fff'
-      : due ? 'background:#101010;color:#F2EFE8'
-      : 'box-shadow:inset 0 0 0 1px #FFFFFF33;color:#A8A29B;background:transparent';
-    return `<div class="cue" data-due="${esc(toSec(c.at))}" style="background:${bg};color:${fg}">
-      <span class="at">${esc(c.at)}</span>
-      <span class="line">${esc(c.line)}</span>
-      <button class="act" style="${pillStyle}" data-cue="${esc(c.key)}" ${sent ? 'disabled' : ''}>${esc(sent ? 'Done' : c.action)}</button>
-    </div>`;
-  }).join('');
-  // Everyone in the game gets the phone by bot message (decision 130), so
-  // the GM needs to see whose arrived — anyone it can't reach gets the desk
-  // handset instead.
+
+  /* A hint each, and one button. Nothing is due, nothing goes amber on a
+     timer: the game master watches the room and gives one when the room
+     needs one. Given ones stay in the list, quiet, with the time on them,
+     so it is obvious what has already been used. */
+  const hintRow = (h) => `<div class="hint ${h.given ? 'given' : ''}">
+    <div class="body">
+      <div class="h">${esc(h.title || 'Hint')}</div>
+      <div class="line">${esc(h.line)}</div>
+    </div>
+    <button class="act" data-hint="${esc(h.key)}" ${h.given ? 'disabled' : ''}>${
+      h.given ? esc('Given ' + (h.given_at ? short(h.given_at) : '')) : 'Give it'}</button>
+  </div>`;
+  const main = d.hints.filter(h => !h.optional), extra = d.hints.filter(h => h.optional);
+
+  /* Everyone in the game gets the phone by bot message (decision 130), so
+     the GM needs to see whose arrived — anyone it can't reach gets the desk
+     handset instead. */
   const PM = { sent:'Phone sent', waiting:'Phone on its way', unreachable:'Can\'t reach — desk handset', held:'Not sent (test mode)' };
-  const halfRows = (side) => d.halves[side].length ? d.halves[side].map(p =>
-    `<button class="prow ${p.in ? 'in' : ''}" data-swap="${p.id}" title="${p.in ? 'Checked in' : 'Not checked in'} — tap to move to the other half">${esc(p.name)}${
-      p.phone_msg ? `<span class="pm ${p.phone_msg === 'unreachable' || p.phone_msg === 'held' ? 'bad' : ''}">${esc(PM[p.phone_msg] || p.phone_msg)}</span>` : ''}</button>`).join('')
-    : `<div class="gm-note">Nobody yet.</div>`;
-  const everyone = d.halves.A.concat(d.halves.B);
-  const missed = everyone.filter(p => p.phone_msg === 'unreachable' || p.phone_msg === 'held');
-  const phoneLine = !everyone.some(p => p.phone_msg) ? ''
+  const rows = d.people.length ? d.people.map((p, i) => `<div class="prow ${p.in ? '' : 'out'}">
+      <span class="n">${i + 1}</span>
+      <span class="who">${esc(p.name)}<span class="at">@${esc(p.handle)}</span>${
+        p.phone_msg ? `<span class="pm ${p.phone_msg === 'unreachable' || p.phone_msg === 'held' ? 'bad' : ''}">${esc(PM[p.phone_msg] || p.phone_msg)}</span>` : ''}</span>
+      <span class="tick">${p.in ? 'Here' : 'Not in yet'}</span>
+    </div>`).join('')
+    : `<div class="gm-note">Nobody is booked on this game.</div>`;
+  const missed = d.people.filter(p => p.phone_msg === 'unreachable' || p.phone_msg === 'held');
+  const phoneLine = !d.people.some(p => p.phone_msg) ? ''
     : missed.length
-      ? `<div class="gm-phone bad">The phone can't reach ${esc(missed.map(p => p.name).join(', '))}. ${missed.some(p => p.phone_msg === 'held') ? 'Messages are on testing — Settings → Who gets messages → Everyone. ' : ''}Hand them the desk handset, or let them share with their group.</div>`
-      : `<div class="gm-phone">Everyone in this game has been sent the phone.</div>`;
-  const games = d.games.map(g => `<option value="${g.id}" ${g.id === d.slot_id ? 'selected' : ''}>${esc(short(g.starts_at))} — game ${g.number}, ${esc(g.booked)} booked${g.state === 'upcoming' ? '' : ' (' + g.state + ')'}</option>`).join('');
-  const phone = !d.in_app_phone ? 'In-app phone off'
-    : d.phone_locked ? 'Phone locked by you'
-    : d.phone_open ? 'Phone open until ' + short(d.relock_at)
-    : 'Phone opens at ' + short(d.starts_at);
-  const run = !d.started
-    ? `<button class="gm-btn gm-pause" data-gm="start">Start game</button>`
-    : d.ended ? `<button class="gm-btn gm-pause" disabled>Ended</button>`
-    : `<button class="gm-btn gm-pause" data-gm="${d.paused ? 'resume' : 'pause'}">${d.paused ? 'Resume' : 'Pause'}</button>`;
+      ? `<div class="gm-phone bad">Kai Chen's phone can't reach ${esc(missed.map(p => p.name).join(', '))}. ${missed.some(p => p.phone_msg === 'held') ? 'Messages are on testing — Settings → Who gets messages → Everyone. ' : ''}Hand them the desk handset, or let them share with their group.</div>`
+      : `<div class="gm-phone">Everyone in this game has been sent Kai Chen's phone.</div>`;
+
+  const games = d.games.map(g => `<option value="${g.id}" ${g.id === d.slot_id ? 'selected' : ''}>${esc(short(g.starts_at))} · ${esc(g.booked)} booked · ${esc(GAME_STATE[g.state] || g.state)}</option>`).join('');
+
+  /* One status line instead of three. What the game is doing, what the phone
+     is doing, and how many people have it — read left to right, once. */
+  const phone = d.phone_locked ? 'phone locked by you'
+    : d.phone_open ? 'phone open until ' + short(d.relock_at)
+    : d.state === 'finished' ? 'phone closed'
+    : 'phone opens at ' + short(d.starts_at);
+  const got = d.people.filter(p => p.phone_msg === 'sent').length;
+  const bits = [esc(GAME_STATE[d.state] || d.state), esc(phone)];
+  if (d.booked) bits.push(esc(got + ' of ' + d.booked + ' have it'));
+
+  /* The one big button. There is no Start any more, so before the booked
+     time it says when the game begins rather than asking for a press that
+     does not exist. */
+  const run = d.ended
+    ? `<button class="gm-btn gm-pause wide" disabled>Finished</button>`
+    : !d.started ? `<button class="gm-btn gm-pause wide" disabled>Starts ${esc(short(d.starts_at))}</button>`
+    : `<button class="gm-btn gm-pause wide ${d.paused ? 'on' : ''}" data-gm="${d.paused ? 'resume' : 'pause'}">${d.paused ? 'Resume' : 'Pause'}</button>`;
+
   return `
   <div class="phone390 gm">
     <div class="gm-top">
@@ -1607,38 +1666,36 @@ SCREENS.gm = function(){
     <div class="gm-body">
       <div class="gm-card">
         <div class="gm-head">
-          <span class="l">${esc(short(d.starts_at))} — ${d.ended ? 'ended' : d.paused ? 'paused' : d.started ? 'running' : 'not started'}</span>
-          <span class="l" style="color:${d.phone_open ? '#C8CFC7' : '#A8A29B'}">${esc(phone)}</span>
+          <span class="l">${esc(short(d.starts_at))} — game ${esc(d.game_number)} of ${esc(d.games_total)}</span>
+          ${d.next_game_at && d.state !== 'upcoming' ? `<span class="gm-next" id="gmnext">Next ${esc(short(d.next_game_at))}</span>` : ''}
         </div>
         <div class="gm-timer" id="gmtimer" style="color:${timerTone}">${esc(mmss(remaining))}</div>
+        <div class="gm-status">${bits.join('<span class="sep">·</span>')}</div>
+        ${run}
         <div class="gm-grid">
-          ${run}
+          <button class="gm-btn gm-ext" data-gm="shorten" ${d.ended || remaining <= 60 ? 'disabled' : ''}>−1 min</button>
           <button class="gm-btn gm-ext" data-gm="extend" ${d.ended ? 'disabled' : ''}>+1 min</button>
-          <button class="gm-btn gm-lock" data-gm="${d.phone_locked ? 'unlock' : 'lock'}">${d.phone_locked ? 'Undo lock' : 'Lock phone'}</button>
         </div>
-        ${d.started && !d.ended ? `<button class="gm-btn gm-end" data-gm="end">End game</button>` : ''}
+        <div class="gm-rare">
+          <button class="gm-btn gm-lock ${d.phone_locked ? 'on' : ''}" data-gm="${d.phone_locked ? 'unlock' : 'lock'}">${d.phone_locked ? 'Unlock the phone' : 'Lock the phone'}</button>
+          ${d.started && !d.ended ? `<button class="gm-btn gm-end" data-gm="end">End game</button>` : ''}
+        </div>
         <div class="gm-note">${d.phone_locked
-          ? 'You have locked the phone for this game. Undo lock gives it back to everyone booked.'
-          : 'The phone opens by itself at the booked time and is messaged to everyone in this game. Start is your clock and the cues \u2014 it does not open the phone.'}</div>
+          ? 'You have locked Kai Chen\'s phone for this game. Unlock gives it back to everyone booked.'
+          : 'The game runs itself: it starts at the booked time and Kai Chen\'s phone opens then too, for everyone in it. Pause if something happens — it holds the phone open for as long as you are paused.'}</div>
         ${phoneLine}
       </div>
 
       <div class="gm-card tight">
-        <div class="l kicker" style="color:#A8A29B">The script</div>
-        ${cues || `<div class="gm-note">No script file on this laptop (private\\gm\\script.json).</div>`}
-        <div class="gm-note">${d.actor_ready ? 'Hint lines go straight to the actor\'s Telegram.' : 'No actor registered, so read hint lines out yourself. The actor sends /actor and the GM PIN to the bot to get them.'} Times are in Settings.</div>
+        <div class="l kicker" style="color:#A8A29B">Hints</div>
+        ${main.map(hintRow).join('') || `<div class="gm-note">No hint file on this laptop (private\\gm\\script.json).</div>`}
+        ${extra.length ? `<div class="l kicker" style="color:#A8A29B;margin-top:4px">If they are still stuck</div>${extra.map(hintRow).join('')}` : ''}
+        ${d.hints.length ? `<div class="gm-note">${d.actor_ready ? 'Giving a hint sends the line to the actor\'s Telegram.' : 'No actor registered, so read the line out yourself. The actor sends /actor and the GM PIN to the bot to get them.'}</div>` : ''}
       </div>
 
       <div class="gm-card tight">
-        <div class="gm-head">
-          <span class="l">The split — ${esc(d.booked)} booked, ${esc(d.checked_in)} checked in</span>
-          <button class="gm-rebal" data-gm="rebalance">Even out</button>
-        </div>
-        <div class="halves">
-          <div class="half a"><div class="h">A — flat</div>${halfRows('A')}</div>
-          <div class="half b"><div class="h">B — desk</div>${halfRows('B')}</div>
-        </div>
-        <div class="gm-note">Green means checked in. Tap a name to move them to the other half${d.halves_locked_at ? ' — the game has started, so it is logged against you' : ''}.</div>
+        <div class="l kicker" style="color:#A8A29B">In this game — ${esc(d.booked)} booked, ${esc(d.checked_in)} checked in</div>
+        ${rows}
       </div>
 
       <div class="gm-card tight">
@@ -1680,7 +1737,6 @@ SCREENS.schedules = function(){
         <span style="font-size:12px;color:#3C4654;display:block;margin-top:5px">${esc(s.booked)} of ${esc(s.capacity)} booked · ${esc(s.checked_in)} checked in</span>
       </span>
       <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
-      <span class="halves">A ${esc(s.half_a)} · B ${esc(s.half_b)}</span>
       <span class="acts">
         ${s.booked ? `<button class="smallbtn" data-move="${s.id}">Move someone</button>` : ''}
         <button class="smallbtn ${s.blocked ? '' : 'danger'}" data-block="${s.id}" data-blocked="${s.blocked ? 1 : 0}">${s.blocked ? 'Unblock' : 'Block'}</button>
@@ -2046,22 +2102,14 @@ const SETTINGS_SCHEMA = [
   { group:'Escape room \u2014 the phone', fields:[
     { key:'phone_minutes', label:'Phone stays open', type:'number', min:5, max:60, unit:'minutes from the booked time',
       help:'It opens by itself at the booked time \u2014 nobody presses anything \u2014 and closes this many minutes later. Longer than the game, so time running out does not cut anyone off.' },
-    { key:'phone_always_handles', label:'Test group', type:'text', mono:true,
-      help:'Telegram usernames that can open the victim\'s phone at any time, with or without a booking. Comma separated, no @. Send them the phone with:  python manage.py phone-test . Leave this empty on the night \u2014 it hands out the whole solution.' },
-    { key:'in_app_phone', label:'Phone in the app', type:'seg',
-      options:[[true,'On','go'],[false,'Off \u2014 desk handset only']],
-      help:'Off means nobody gets it in the app at all. The GM can also lock it for one game from the GM console.' }
+    { key:'phone_always_handles', label:'Test group', type:'text', mono:true, send:'phone-test',
+      help:'Telegram usernames that can open Kai Chen\'s phone at any time, with or without a booking. Comma separated, no @. Saving this sends the phone to anyone you just added. Leave it empty on the night \u2014 it hands out the whole solution.' }
   ]},
-  { group:'Escape room \u2014 the script', fields:[
-    { key:'hint_1', label:'Hint 1 \u2014 the clock', type:'text', mono:true, help:'Minutes:seconds into the game.' },
-    { key:'hint_2', label:'Hint 2 \u2014 the window', type:'text', mono:true },
-    { key:'hint_3', label:'Hint 3 \u2014 opportunity', type:'text', mono:true },
-    { key:'forced_merge', label:'Forced merge at', type:'text', mono:true,
-      help:'Both halves work in the same room from here.' },
+  { group:'Escape room \u2014 who runs it', fields:[
     { key:'gm_handle', label:'Game master', type:'text', mono:true },
     { key:'actor_handle', label:'Actor', type:'text', mono:true },
     { key:'finder_name', label:"The finder's name", type:'text',
-      help:'The actor who finds the body. He is nowhere on the victim\'s phone \u2014 the room only.' }
+      help:'The actor who finds the body. He is nowhere on Kai Chen\'s phone \u2014 the room only. The hints themselves are a list on the Game screen, with no times against them; edit the wording in private\\gm\\script.json.' }
   ]},
   { group:'Jamming studio (free)', fields:[
     { key:'jam_room', label:'Room name', type:'text',
@@ -2315,13 +2363,14 @@ function wire(){
 
   // gm
   root.querySelectorAll('[data-gm]').forEach(b => b.onclick = () => gmAction(b.dataset.gm));
-  root.querySelectorAll('[data-cue]').forEach(b => b.onclick = () => sendCue(b.dataset.cue));
-  root.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => swapHalf(Number(b.dataset.swap)));
+  root.querySelectorAll('[data-hint]').forEach(b => b.onclick = () => giveHint(b.dataset.hint));
   root.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => {
-    const i = b.dataset.reset; S.resetDone[i] = !S.resetDone[i]; render();
+    const i = b.dataset.reset; S.resetDone[i] = !S.resetDone[i]; saveResetDone(); render();
   });
   const gmpick = document.getElementById('gmpick');
-  if (gmpick) gmpick.onchange = () => { S.gmSlot = gmpick.value; load(); };
+  // Choosing a game by hand pins the console to it. Otherwise it follows the
+  // night: the game that is on, and then the next one.
+  if (gmpick) gmpick.onchange = () => { S.gmSlot = gmpick.value; S.gmPinned = true; load(); };
 
   // gate denials (People)
   root.querySelectorAll('[data-link]').forEach(b => b.onclick = () => resolveDenial(b.dataset.link, 'link'));
@@ -2924,35 +2973,18 @@ async function doPayment(verdict, reason){
 async function gmAction(action){
   const d = S.gmState;
   if (!d) return;
-  if (action === 'rebalance'){
-    if (d.halves_locked_at && !confirm('The game has started. Even out the halves anyway?')) return;
-    const r = await api('POST /admin/api/gm/halves', { path:'/admin/api/gm/' + d.slot_id + '/halves', json:{ rebalance:true } });
-    if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
-    toast(r.data.moved.length ? 'Moved ' + r.data.moved.map(m => '@' + m.handle).join(', ') + '.' : 'Already even.', 'good');
-    load();
-    return;
-  }
-  if (action === 'end' && !confirm('End the game now? Their phone stays open until ' + short(d.relock_at) + ' — use Lock phone to close it sooner.')) return;
-  if (action === 'start' && !d.booked && !confirm('Nobody is booked on this game. Start it anyway?')) return;
+  if (action === 'end' && !confirm("End the game now? Kai Chen's phone stays open until " + short(d.relock_at) + " — use Lock the phone to close it sooner.")) return;
+  if (action === 'lock' && !confirm("Lock Kai Chen's phone? Everybody in this game loses it until you unlock it.")) return;
   const r = await api('POST /admin/api/gm/action', { path:'/admin/api/gm/' + d.slot_id + '/' + action });
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
   load();
 }
 
-async function sendCue(key){
+async function giveHint(key){
   const d = S.gmState;
-  const r = await api('POST /admin/api/gm/cue', { path:'/admin/api/gm/' + d.slot_id + '/cues/' + key });
+  const r = await api('POST /admin/api/gm/hint', { path:'/admin/api/gm/' + d.slot_id + '/hints/' + key });
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
-  toast(r.data.to_actor ? 'Sent to the actor.' : 'Marked done.', 'good');
-  load();
-}
-
-async function swapHalf(id){
-  const d = S.gmState;
-  const r = await api('POST /admin/api/gm/halves', { path:'/admin/api/gm/' + d.slot_id + '/halves', json:{ swap_attendee_id:id } });
-  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
-  const m = r.data.moved[0];
-  toast('@' + m.handle + ' moved to half ' + m.to + (d.halves_locked_at ? ' — logged.' : '.'), 'good');
+  toast(r.data.to_actor ? 'Sent to the actor.' : 'Marked as given — read it out.', 'good');
   load();
 }
 
@@ -3012,7 +3044,9 @@ setInterval(() => {
   if (!S.live && !typing() && S.screen === 'orders' && S.orderScan !== 'scan') load();
 }, 30000);
 
-/* The GM timer ticks every second without asking the server. */
+/* The GM timer ticks every second without asking the server. The hints have
+   no clock against them since 23 Sep, so there is nothing else in here to
+   recolour — the room decides when a hint is due, not a stopwatch. */
 setInterval(() => {
   if (S.screen !== 'gm' || !S.gmState) return;
   const d = S.gmState, el = document.getElementById('gmtimer');
@@ -3020,12 +3054,25 @@ setInterval(() => {
   const elapsed = gmElapsed(d);
   el.textContent = mmss(Math.max(0, d.game_seconds - elapsed));
   if (d.started && !d.ended) el.style.color = d.game_seconds - elapsed <= 120 ? '#C4A98A' : '#F2EFE8';
-  // A cue turns pale when its time comes.
-  root.querySelectorAll('.cue[data-due]').forEach(c => {
-    if (!d.started || c.querySelector('[disabled]')) return;
-    if (elapsed >= Number(c.dataset.due)){ c.style.background = '#C8CFC7'; c.style.color = '#16181B'; }
-  });
+  // A game that has run out, or one whose time has come, is a different
+  // game from the one on screen. Ask the server rather than guessing.
+  const over = d.started && !d.paused && d.game_seconds - elapsed <= 0;
+  if ((over || (!d.started && Date.now() >= gmStartsAt(d))) && Date.now() - S.gmAt > 5000) load();
 }, 1000);
+
+/* When the server's picture says this game is done and the GM has not gone
+   looking for a particular one, move on to the next. Standing on a finished
+   game while the next group walks in was the console's own doing. */
+function gmFollowOn(){
+  const d = S.gmState;
+  if (!d || S.gmPinned) return;
+  if (d.state === 'finished' && d.next_game_at){
+    const next = d.games.find(g => g.number === d.game_number + 1);
+    if (next){ S.gmSlot = String(next.id); load(); }
+  }
+}
+
+function gmStartsAt(d){ return new Date(d.starts_at).getTime(); }
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); });
 

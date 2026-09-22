@@ -1,18 +1,16 @@
 {
-  "_read_me": "Spoilers. The GM console loads this for gm and admin sign-ins only. Edit the lines freely; the timed cues take their times from Settings (hint_1, hint_2, hint_3, forced_merge). A cue with no time_setting has no clock against it and is there to send whenever it is needed. Wording follows The Last Guest Guide (GM / Facilitator Flow Deck), which asks for the smallest nudge that moves players forward — never name Natalie before they have connected the evidence.",
-  "cues": [
-    {"key": "hint1", "time_setting": "hint_1", "action": "Send",
-     "line": "Hint 1 — clock: \"Is there anything in the photo that gives you a second time?\""},
-    {"key": "hint2", "time_setting": "hint_2", "action": "Send",
-     "line": "Hint 2 — window: \"If the reaction takes 10 to 20 minutes, what time did Kai eat?\""},
-    {"key": "merge", "time_setting": "forced_merge", "action": "Merge",
-     "line": "Forced merge — both halves in the same room. Ask A what they found about the food, the allergy and the motive; ask B what the corrected times say. Put the allergy card, the 10:30 collapse, the corrected timeline and the dessert evidence side by side."},
-    {"key": "hint3", "time_setting": "hint_3", "action": "Send",
-     "line": "Hint 3 — opportunity: \"Who was alone with the desserts at a time inside that window?\""},
-    {"key": "motive", "time_setting": null, "action": "Send",
-     "line": "Optional — motive: \"Why would tonight matter more than tomorrow morning?\""},
-    {"key": "method", "time_setting": null, "action": "Send",
-     "line": "Optional — method: \"Why are there two desserts, and why is one labelled NUT FREE?\""}
+  "_read_me": "Spoilers. The GM console loads this for gm and admin sign-ins only. Edit the lines freely. It is a list, not a schedule: since 23 Sep the hints have no times against them and the game master gives one when the room needs one. Wording follows The Last Guest Guide (GM / Facilitator Flow Deck), which asks for the smallest nudge that moves players forward — never name Natalie before they have connected the evidence. Anything with \"optional\": true sits under 'If they are still stuck' at the bottom of the list.",
+  "hints": [
+    {"key": "hint1", "title": "The clock",
+     "line": "Is there anything in the photo that gives you a second time?"},
+    {"key": "hint2", "title": "The window",
+     "line": "If the reaction takes 10 to 20 minutes, what time did Kai eat?"},
+    {"key": "hint3", "title": "Opportunity",
+     "line": "Who was alone with the desserts at a time inside that window?"},
+    {"key": "motive", "title": "Motive", "optional": true,
+     "line": "Why would tonight matter more than tomorrow morning?"},
+    {"key": "method", "title": "Method", "optional": true,
+     "line": "Why are there two desserts, and why is one labelled NUT FREE?"}
   ],
   "reset": [
     "Return Kai to the starting position.",
@@ -22,7 +20,6 @@
     "Reset the camera stills and the timeline materials.",
     "Set the lock box back to 0000 — never leave it on 1012, it gives the answer away.",
     "Both desk devices back to the phone's home screen — the file's own reset, top-left of its lock screen.",
-    "Check the off-limits areas are still marked and every prop players can reach is safe.",
-    "Split the next group at the door and read them their half."
+    "Check the off-limits areas are still marked and every prop players can reach is safe."
   ]
 }

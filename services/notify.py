@@ -21,10 +21,10 @@ MAX_ATTEMPTS = 5
 
 # Where the "Open The Yard" button lands. The Mini App reads ?go= after Start.
 GO_TICKET, GO_FOOD, GO_HOME, GO_BOOKINGS = "ticket", "food", "home", "bookings"
-# The escape room's phone. Nothing inside the Mini App links there: this
-# message's button is the only way in (22 Sep, STATE.md 130).
+# The escape room's phone. This message's button is one way in; the escape
+# screen carries another, shown only once the phone is genuinely open (24 Sep).
 GO_PHONE = "phone"
-BUTTON_LABELS = {GO_PHONE: "\U0001f4f1 Open the phone"}
+BUTTON_LABELS = {GO_PHONE: "\U0001f4f1 Open Kai Chen's phone"}
 
 
 class Blocked(Exception):
@@ -216,8 +216,8 @@ def text_reminder(starts_utc, minutes, where=None):
         "⏰ The Last Guest starts soon",
         [("\U0001f550", f"{claims.clock(starts_utc)}, in {minutes} mins"),
          ("\U0001f4cd", _place(where, "escape"))],
-        footer="head over now, the game master splits your group there. "
-               "when the game starts, his phone arrives here as a message")
+        footer="head over now. when your time comes, kai chen's phone "
+               "arrives here as a message")
 
 
 def text_phone(lock_utc):
@@ -225,7 +225,7 @@ def text_phone(lock_utc):
     the escape screen has a button too, so this no longer claims to be the
     only way in — saying so was true when the GM's Start opened the phone."""
     return _msg(
-        "\U0001f4f1 his phone is unlocked",
+        "\U0001f4f1 kai chen's phone is open",
         [("\U0001f550", f"open until {claims.clock(lock_utc)}")],
         footer="tap below to open it")
 
@@ -233,9 +233,9 @@ def text_phone(lock_utc):
 def text_phone_test():
     """The same thing for the test group, who have no game and so no clock."""
     return _msg(
-        "\U0001f4f1 his phone is open for testing",
+        "\U0001f4f1 kai chen's phone is open for testing",
         footer="tap below to open it. this is the tester's copy, so it does "
-               "not lock and it is not tied to a game")
+               "not close and it is not tied to a game")
 
 
 def text_jam_reminder(starts_utc, minutes, where=None):

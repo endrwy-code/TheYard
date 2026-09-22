@@ -85,8 +85,8 @@ def bookings_sheet(conn):
         "JOIN attendees a ON a.id=j.attendee_id "
         "LEFT JOIN attendees o ON o.id=j.booked_by_id ORDER BY s.starts_at, j.id").fetchall()
     return _book([
-        ("Escape room", ["Ref", "Game", "Name", "Username", "Half", "Status", "Booked by", "Booked at"],
-         [(b["ref_code"], claims.clock(b["starts_at"]), b["name"], _handle(b), b["zone"] or "",
+        ("Escape room", ["Ref", "Game", "Name", "Username", "Status", "Booked by", "Booked at"],
+         [(b["ref_code"], claims.clock(b["starts_at"]), b["name"], _handle(b),
            b["status"], "@" + b["owner"] if b["owner"] else "", _when(b["created_at"])) for b in escape]),
         ("Jamming studio",
          ["Ref", "Slot", "Name", "Username", "Status", "Booked by", "Booked at"],
@@ -121,11 +121,11 @@ def fallback(conn):
         have = {c["item"] for c in got.get(p["id"], [])}
         cells = [p["name"], _handle(p), p["pass_code"] or "", p["payment_status"],
                  " ".join(("■ " if k in have else "□ ") + v for k, v in config.ITEMS),
-                 f"{claims.clock(b['starts_at'])} {b['zone'] or ''}" if b else "",
+                 claims.clock(b["starts_at"]) if b else "",
                  ", ".join(claims.clock(j["starts_at"]) for j in jams)]
         lines.append("<tr>" + "".join(f"<td>{html.escape(str(x))}</td>" for x in cells) + "</tr>")
     head = "".join(f"<th>{h}</th>" for h in
-                   ("Name", "Username", "Pass", "Payment", "Collected", "Escape (half)", "Jam"))
+                   ("Name", "Username", "Pass", "Payment", "Collected", "Escape", "Jam"))
     stamp = datetime.now(config.TIMEZONE).strftime("%d %b %Y, %H:%M")
     page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <title>The Yard — fallback list</title>

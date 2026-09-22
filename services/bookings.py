@@ -221,14 +221,9 @@ def board(conn, attendee_id, now):
         "cancel_cutoff_minutes": cfg["cancel"],
         "max_party": cfg["max_party"],
         "my_booking": {"ref": mine["ref_code"], "slot_id": mine["slot_id"],
-                       "zone": _zone_if_started(mine, now)} if mine else None,
+                       } if mine else None,
         "slots": slots,
     }
-
-
-def _zone_if_started(b, now):
-    """Halves are decided at booking but only shown once the game starts."""
-    return b["zone"] if now >= _dt(b["starts_at"]) else None
 
 
 def _party(conn, owner_id, slot_id):
@@ -269,7 +264,7 @@ def my_view(conn, attendee_id, now):
     return {
         "ref": b["ref_code"], "slot_id": b["slot_id"],
         "starts_at": claims.local_iso(b["starts_at"]), "ends_at": claims.local_iso(b["ends_at"]),
-        "status": b["status"], "zone": _zone_if_started(b, now),
+        "status": b["status"],
         "booked_by": {"name": owner["name"], "handle": owner["handle"], "me": i_own},
         "i_am_owner": i_own,
         "can_add": i_own and open_edit and len(party) < cfg["max_party"]
@@ -370,7 +365,7 @@ def admin_board(conn, now):
     games, seats = [], 0
     for sl in _slots(conn, "escape"):
         rows = conn.execute(
-            "SELECT status, zone FROM escape_bookings WHERE slot_id=? AND status IN ('booked','checked_in')",
+            "SELECT status FROM escape_bookings WHERE slot_id=? AND status IN ('booked','checked_in')",
             (sl["id"],)).fetchall()
         booked = len(rows)
         seats += booked
@@ -379,7 +374,6 @@ def admin_board(conn, now):
             "id": sl["id"], "starts_at": claims.local_iso(sl["starts_at"]),
             "ends_at": claims.local_iso(sl["ends_at"]), "capacity": sl["capacity"],
             "booked": booked, "checked_in": sum(r["status"] == "checked_in" for r in rows),
-            "half_a": sum(r["zone"] == "A" for r in rows), "half_b": sum(r["zone"] == "B" for r in rows),
             "blocked": bool(sl["is_blocked"]), "running": starts <= now < ends, "done": now >= ends,
             "closed": starts - timedelta(minutes=cfg["cutoff"]) <= now < starts,
         })
@@ -416,7 +410,7 @@ def lookup_view(conn, attendee_id):
     if b is None:
         return None
     # Staff at the door need the half before the game starts.
-    return {"ref": b["ref_code"], "starts_at": claims.local_iso(b["starts_at"]), "zone": b["zone"]}
+    return {"ref": b["ref_code"], "starts_at": claims.local_iso(b["starts_at"])}
 
 
 def person_bookings(conn, attendee_id):
@@ -430,7 +424,7 @@ def person_bookings(conn, attendee_id):
             o = conn.execute("SELECT handle, name FROM attendees WHERE id=?", (owner_id,)).fetchone()
             by = "@" + o["handle"] if o["handle"] else o["name"]
         out.append({"kind": "escape", "ref": b["ref_code"], "starts_at": claims.local_iso(b["starts_at"]),
-                    "zone": b["zone"], "status": b["status"], "booked_by": by})
+                    "status": b["status"], "booked_by": by})
     for j in jam_bookings_of(conn, attendee_id):
         # Who booked it, same as the escape row: a jam slot is a group now,
         # and an admin looking at one person needs to know whose slot it is
@@ -530,118 +524,12 @@ def _resolve_friends(conn, owner, handles, cfg, room_for, slot):
     return [rows[h] for h in wanted]
 
 
-def _zone(conn, slot_id):
-    """A provisional half for a seat as it is inserted.
-
-    Every write is followed by `_assign_halves`, which decides the real split
-    for the whole game. This only keeps the column from being empty in between.
-    """
-    a, b = conn.execute(
-        "SELECT SUM(zone='A'), SUM(zone='B') FROM escape_bookings "
-        "WHERE slot_id=? AND status IN ('booked','checked_in')", (slot_id,)).fetchone()
-    return "A" if (a or 0) <= (b or 0) else "B"
-
-
-def _assign_halves(conn, slot_id, force=False):
-    """Decide the two halves for a whole game, keeping friends together.
-
-    §9 r16 as originally written put each *new player* in the smaller half,
-    which alternated A, B, A, B down a booking and split every group of
-    friends across the flat and the desk. The organiser's instruction on
-    18 Sep was the opposite: keep people who booked together in the same half
-    **as much as possible**. They are the design authority here.
-
-    "As much as possible" is doing real work in that sentence, because two
-    things genuinely cannot both be true:
-
-    * A group that booked together should stay together, and
-    * the game needs somebody in the flat *and* somebody at the desk — each
-      side finds things the other can't see, so a game with an empty side
-      cannot be played at all. (Until 22 Sep the desk half was also the only
-      half with the phone; since STATE.md 130 everyone in the game has it,
-      and this reason stands on its own.)
-
-    So groups are kept whole whenever another group is there to fill the
-    other half, and a group is split only when there is no alternative:
-    when it is alone in the game, or when it is larger than one half.
-
-    Runs before the start only, unless `force` is set. §9 r22 locks the halves
-    when the game begins and after that only the GM moves anyone — so the GM's
-    own "even out the halves" button passes `force`, and its changes are
-    logged and attributed to them like any other GM action.
-    """
-    if not force:
-        session = conn.execute(
-            "SELECT started_at FROM game_sessions WHERE slot_id=?", (slot_id,)).fetchone()
-        if session is not None and session["started_at"]:
-            return
-
-    rows = conn.execute(
-        "SELECT id, booked_by_id, attendee_id, zone FROM escape_bookings "
-        "WHERE slot_id=? AND status IN ('booked','checked_in') ORDER BY created_at, id",
-        (slot_id,)).fetchall()
-    if not rows:
-        return
-
-    slot = conn.execute("SELECT capacity FROM slots WHERE id=?", (slot_id,)).fetchone()
-    half_cap = max(1, int(slot["capacity"] if slot else 12) // 2)
-
-    # Group by whoever booked the seat. A person who booked alone is a group
-    # of one, which is what makes the two branches below behave the same way.
-    order, members = [], {}
-    for r in rows:
-        key = r["booked_by_id"] or r["attendee_id"]
-        if key not in members:
-            members[key] = []
-            order.append(key)
-        members[key].append(r["id"])
-
-    zones = {}
-    if len(order) == 1:
-        # Nobody else in this game. Splitting them is the game's own design —
-        # The Last Guest is played from both rooms — so split as evenly as
-        # possible rather than leaving the desk empty.
-        ids = members[order[0]]
-        cut = (len(ids) + 1) // 2
-        for i, bid in enumerate(ids):
-            zones[bid] = "A" if i < cut else "B"
-    else:
-        # Largest group first into whichever half has more room: the greedy
-        # step that keeps the big groups whole, because they are the ones a
-        # split would hurt most. Ties keep booking order, so the result is
-        # stable and does not shuffle when nothing has changed.
-        counts = {"A": 0, "B": 0}
-        ranked = sorted(order, key=lambda k: (-len(members[k]), order.index(k)))
-        for key in ranked:
-            ids = members[key]
-            first = "A" if counts["A"] <= counts["B"] else "B"
-            second = "B" if first == "A" else "A"
-            room = half_cap - counts[first]
-            if len(ids) <= room:
-                for bid in ids:                       # the whole group, together
-                    zones[bid] = first
-                counts[first] += len(ids)
-            else:
-                # Bigger than the space in that half. Put as many as fit and
-                # spill the rest — the smallest split that still seats them.
-                for bid in ids[:max(0, room)]:
-                    zones[bid] = first
-                for bid in ids[max(0, room):]:
-                    zones[bid] = second
-                counts[first] += max(0, room)
-                counts[second] += len(ids) - max(0, room)
-
-    for r in rows:
-        if zones.get(r["id"]) and zones[r["id"]] != r["zone"]:
-            conn.execute("UPDATE escape_bookings SET zone=? WHERE id=?", (zones[r["id"]], r["id"]))
-
-
 def _insert(conn, slot_id, attendee_id, owner_id, now):
     """One seat. Returns (ref, booking id)."""
     ref = db.new_code(conn, "escape_bookings", "ref_code", length=4, group="ESC")
     cur = conn.execute(
-        "INSERT INTO escape_bookings (slot_id, attendee_id, booked_by_id, ref_code, zone, status, created_at) "
-        "VALUES (?,?,?,?,?,'booked',?)", (slot_id, attendee_id, owner_id, ref, _zone(conn, slot_id), _iso(now)))
+        "INSERT INTO escape_bookings (slot_id, attendee_id, booked_by_id, ref_code, status, created_at) "
+        "VALUES (?,?,?,?,'booked',?)", (slot_id, attendee_id, owner_id, ref, _iso(now)))
     return ref, cur.lastrowid
 
 
@@ -680,9 +568,6 @@ def book(conn, attendee_id, slot_id, friends, now):
         _check_open(slot, _taken(conn, slot_id), now, cfg, 1 + len(people))
         ref, booking_id = _insert(conn, slot_id, attendee_id, attendee_id, now)
         _seat_friends(conn, me, people, slot, cfg, now)
-        # Work out the halves once the whole group is seated, not seat by
-        # seat: a group can only be kept together if you know how big it is.
-        _assign_halves(conn, slot_id)
         handles = [p["handle"] for p in people]
         notify.queue(conn, attendee_id, "escape_booked",
                      notify.text_booked(slot["starts_at"], ref, ["@" + h for h in handles],
@@ -692,7 +577,7 @@ def book(conn, attendee_id, slot_id, friends, now):
                  entity="attendee", entity_id=attendee_id,
                  details={"ref": ref, "slot_id": slot_id, "starts_at": slot["starts_at"], "friends": handles})
         return {"ref": ref, "slot_id": slot_id, "starts_at": claims.local_iso(slot["starts_at"]),
-                "zone": None, "friends": handles}
+                "friends": handles}
 
     return _run(conn, run, ClaimError(
         "FRIEND_ALREADY_BOOKED", "Someone in that group booked another game a moment ago. Nobody was booked."))
@@ -716,7 +601,6 @@ def add_friends(conn, owner_id, handles, now):
             raise ClaimError("VALIDATION_FAILED", "Type at least one username.")
         _check_open(slot, _taken(conn, slot["id"]), now, cfg, len(people))
         _seat_friends(conn, owner, people, slot, cfg, now)
-        _assign_halves(conn, slot["id"])
         return {"added": [p["handle"] for p in people]}
 
     return _run(conn, run, ClaimError(
@@ -728,10 +612,6 @@ def _cancel_seat(conn, b, now):
     conn.execute("UPDATE escape_bookings SET status='cancelled', cancelled_at=? WHERE id=?",
                  (_iso(now), b["id"]))
     withdrawn = notify.withdraw(conn, f"friend_added:{b['id']}")
-    # Somebody leaving can strand the rest of their group on one side, or
-    # empty one half entirely. Work the split out again for the whole
-    # game rather than patching the hole.
-    _assign_halves(conn, b["slot_id"])
     return withdrawn
 
 

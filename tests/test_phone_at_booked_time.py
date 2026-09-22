@@ -130,12 +130,6 @@ def test_the_windows_of_consecutive_games_overlap(conn):
 # The two things that can still close it
 # ---------------------------------------------------------------------------
 
-def test_the_admin_can_switch_the_in_app_phone_off(conn):
-    _, starts, me = make_game(conn)
-    db.set_setting(conn, "in_app_phone", False, by="test")
-    assert code_at(conn, me, starts, 1) == "PHONE_OFF"
-
-
 def test_the_gm_can_lock_it_for_one_game_and_undo_that(conn):
     slot_id, starts, me = make_game(conn)
     actor = {"role": "gm", "name": "Ryan", "station": "Escape desk"}
@@ -145,18 +139,19 @@ def test_the_gm_can_lock_it_for_one_game_and_undo_that(conn):
     assert code_at(conn, me, starts, 5) is None
 
 
-def test_the_gm_clock_no_longer_touches_the_phone(conn):
-    """Start, Pause and End drive the countdown and the cues, nothing else."""
+def test_the_gm_clock_only_ever_gives_the_phone_more_time(conn):
+    """Pause and End drive the countdown. Neither takes the phone away, and
+    a pause hands its own length back to the window (23 Sep)."""
     slot_id, starts, me = make_game(conn)
     actor = {"role": "gm", "name": "Ryan", "station": "Escape desk"}
-    game.act(conn, slot_id, "start", actor, at(starts, 1))
     game.act(conn, slot_id, "pause", actor, at(starts, 2))
     assert code_at(conn, me, starts, 3) is None          # paused: phone unaffected
     game.act(conn, slot_id, "resume", actor, at(starts, 4))
     game.act(conn, slot_id, "end", actor, at(starts, 5))
     assert code_at(conn, me, starts, 6) is None          # ended: still theirs
-    # And the window is still the slot's, not the GM's: a pause does not move it.
-    assert code_at(conn, me, starts, 25) == "RELOCKED"
+    # Two minutes paused, so the window closes two minutes later than usual.
+    assert code_at(conn, me, starts, 26) is None
+    assert code_at(conn, me, starts, 28) == "RELOCKED"
 
 
 # ---------------------------------------------------------------------------
@@ -223,10 +218,11 @@ def test_the_page_itself_refuses_with_the_reason_not_a_catch_all(conn, minutes, 
     assert exc.value.code == want
 
 
-def test_the_halves_stay_hidden_until_the_booked_time(conn):
+def test_there_are_no_halves_to_hide(conn):
+    """The split went on 23 Sep: everyone in the game gets the phone and
+    nobody is told to stand anywhere in particular."""
     _, starts, me = make_game(conn)
-    assert game.phone_access(conn, me, at(starts, -1))["zone"] is None
-    assert game.phone_access(conn, me, at(starts, 1))["zone"] == "A"
+    assert "zone" not in game.phone_access(conn, me, at(starts, 1))
 
 
 # ---------------------------------------------------------------------------

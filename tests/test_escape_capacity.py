@@ -1,4 +1,4 @@
-"""Escape-room games, capacity, halves and group booking; the free jamming
+"""Escape-room games, capacity and group booking; the free jamming
 studio; time clashes between the two. §17.5, §9 rules 15-20, plus the group
 rules decided 17 Sep (STATE.md §5): owner-only edits, add/remove only, lock at
 the cutoff.
@@ -107,12 +107,12 @@ def test_the_13th_person_cannot_book_a_12_seat_game(games):
     assert active(games, s["id"]) == 12
 
 
-def test_twelve_bookings_split_into_halves_of_six(games):
+def test_twelve_bookings_fill_a_game(games):
     p, s = ids(games), slot(games)
     for h in HANDLES[:12]:
         bookings.book(games, p[h], s["id"], [], TODAY)
     board = bookings.admin_board(games, TODAY)["escape"][0]
-    assert board["booked"] == 12 and board["half_a"] == 6 and board["half_b"] == 6
+    assert board["booked"] == 12 and board["booked"] == board["capacity"]
 
 
 def test_a_half_full_game_stays_open_to_others(games):
@@ -259,7 +259,6 @@ def test_the_owner_sees_and_edits_the_group(games):
     assert v["i_am_owner"] and v["can_add"] and v["can_leave"]
     assert [(g["handle"], g["owner"], g["removable"]) for g in v["group"]] == [
         ("heidily", True, False), ("bananabelles", False, True)]
-    assert v["zone"] is None                         # halves stay hidden until the game
     bookings.add_friends(games, p["heidily"], ["t_shixuan"], TODAY)
     assert active(games, s["id"]) == 3
 
@@ -375,12 +374,13 @@ def test_edits_lock_at_the_booking_cutoff(games):
     assert e.value.code == "SLOT_STARTED"
 
 
-def test_halves_show_once_the_game_starts(games):
+def test_a_ticket_never_tells_anybody_which_half_they_are_in(games):
+    """There are no halves since 23 Sep — everyone in the game plays it."""
     p, s = ids(games), slot(games)
     bookings.book(games, p["heidily"], s["id"], ["bananabelles"], TODAY)
     during = starts(s) + timedelta(minutes=1)
-    zones = {bookings.my_view(games, p[h], during)["zone"] for h in ("heidily", "bananabelles")}
-    assert zones == {"A", "B"}
+    assert all("zone" not in bookings.my_view(games, p[h], during)
+               for h in ("heidily", "bananabelles"))
 
 
 def test_a_blocked_game_cannot_be_booked(games):
@@ -458,12 +458,12 @@ def test_bad_friend_lists_are_refused(games, client):
     assert err(r)["code"] == "VALIDATION_FAILED"
 
 
-def test_the_booth_sees_the_half(games):
+def test_the_booth_sees_the_booking(games):
     p, s = ids(games), slot(games)
     bookings.book(games, p["heidily"], s["id"], [], TODAY)
     code = games.execute("SELECT pass_code FROM attendees WHERE handle='heidily'").fetchone()[0]
     esc = Console().lookup(code).get_json()["data"]["person"]["escape"]
-    assert esc["zone"] in ("A", "B") and esc["ref"].startswith("ESC-")
+    assert esc["ref"].startswith("ESC-") and esc["starts_at"]
 
 
 def test_the_console_schedule_is_real(games):

@@ -134,7 +134,10 @@ def test_saving_a_setting_is_logged_with_before_and_after(world):
     ({"nope": 1}, "can't be changed"),
     ({"actor_chat_id": 1}, "can't be changed"),
     ({"doors_open": "5pm"}, "time like"),
-    ({"hint_1": "four"}, "minutes:seconds"),
+    # The hint times went with the script on 23 Sep, so the key itself is
+    # no longer a setting anybody can write.
+    ({"hint_1": "four"}, "can't be changed"),
+    ({"in_app_phone": False}, "can't be changed"),
     ({"capacity": 0}, "at least 1"),
     ({"notify_mode": "loud"}, "one of"),
     ({"test_clock": "yes"}, "on or off"),

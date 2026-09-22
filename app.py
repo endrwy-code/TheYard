@@ -1157,16 +1157,9 @@ def admin_gm_state():
     return _run(lambda: game.state(g.db, now_utc(), request.args.get("slot_id")))
 
 
-@app.route("/admin/api/gm/<int:slot_id>/halves", methods=["POST"])
-def admin_gm_halves(slot_id):
-    body = request.get_json(silent=True) or {}
-    return _run(lambda: game.halves(g.db, slot_id, actor(), swap_attendee_id=body.get("swap_attendee_id"),
-                                    rebalance=bool(body.get("rebalance"))))
-
-
-@app.route("/admin/api/gm/<int:slot_id>/cues/<key>", methods=["POST"])
-def admin_gm_cue(slot_id, key):
-    return _run(lambda: game.send_cue(g.db, slot_id, key, actor(), now_utc()))
+@app.route("/admin/api/gm/<int:slot_id>/hints/<key>", methods=["POST"])
+def admin_gm_hint(slot_id, key):
+    return _run(lambda: game.give_hint(g.db, slot_id, key, actor(), now_utc()))
 
 
 @app.route("/admin/api/gm/<int:slot_id>/<action>", methods=["POST"])

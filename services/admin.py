@@ -141,7 +141,6 @@ def overview(conn, now):
 
 CLOCK_KEYS = ("doors_open", "doors_close", "first_game", "last_game", "jam_first", "jam_last",
               "test_clock_at", "doors_message_at")
-CUE_KEYS = ("hint_1", "hint_2", "hint_3", "forced_merge")
 HANDLE_KEYS = ("help_handle", "gm_handle", "actor_handle")
 CHOICES = {
     "claim_requires": ("verified", "submitted", "none"),
@@ -154,7 +153,6 @@ MINIMUM = {"capacity": 1, "game_minutes": 1, "phone_minutes": 1, "jam_slot_minut
 # Settings that hold several lines, and how long each may be.
 LONG_TEXT = {"price_list": 4000}
 CLOCK_RE = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
-CUE_RE = re.compile(r"^\d{1,2}:[0-5]\d$")
 
 
 def settings_view(conn):
@@ -195,8 +193,6 @@ def _coerce(key, value):
         if not m:
             raise ClaimError("VALIDATION_FAILED", f"{key} must be a time like 17:30.")
         return f"{int(m.group(1)):02d}:{m.group(2)}"
-    if key in CUE_KEYS and not CUE_RE.match(text):
-        raise ClaimError("VALIDATION_FAILED", f"{key} must be minutes:seconds, like 4:30.")
     if key in CHOICES and text not in CHOICES[key]:
         raise ClaimError("VALIDATION_FAILED", f"{key} must be one of: {', '.join(CHOICES[key])}.")
     if key in HANDLE_KEYS:
@@ -621,9 +617,8 @@ def move_person(conn, attendee_id, slot_id, reason, by, now):
             raise ClaimError("SLOT_FULL", "That game is full.")
         if bookings._escape_clashes(conn, person["id"], target):
             raise ClaimError("TIME_CONFLICT", f"That game clashes with {person['name']}'s jam slot.")
-        zone = bookings._zone(conn, target["id"])
-        conn.execute("UPDATE escape_bookings SET slot_id=?, zone=?, zone_changed_by=?, reminder_sent_at=NULL "
-                     "WHERE id=?", (target["id"], zone, by, b["id"]))
+        conn.execute("UPDATE escape_bookings SET slot_id=?, reminder_sent_at=NULL "
+                     "WHERE id=?", (target["id"], b["id"]))
         notify.queue(conn, person["id"], "moved",
                      notify.text_moved(b["starts_at"], target["starts_at"], notify.place(conn, "escape")),
                      go=notify.GO_TICKET, expires_at=datetime.fromisoformat(target["starts_at"]), now=now)
@@ -631,7 +626,7 @@ def move_person(conn, attendee_id, slot_id, reason, by, now):
                  entity_id=person["id"],
                  details={"ref": b["ref_code"], "reason": reason,
                           "before": {"game": claims.clock(b["starts_at"])},
-                          "after": {"game": claims.clock(target["starts_at"]), "half": zone}})
-        return {"moved_to": claims.local_iso(target["starts_at"]), "zone": zone}
+                          "after": {"game": claims.clock(target["starts_at"])}})
+        return {"moved_to": claims.local_iso(target["starts_at"])}
 
     return bookings._run(conn, run)
