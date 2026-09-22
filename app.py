@@ -390,7 +390,7 @@ def floorplan_url():
 # Photographs the Mini App puts at the top of a screen. The page renders one
 # only if the file is actually on the laptop, so a missing photograph leaves
 # no gap and no broken image — the screen simply reads as it did before.
-SHOT_NAMES = ("home", "pass", "esc", "jam", "help")
+SHOT_NAMES = ("home", "pass", "esc", "jam", "help", "prices")
 
 
 def available_shots():

@@ -69,7 +69,7 @@ const sharedRoom = { ...answers.me, jam_bookings: [{ ...jb, line_up: [...jb.line
   { handle: "stranger", name: "Sam Lee", instrument: "keys", instrument_label: "Keyboard", me: false, mine_to_remove: false }] }] };
 // The phone's own screen (decision 130), in each state the server can answer.
 const soon = (m) => new Date(Date.now() + m * 60000).toISOString();
-const phoneAs = (code) => ({ ...answers.phone, code, game_starts_at: soon(10), lock_at: soon(22), zone: "B" });
+const phoneAs = (code) => ({ ...answers.phone, code, game_starts_at: soon(10), lock_at: soon(22) });
 const noMessages = { ...answers.me, can_message: false };
 const jamSlot = answers.jam.slots[0];
 const jamTaken = { ...answers.jam, slots: answers.jam.slots.map((s) =>
@@ -101,13 +101,14 @@ const cases = [
   ["ticket (locked)", { me: locked }],
   ["ticket (can't message them)", { me: noMessages }],
   ["phone (open)", { phone: phoneAs(null) }],
-  ["phone (not started)", { phone: phoneAs("PHONE_LOCKED") }],
+  ["phone (not yet)", { phone: phoneAs("NOT_YET") }],
+  ["phone (locked by the GM)", { phone: phoneAs("PHONE_LOCKED") }],
   ["phone (time's up)", { phone: phoneAs("RELOCKED") }],
-  ["phone (check in first)", { phone: phoneAs("NOT_CHECKED_IN") }],
-  ["phone (desk handset)", { phone: phoneAs("PHONE_OFF") }],
+  ["phone (not on this laptop)", { phone: phoneAs("PHONE_OFF") }],
   ["phone (no game)", { phone: phoneAs("NO_BOOKING") }],
   ["jamticket", { openJam: jb.ref }],
   ["jamticket (another group in the room)", { me: sharedRoom, openJam: jb.ref }],
+  ["prices", {}],
   ["help", {}],
   ["help (payments not checked)", { me: { ...answers.me,
     event: { ...answers.me.event, payment_required: false } } }],
@@ -123,34 +124,38 @@ const GONE = ["Grab a time", "Show the QR at the counter", "One slot each", "goi
   // The empty Up next card was a paragraph you couldn't tap (decision 127).
   "Nothing in the diary yet"];
 const MUST = {
-  "home": ['data-go="mybookings"', 'data-go="floorplan"', "pastry, photo strip and vinyl making"],
+  "home": ['data-go="mybookings"', 'data-go="floorplan"', 'data-go="prices"', "pastry, photo strip and vinyl crafting"],
   // 22 Sep (STATE.md 132): three things on the pass, the pastry's kinds
   // under its name, the kind that went once it's collected; a price list and
   // a floorplan; the places from Settings on both tickets.
-  "food": ["Vinyl Making", "Mini tart, brownie, cookie or shiopan", "Your first strip"],
+  "food": ["Vinyl Crafting", "Mini tart, brownie, cookie or shiopan", "Your first strip"],
   "food (pastry collected)": ["Mini Tart", "Collected"],
-  "help": ["Is there a price list?", "price-row", "Mini Tart", "$2.50", 'name="helpfaq"',
-           'data-go="floorplan"', "Board Games", "You haven’t seen my payment."],
+  "help": ['name="helpfaq"', 'data-go="floorplan"', 'data-go="prices"', "Board Games",
+           "You haven’t seen my payment."],
   // With payment unchecked, Help stops sending people to the desk about it.
-  "help (payments not checked)": ["Is there a price list?", "Board Games"],
+  "help (payments not checked)": ['data-go="prices"', "Board Games"],
+  // The price list is a screen now: the groups as cards, the photograph in
+  // its own colours, and what entry already covers underneath.
+  "prices": ["price-row", "Mini Tart", "$2.50", "MUTED. Gelato", "Waffle Bites",
+             "shot-prices", "Already yours"],
   // The map moves inside a fixed frame now: pinch, double-tap, drag
   // (23 Sep, STATE.md 135). No zoom button, and no zoomed-page state.
-  "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png", "Heaven 2",
-                "Pinch or double-tap to zoom", "marked Registration on the plan"],
+  "floorplan": ['id="plan"', 'id="planimg"', "floorplan.png",
+                "marked Registration on the plan"],
   "jamticket": ["Heaven 2"],
   "home (nothing booked)": ['data-go="mybookings"', ">None<", "Book something!"],
   // The phone lives on its own screen now, reached from the bot's message.
-  "ticket (can't message them)": ["His phone", "only arrives as a message"],
+  "ticket (can't message them)": ["Kai Chen’s phone", "that’s how Kai Chen’s phone reaches you"],
   "phone (open)": ['id="openphone"', 'id="openphonetab"', "min left", "Unlocked"],
-  "phone (not started)": ["Locked", "Your game starts"],
+  "phone (not yet)": ["Not yet", "Your game starts", "Kai Chen’s phone opens at your booked time"],
+  "phone (locked by the GM)": ["Locked", "has locked Kai Chen’s phone"],
   "phone (time's up)": ["Time’s up"],
-  "phone (check in first)": ["Check in first"],
-  "phone (desk handset)": ["handset on the desk"],
+  "phone (not on this laptop)": ["Something’s wrong", "isn’t loading"],
   "phone (no game)": ["No game booked"],
   "mybookings (empty)": ["bk-hero", ">None<", "Book something!", "hold empty room-esc", "hold empty room-jam"],
   "escbook (two names)": ['data-redraft="heidily"', 'data-undraft="joncjy"', 'id="friendadd"'],
   "ticket": ["You can change this anytime, until 5 minutes before your booking.",
-             "You can cancel anytime, until 30 minutes before your booking.", "His phone",
+             "You can cancel anytime, until 30 minutes before your booking.", "Kai Chen’s phone",
              "The escape room entrance"],
   "ticket (as a guest)": ["Booked by", "prow locked"],
   "ticket (locked)": ["Changes are closed."],
@@ -166,7 +171,8 @@ const NOT = {
   "help (payments not checked)": ["You haven’t seen my payment."],
   "floorplan": ['id="planzoom"', "Fit to screen"],
   "esc": ['id="openphone"', 'id="openphonetab"', 'class="phone"'],
-  "ticket": ["with the phone", "escape-room door"],
+  "ticket": ["with the phone", "escape-room door", "Where you start",
+             "Inside the flat", "At the desk"],
   // The ring before each pass item read as a tick box; it went on 22 Sep.
   "food": ['class="hole"', "Cookie or Pastry"],
 };

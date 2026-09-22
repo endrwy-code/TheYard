@@ -13,7 +13,8 @@ import config
 tmp = Path(tempfile.mkdtemp())
 config.DATA_DIR = tmp; config.DB_PATH = tmp / "app.db"; config.BACKUP_DIR = tmp / "b"
 config.IMPORTS_DIR = tmp / "i"; config.PHONE_DIR = tmp / "p"; config.RECEIPTS_DIR = tmp / "r"
-config.SHOTS_DIR = tmp / "shots"
+# The real photographs, so the render check exercises the photo blocks.
+config.SHOTS_DIR = ROOT / "static" / "shots"
 config.TELEGRAM_TOKEN = "123456:TEST-TOKEN-FOR-THE-GATE"
 config.ALWAYS_ALLOW_HANDLES = {"maxi_muslim"}
 

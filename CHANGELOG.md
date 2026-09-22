@@ -1535,3 +1535,30 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   up their new defaults by themselves.
 - **Next step:** none for the wording. If the organiser edits a row on the
   night and wants the default back, that is what `reset-settings` is for.
+
+## 2026-09-23 — Prices is a screen, and the gelato has its own name
+
+- **Changed:** the price list was **Help's first question** — the thing people
+  ask about most, folded into a `<details>` they had to find and open, inside
+  a screen they had to think to visit. It is now a screen of its own:
+  **Home row 04, Prices**, with a card in Help that opens it. Floorplan and
+  Help move to 05 and 06.
+- **The screen:** the matcha photograph across the top in **its own colours**
+  (the `.shot-pass` / `.shot-jam` opt-out, dot screen at `.26` rather than the
+  escape hero's `.34`), masked so it fades into the paper instead of sitting
+  on it as a card; each price group a card with an Anton heading; rows at
+  16px so they read at arm's length in a queue. Underneath, one line naming
+  what entry already covers, so the page answers "do I have to pay for this?"
+  as well as "how much?".
+- Same data and same parser (`services/prices.py`, the `price_list` Settings
+  row), so a price changed on the night still shows straight away.
+- **Ice Cream Waffle → MUTED. Gelato**: Premium Flavours $6, Classic Flavours
+  $5, Waffle Bites $2.50. The parser reads a heading with a full stop in the
+  middle of it correctly; there is now a test that says so.
+- **Also:** `scripts/record_answers.py` recorded its answers against an empty
+  shots folder, so every photograph on every screen rendered as nothing and
+  the render check never exercised one. It uses the real `static/shots` now.
+- **Current state:** 539 tests pass; **33 screen states render** with no
+  failures, which includes the new one.
+- **Next step:** the organiser checks the photograph reads well on a phone —
+  it is the one picture on the page and it is doing the work of a header.

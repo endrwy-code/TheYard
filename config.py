@@ -142,11 +142,10 @@ Shiopan and Panini:
 Shiopan: $2.20
 Panini: $5 a slice
 
-Ice Cream Waffle:
-Hokkaido Cookies: $5
-Dark Chocolate Sorbet: $5
-Hokkaido Vanilla: $5
-Uji Matcha: $6
+MUTED. Gelato:
+Premium Flavours: $6
+Classic Flavours: $5
+Waffle Bites: $2.50
 
 Matcha and Hojicha:
 Matcha or Hojicha Latte: $5

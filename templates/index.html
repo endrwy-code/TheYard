@@ -519,10 +519,20 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
    point of those two pictures, and toning them turned both into a flat
    wash. The dot screen stays so they still belong to the grain, but finer
    and fainter than the escape room's. */
-.shot-pass img, .shot-jam img{ filter:none; mix-blend-mode:normal }
-.shot-pass::after, .shot-jam::after{
+.shot-pass img, .shot-jam img, .shot-prices img{ filter:none; mix-blend-mode:normal }
+.shot-pass::after, .shot-jam::after, .shot-prices::after{
   background-image:radial-gradient(#00000060 1.1px, transparent 1.6px);
   background-size:5px 5px; opacity:.26;
+}
+/* Prices opens on its photograph, which is the counter's own green and has
+   to stay that way. It runs off the top of the screen and fades out at the
+   bottom into the paper, so the page begins in the picture rather than
+   carrying one on top of it. */
+.shot-prices{
+  background:var(--paper); aspect-ratio:16/9;
+  margin:-22px -20px 4px;
+  -webkit-mask-image:linear-gradient(180deg, #000 58%, transparent 100%);
+  mask-image:linear-gradient(180deg, #000 58%, transparent 100%);
 }
 .shot .shot-cap{
   position:absolute; left:20px; bottom:12px; color:#F2EFE8; z-index:2;
@@ -562,14 +572,28 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
 }
 .help-faq details[open] summary::after{ transform:rotate(-135deg) translate(-2px,-2px) }
 .help-faq details p{ margin:0; padding:0 0 14px; font-size:15px; line-height:1.55 }
-/* The price list inside its question: groups under small labels, names on
-   the left, prices in a right-aligned column of tabular figures. */
+/* The price list: groups under small labels, names on the left, prices in a
+   right-aligned column of tabular figures so they read down the column. */
 .prices{ display:flex; flex-direction:column; gap:16px; padding:2px 0 16px }
 .price-h{ color:var(--accent-ink); margin-bottom:2px }
 .price-row{ display:flex; justify-content:space-between; align-items:baseline; gap:14px;
   padding:7px 0; border-top:1px dashed var(--rule); font-size:15px; line-height:1.35 }
 .price-h + .price-row{ border-top:0 }
 .price{ flex:none; font-weight:700; font-variant-numeric:tabular-nums; text-align:right }
+/* On its own screen it has room to breathe: each group is a card on the
+   paper, its heading is Anton rather than a small label, and the rows are
+   big enough to read at arm's length in a queue (23 Sep). */
+.pricepage .prices{ gap:18px; padding:0 }
+.pricepage .price-group{
+  background:var(--card); border-radius:18px; padding:16px 18px 6px;
+  box-shadow:inset 0 0 0 1px var(--rule-soft);
+}
+.pricepage .price-h{
+  font-family:var(--display); font-size:24px; line-height:1.05; letter-spacing:.005em;
+  text-transform:none; font-weight:400; font-stretch:100%; color:var(--ink); margin-bottom:8px;
+}
+.pricepage .price-row{ padding:11px 0; font-size:16px }
+.pricepage .price{ font-size:17px }
 
 /* ---- the floorplan ---------------------------------------------------
    A fixed frame the map moves inside (23 Sep, STATE.md 135). The frame
@@ -835,7 +859,7 @@ const GATES = {
 const TITLES = {
   gate:'', home:'The Yard', esc:'', escbook:'', ticket:'Your Ticket',
   food:'The Yard Pass', jam:'', jamticket:'', jambook:'', mybookings:'', help:'Help', phone:'',
-  floorplan:'Floorplan',
+  floorplan:'Floorplan', prices:'',
   // Kept so an old deep link from a bot message still lands somewhere.
   bookings:''
 };
@@ -1298,8 +1322,9 @@ VIEWS.home = function(){
                 !canCollect(me) ? '' : openItems(me) ? '' : `<span class="pill pill-line">Done</span>`)}
       ${progRow('02', 'The Last Guest', 'You have fifteen minutes to solve this escape room. Can you do it in time?', 'esc')}
       ${progRow('03', 'The Jamming Studio', 'Are you musical? Give our jamming room a try', 'jam')}
-      ${progRow('04', 'Floorplan', 'Where everything is at The Yard', 'floorplan')}
-      ${progRow('05', 'Help', 'Lost, stuck, or something looks odd? Click here', 'help')}
+      ${progRow('04', 'Prices', 'What everything costs, and what your entry already covers', 'prices')}
+      ${progRow('05', 'Floorplan', 'Where everything is at The Yard', 'floorplan')}
+      ${progRow('06', 'Help', 'Lost, stuck, or something looks odd? Click here', 'help')}
     </nav>
   </div>`;
 };
@@ -1916,11 +1941,10 @@ VIEWS.help = function(){
   // Easier to read (22 Sep, decision 124): a card per section, its heading
   // in the accent colour, and the questions folded so the page is a list of
   // things you might be wondering rather than a wall of answers. The price
-  // list is the first question (22 Sep, STATE.md 132): it's the one people
-  // ask most, and it comes from Settings, so a price changed on the night
-  // shows here straight away.
+  // list used to be the first question, which put the thing people ask about
+  // most inside a <details> they had to find and open. It is a screen now
+  // (23 Sep), reached from Home and from the card below.
   const faq = [
-    ['Is there a price list?', priceList(e.prices)],
     ['I’ve ordered a matcha or panini. How do I know it’s ready?',
      'We’ll message you on Telegram the moment it’s done, so you don’t have to wait at the counter. They’ll call your name as well.'],
     ['The counter says I already collected something.',
@@ -1955,6 +1979,11 @@ VIEWS.help = function(){
       ${maps ? `<a class="btn btn-line" href="${esc(maps)}" target="_blank" rel="noopener">Open in Maps ${ARROW}</a>` : ''}
       <button class="btn btn-line" data-go="floorplan">See the floorplan ${ARROW}</button>
     </section>
+    ${(e.prices || []).length ? `<section class="help-card">
+      <h2 class="label">What things cost</h2>
+      <p class="help-p">Food, drinks and the activities that aren’t covered by your entry.</p>
+      <button class="btn btn-line" data-go="prices">See the price list ${ARROW}</button>
+    </section>` : ''}
     <section class="help-card">
       <h2 class="label">Included with entry</h2>
       <ul class="help-list">${included.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
@@ -1992,6 +2021,29 @@ function priceList(sections){
     </div>`).join('')}
   </div>` };
 }
+
+/* Prices, on a screen of their own (23 Sep). It was Help's first question,
+   which is a strange place for the thing people ask about most: a table
+   squeezed into a <details> you had to know to open. Same data, same parser,
+   room to read it. */
+VIEWS.prices = function(){
+  const e = ev();
+  const list = priceList(e.prices);
+  return `
+  <div class="page view">
+    ${photo('prices', 'Two Goose · MUTED. Gelato · Shiopan Paninis')}
+    <header>
+      <h1 class="display big">Prices</h1>
+      <p class="fine" style="margin-top:8px">Paid at ${esc(ev().meeting_point || 'the front desk')}, not in the app.</p>
+    </header>
+    ${list ? `<div class="pricepage">${list.html}</div>`
+           : `<p class="help-p">The price list isn’t up yet. Ask at ${esc(ev().meeting_point || 'the front desk')}.</p>`}
+    <section class="help-card">
+      <h2 class="label">Already yours</h2>
+      <p class="help-p">Your entry covers ${esc(itemsSentence())}, The Last Guest, The Jamming Studio and Board Games. Those never cost anything.</p>
+    </section>
+  </div>`;
+};
 
 /* The venue map (22 Sep, STATE.md 132; the gestures are 23 Sep, 135).
    A fixed frame with the whole plan in it, and the map moves inside that

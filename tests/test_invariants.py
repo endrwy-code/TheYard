@@ -338,7 +338,13 @@ def test_the_price_list_reads_the_organisers_own_format(world):
     ]
     # The starting list parses into the six groups the organiser sent.
     assert [s["title"] for s in prices.parse(config.PRICE_LIST)] == [
-        "Activities", "Pastries", "Shiopan and Panini", "Ice Cream Waffle", "Matcha and Hojicha", "Canned Drinks"]
+        "Activities", "Pastries", "Shiopan and Panini", "MUTED. Gelato", "Matcha and Hojicha", "Canned Drinks"]
+    # A stall's name can carry a full stop in the middle of it, and the
+    # parser must not read that as the end of anything (23 Sep).
+    gelato = next(s for s in prices.parse(config.PRICE_LIST) if s["title"] == "MUTED. Gelato")
+    assert gelato["rows"] == [{"name": "Premium Flavours", "price": "$6"},
+                              {"name": "Classic Flavours", "price": "$5"},
+                              {"name": "Waffle Bites", "price": "$2.50"}]
 
 
 def test_a_drink_can_no_longer_be_claimed_against_a_pass(world):
