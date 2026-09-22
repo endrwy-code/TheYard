@@ -1590,7 +1590,10 @@ SCREENS.gm = function(){
       ? `<div class="gm-phone bad">The phone can't reach ${esc(missed.map(p => p.name).join(', '))}. ${missed.some(p => p.phone_msg === 'held') ? 'Messages are on testing — Settings → Who gets messages → Everyone. ' : ''}Hand them the desk handset, or let them share with their group.</div>`
       : `<div class="gm-phone">Everyone in this game has been sent the phone.</div>`;
   const games = d.games.map(g => `<option value="${g.id}" ${g.id === d.slot_id ? 'selected' : ''}>${esc(short(g.starts_at))} — game ${g.number}, ${esc(g.booked)} booked${g.state === 'upcoming' ? '' : ' (' + g.state + ')'}</option>`).join('');
-  const phone = !d.in_app_phone ? 'In-app phone off' : d.phone_unlocked ? 'Phone open until ' + short(d.relock_at) : 'Phone locked';
+  const phone = !d.in_app_phone ? 'In-app phone off'
+    : d.phone_locked ? 'Phone locked by you'
+    : d.phone_open ? 'Phone open until ' + short(d.relock_at)
+    : 'Phone opens at ' + short(d.starts_at);
   const run = !d.started
     ? `<button class="gm-btn gm-pause" data-gm="start">Start game</button>`
     : d.ended ? `<button class="gm-btn gm-pause" disabled>Ended</button>`
@@ -1605,18 +1608,18 @@ SCREENS.gm = function(){
       <div class="gm-card">
         <div class="gm-head">
           <span class="l">${esc(short(d.starts_at))} — ${d.ended ? 'ended' : d.paused ? 'paused' : d.started ? 'running' : 'not started'}</span>
-          <span class="l" style="color:${d.phone_unlocked ? '#C8CFC7' : '#A8A29B'}">${esc(phone)}</span>
+          <span class="l" style="color:${d.phone_open ? '#C8CFC7' : '#A8A29B'}">${esc(phone)}</span>
         </div>
         <div class="gm-timer" id="gmtimer" style="color:${timerTone}">${esc(mmss(remaining))}</div>
         <div class="gm-grid">
           ${run}
           <button class="gm-btn gm-ext" data-gm="extend" ${d.ended ? 'disabled' : ''}>+1 min</button>
-          <button class="gm-btn gm-lock" data-gm="${d.phone_unlocked ? 'lock' : 'unlock'}">${d.phone_unlocked ? 'Lock phone' : 'Unlock phone'}</button>
-          <button class="gm-btn gm-inapp" data-gm="${d.in_app_phone ? 'phone-off' : 'phone-on'}">In-app phone ${d.in_app_phone ? 'on' : 'off'}</button>
+          <button class="gm-btn gm-lock" data-gm="${d.phone_locked ? 'unlock' : 'lock'}">${d.phone_locked ? 'Undo lock' : 'Lock phone'}</button>
         </div>
         ${d.started && !d.ended ? `<button class="gm-btn gm-end" data-gm="end">End game</button>` : ''}
-        ${d.unlock_mode === 'gm_start' && !d.started ? `<div class="gm-note">Start unlocks the phone and messages it to everyone in this game.</div>` : ''}
-        ${d.unlock_mode === 'clock' && !d.started ? `<div class="gm-note">The phone opens by itself at the booked time and is messaged to everyone in this game.</div>` : ''}
+        <div class="gm-note">${d.phone_locked
+          ? 'You have locked the phone for this game. Undo lock gives it back to everyone booked.'
+          : 'The phone opens by itself at the booked time and is messaged to everyone in this game. Start is your clock and the cues \u2014 it does not open the phone.'}</div>
         ${phoneLine}
       </div>
 
@@ -2034,9 +2037,8 @@ const SETTINGS_SCHEMA = [
     { key:'last_game', label:'Last game', type:'time' },
     { key:'escape_meet', label:'Where players gather', type:'text',
       help:'On the ticket and in the bot\'s messages, e.g. "the escape room entrance".' },
-    { key:'phone_unlock_mode', label:'Phone opens', type:'seg',
-      options:[['gm_start','When the GM presses Start'],['clock','At the booked time']] },
-    { key:'require_checkin', label:'Require check-in for the phone', type:'toggle', onLabel:'Yes', offLabel:'No' },
+    { key:'phone_always_handles', label:'Phone always open for', type:'text', mono:true,
+      help:'Telegram usernames that can open the victim\'s phone at any time, with or without a booking \u2014 for testing the room. Comma separated, no @. Leave empty on the night: it hands out the whole solution.' },
     { key:'in_app_phone', label:'Phone in the app', type:'seg',
       options:[[true,'On','go'],[false,'Off — desk handset only']],
       help:'The GM can still switch it off for one game from the GM console.' },

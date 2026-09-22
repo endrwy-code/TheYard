@@ -195,8 +195,10 @@ DEFAULT_SETTINGS = {
     # 10 PM with the doors, where 3:30-9:30 left the last 15 minutes unused.
     "first_game": "15:05",
     "last_game": "21:45",
-    "phone_unlock_mode": "gm_start",
-    "require_checkin": True,
+    # Telegram handles that may open the victim's phone at any time, booking
+    # or no booking: for testing the room before the doors open. Comma
+    # separated, no @. Empty on the night — it hands out the whole solution.
+    "phone_always_handles": "",
     "in_app_phone": True,
     # How long the phone stays open, from the moment the game starts. A
     # 15-minute game with leeway, so running out of time doesn't cut anyone

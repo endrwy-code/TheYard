@@ -336,12 +336,11 @@ def schedule_due(conn, now=None):
                 conn.execute("ROLLBACK")
                 raise
 
-    # "At the booked time" mode: the phone opens by the clock, so the phone
-    # message goes out from here. (In "When the GM presses Start" mode the
-    # GM's Start sends it.) Imported here because game imports this module.
-    if s.get("phone_unlock_mode") == "clock":
-        from services import game
-        added += game.send_phone_for_started_games(conn, now)
+    # The phone opens at the booked time and nothing has to be pressed for it
+    # (24 Sep), so the message that carries it goes out from here, every tick.
+    # Imported here because game imports this module.
+    from services import game
+    added += game.send_phone_for_started_games(conn, now)
 
     # Event-day broadcasts go out on the day, in real time, each only if its
     # own switch is on. Test time never sends them: a rehearsal must not tell

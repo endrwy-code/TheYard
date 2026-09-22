@@ -2,9 +2,9 @@
 
 **Spoilers.** These are the escape room's evidence photos. This folder is
 inside `private\`, is never served to an attendee screen (§3 rule 4), and is
-only reachable by someone booked in a game that is running — everyone in it
-since 22 Sep, for 25 minutes from the start, opened from the bot's "Open the
-phone" message. Do not put these anywhere in `static\`.
+only reachable by someone booked into a game whose booked time has come —
+everyone in it since 22 Sep, for 25 minutes from that time, opened from the
+bot's "Open the phone" message. Do not put these anywhere in `static\`.
 
 Put each file in **this folder**, with **exactly** the filename below. The
 phone looks them up by name, so a different name — `cam1.jpg`, `Cam-01.JPG` —
@@ -17,11 +17,11 @@ there.
 
 | Filename | What it should show |
 |---|---|
-| `cam-01-kitchen-2215.jpg` | Kitchen camera, timestamped 22:15 |
-| `cam-02-hallway-2220.jpg` | Hallway camera, 22:20 |
-| `cam-03-hallway-2223.jpg` | Hallway camera, 22:23 |
-| `cam-04-kitchen-2227.jpg` | Kitchen camera, 22:27 — shown large in the grid |
-| `ryan-bank-screenshot.jpg` | Ryan's banking app, the transfers. Appears in the Messages thread with Ryan |
+| `cam-01-kitchen-2215.jpg` | Kitchen camera, 22:15 — **Jasmine**. Corrects to 10:00 PM |
+| `cam-02-hallway-2220.jpg` | Hallway camera, 22:20 — **Darren leaving**. Corrects to 10:05 PM |
+| `cam-03-hallway-2223.jpg` | Hallway camera, 22:23 — **Jasmine leaving**. Corrects to 10:08 PM |
+| `cam-04-kitchen-2227.jpg` | Kitchen camera, 22:27 — **Natalie alone with both dessert plates**, and the wall clock reading **10:12** must be legible in the frame. Shown large in the grid. This one photograph carries the whole puzzle: the 22:27 stamp against the 10:12 clock is what proves the camera runs 15 minutes fast |
+| `ethan-bank-screenshot.jpg` | Ethan's banking app, the transfers. Appears in the Messages thread with Ethan |
 
 The phone tells the player each camera still is "3024 × 4032", i.e. **portrait**.
 They do not have to be exactly that, but portrait photos will look right and

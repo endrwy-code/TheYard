@@ -144,7 +144,6 @@ CLOCK_KEYS = ("doors_open", "doors_close", "first_game", "last_game", "jam_first
 CUE_KEYS = ("hint_1", "hint_2", "hint_3", "forced_merge")
 HANDLE_KEYS = ("help_handle", "gm_handle", "actor_handle")
 CHOICES = {
-    "phone_unlock_mode": ("gm_start", "clock"),
     "claim_requires": ("verified", "submitted", "none"),
     "notify_mode": notify.MODES,
 }

@@ -6,11 +6,13 @@ time the GM touches that game. Every figure the console or the Mini App shows
 (elapsed, remaining, when the phone relocks) is worked out here from that row
 and the server's clock, never on a device.
 
-The phone opens for one person only when all of these hold (§9 r21): they
-have a booking in this game; the game has started (by the GM, or by the clock
-in 'clock' mode) and it is still within `phone_minutes` of the start; the
-in-app phone is on; and they are checked in, if Settings asks for that.
-Anything else gets the matching refusal code.
+The phone opens for one person when they have a booking in this game and the
+clock has reached their booked time, and for `phone_minutes` after it (§9 r21).
+That is the whole rule since 24 Sep: the GM no longer has to allow anything,
+and check-in no longer gates it. Two things can still close it — the admin's
+in-app phone switch, and the GM's emergency lock for one game — and neither is
+something anybody has to press for the phone to work. `phone_always_handles`
+lets named Telegram accounts open it at any time, for testing.
 
 Since 22 Sep (STATE.md 130) that is **everyone in the game**, not only the
 desk half — the halves still decide where people start — and the way in is a
@@ -30,15 +32,16 @@ from services.claims import ClaimError
 
 ClaimError.STATUS.update({
     "PHONE_LOCKED": 403, "PHONE_OFF": 403, "PHONE_NOT_YOUR_HALF": 403,
-    "NOT_CHECKED_IN": 403, "GAME_STATE": 409,
+    "NOT_YET": 403, "RELOCKED": 403, "NO_BOOKING": 403, "GAME_STATE": 409,
 })
 
 EXTEND_SECONDS = 60
 ACTIONS = {
     "start": "Game started", "pause": "Game paused", "resume": "Game resumed",
     "extend": "Game extended by a minute", "end": "Game ended",
-    "unlock": "Phone unlocked", "lock": "Phone locked",
-    "phone-on": "In-app phone switched on", "phone-off": "In-app phone switched off",
+    # The emergency lock, and undoing it. Neither is needed for the phone to
+    # work: the booked time is what opens it (24 Sep).
+    "lock": "Phone locked", "unlock": "Phone lock lifted",
 }
 
 
@@ -87,8 +90,6 @@ def timing(slot, sess, settings, now):
     or the scheduled time in 'clock' mode)."""
     game_seconds = int(settings["game_minutes"]) * 60 + (sess["extended_seconds"] if sess else 0)
     started = _dt(sess["started_at"]) if sess else None
-    if started is None and settings["phone_unlock_mode"] == "clock" and now >= _dt(slot["starts_at"]):
-        started = _dt(slot["starts_at"])
     paused_total = sess["paused_seconds"] if sess else 0
     paused_at = _dt(sess["paused_at"]) if sess else None
     ended = _dt(sess["ended_at"]) if sess else None
@@ -105,18 +106,11 @@ def timing(slot, sess, settings, now):
             end = now + timedelta(seconds=max(0, game_seconds - elapsed))
         else:
             end = started + timedelta(seconds=game_seconds + paused_total)
-    # The phone's window: phone_minutes from the start, pushed back by pauses
-    # (one in progress included) and the GM's extra minutes, as the game's own
-    # end is. It no longer closes with the game, so End leaves it open.
-    window = timedelta(minutes=int(settings["phone_minutes"]))
-    if started is None:
-        relock_at = _dt(slot["starts_at"]) + window
-    else:
-        held = paused_total
-        if paused_at and not ended:
-            held += max(0, int((now - paused_at).total_seconds()))
-        extra = sess["extended_seconds"] if sess else 0
-        relock_at = started + timedelta(seconds=held + extra) + window
+    # The phone's window belongs to the booked slot, not to the GM's clock
+    # (24 Sep): it opens at the booked time and closes `phone_minutes` later,
+    # whatever Start, Pause and Extend are doing. A 15-minute game inside a
+    # 25-minute window already carries ten minutes of slack.
+    relock_at = _dt(slot["starts_at"]) + timedelta(minutes=int(settings["phone_minutes"]))
     return {
         "started": started, "ended": ended, "paused": paused_at is not None,
         "elapsed": elapsed, "game_seconds": game_seconds,
@@ -126,20 +120,20 @@ def timing(slot, sess, settings, now):
     }
 
 
-def _phone_state(sess, t, settings, now):
-    """(open, why-not code) for the game as a whole, before any per-person check."""
-    unlocked = _dt(sess["phone_unlocked_at"]) if sess else None
-    locked = _dt(sess["phone_locked_at"]) if sess else None
-    manual_lock = locked is not None and (unlocked is None or locked >= unlocked)
-    manual_open = unlocked is not None and not manual_lock
-    begun = t["started"] is not None or manual_open
+def _phone_state(slot, sess, t, settings, now):
+    """(open, why-not code, begun) for the game as a whole.
+
+    `begun` is what the halves hang on: it is the booked time arriving, not
+    anybody pressing anything.
+    """
+    begun = now >= _dt(slot["starts_at"])
     if not begun:
-        return False, "PHONE_LOCKED", False
+        return False, "NOT_YET", False
     if now >= t["relock_at"]:
         return False, "RELOCKED", True
-    if not settings["in_app_phone"] or (sess and sess["in_app_phone"] == "off"):
+    if not settings["in_app_phone"]:
         return False, "PHONE_OFF", True
-    if manual_lock:
+    if sess and sess["phone_locked_at"]:
         return False, "PHONE_LOCKED", True
     return True, None, True
 
@@ -148,11 +142,30 @@ def _phone_state(sess, t, settings, now):
 # The in-app phone (§9 r21)
 # ---------------------------------------------------------------------------
 
+def always_allowed(conn, attendee_id, settings=None):
+    """Named accounts that may open the phone whenever they like.
+
+    For testing the room before the doors open, so nobody has to fake the
+    clock or hold a booking. Deliberately a list of handles rather than a
+    switch: "everyone" would hand the solution to the queue.
+    """
+    settings = settings if settings is not None else db.get_settings(conn)
+    wanted = {h.strip().lstrip("@").lower()
+              for h in str(settings.get("phone_always_handles") or "").split(",") if h.strip()}
+    if not wanted:
+        return False
+    row = conn.execute("SELECT handle FROM attendees WHERE id=?", (attendee_id,)).fetchone()
+    return row is not None and (row["handle"] or "").lower() in wanted
+
+
 def phone_access(conn, attendee_id, now):
     """What the Mini App's phone card shows. `code` is None when it opens."""
     settings = db.get_settings(conn)
     b = bookings.active_booking(conn, attendee_id)
     if b is None:
+        # No booking is still no phone, unless this is one of the test accounts.
+        if always_allowed(conn, attendee_id, settings):
+            return {"code": None, "zone": None, "always": True}
         return {"code": "NO_BOOKING", "zone": None}
     slot = _slot(conn, b["slot_id"])
     sess = _session(conn, slot["id"])
@@ -163,25 +176,25 @@ def phone_access(conn, attendee_id, now):
         "lock_at": _local(t["relock_at"]),
         "zone": None,
     }
-    is_open, code, begun = _phone_state(sess, t, settings, now)
+    is_open, code, begun = _phone_state(slot, sess, t, settings, now)
     if begun:
         out["zone"] = b["zone"]         # halves are revealed once the game is on
     if not is_open:
+        # A test account gets in anyway, and is told that is why.
+        if always_allowed(conn, attendee_id, settings):
+            return dict(out, code=None, always=True, zone=b["zone"])
         return dict(out, code=code)
-    # No half check since 22 Sep: everyone in the game has the phone.
-    if settings["require_checkin"]:
-        person = conn.execute("SELECT checked_in_at FROM attendees WHERE id=?", (attendee_id,)).fetchone()
-        if not person["checked_in_at"] and b["status"] != "checked_in":
-            return dict(out, code="NOT_CHECKED_IN")
+    # No half check since 22 Sep: everyone in the game has the phone. No
+    # check-in check since 24 Sep: the booked time is the whole rule.
     return dict(out, code=None)
 
 
 PHONE_MESSAGES = {
     "NO_BOOKING": "Book a game first.",
-    "PHONE_LOCKED": "The phone is locked until your game starts.",
+    "NOT_YET": "The phone opens at your booked time.",
     "RELOCKED": "Time's up, so the phone is locked again.",
     "PHONE_OFF": "This game uses the handset at the desk.",
-    "NOT_CHECKED_IN": "Check in at the door first.",
+    "PHONE_LOCKED": "The game master has locked the phone for this game.",
 }
 
 
@@ -199,7 +212,7 @@ def _send_phone(conn, slot, settings, now):
     """
     sess = _session(conn, slot["id"])
     t = timing(slot, sess, settings, now)
-    is_open, _, _ = _phone_state(sess, t, settings, now)
+    is_open, _, _ = _phone_state(slot, sess, t, settings, now)
     left = t["relock_at"] - now
     if not is_open or left.total_seconds() <= 0:
         return 0
@@ -256,7 +269,7 @@ def _phone_html():
 # rather than read out of the file.
 STORY_IMAGES = ("cam-01-kitchen-2215.jpg", "cam-02-hallway-2220.jpg",
                 "cam-03-hallway-2223.jpg", "cam-04-kitchen-2227.jpg",
-                "ryan-bank-screenshot.jpg")
+                "ethan-bank-screenshot.jpg")
 FILLER_IMAGES = tuple(f"filler-{n:02d}.jpg" for n in range(1, 18))
 PHONE_IMAGES = STORY_IMAGES + FILLER_IMAGES
 
@@ -289,8 +302,7 @@ def phone_image(conn, attendee_id, name, now):
         raise ClaimError("NOT_FOUND", "No such picture.")
     access = phone_access(conn, attendee_id, now)
     if access["code"]:
-        raise ClaimError("PHONE_LOCKED" if access["code"] in ("RELOCKED", "NO_BOOKING")
-                         else access["code"], PHONE_MESSAGES.get(access["code"], ""))
+        raise ClaimError(access["code"], PHONE_MESSAGES.get(access["code"], ""))
     return phone_image_bytes(name)
 
 
@@ -314,8 +326,7 @@ def phone_file(conn, attendee_id, now):
     access = phone_access(conn, attendee_id, now)
     code = access["code"]
     if code:
-        raise ClaimError("PHONE_LOCKED" if code in ("RELOCKED", "NO_BOOKING") else code,
-                         PHONE_MESSAGES.get(code, ""))
+        raise ClaimError(code, PHONE_MESSAGES.get(code, ""))
     return _phone_html()
 
 
@@ -430,7 +441,7 @@ def state(conn, now, slot_id=None):
     slot = _slot(conn, pick["id"])
     sess = _session(conn, slot["id"])
     t = timing(slot, sess, settings, now)
-    phone_open, _, _ = _phone_state(sess, t, settings, now)
+    phone_open, _, _ = _phone_state(slot, sess, t, settings, now)
 
     rows = conn.execute(
         "SELECT b.id AS booking_id, b.attendee_id, b.zone, b.status, a.name, a.handle, a.checked_in_at, "
@@ -465,9 +476,9 @@ def state(conn, now, slot_id=None):
         "remaining_seconds": t["remaining"],
         "ends_at": _local(t["end"]), "relock_at": _local(t["relock_at"]),
         "halves_locked_at": claims.local_iso(sess["halves_locked_at"]) if sess else None,
-        "phone_unlocked": phone_open,
-        "in_app_phone": bool(settings["in_app_phone"]) and not (sess and sess["in_app_phone"] == "off"),
-        "unlock_mode": settings["phone_unlock_mode"],
+        "phone_open": phone_open,
+        "phone_locked": bool(sess and sess["phone_locked_at"]),
+        "in_app_phone": bool(settings["in_app_phone"]),
         "booked": len(rows), "checked_in": sum(p["in"] for side in halves.values() for p in side),
         "halves": halves,
         "cues": [{"key": c["key"], "at": str(settings.get(c.get("time_setting"), "")),
@@ -524,12 +535,11 @@ def act(conn, slot_id, action, actor, now):
             if sess["paused_at"]:
                 gap = int((now - _dt(sess["paused_at"])).total_seconds())
                 sets.update(paused_at=None, paused_seconds=sess["paused_seconds"] + max(0, gap))
-        elif action == "unlock":
-            sets = {"phone_unlocked_at": stamp}
         elif action == "lock":
             sets = {"phone_locked_at": stamp}
-        elif action in ("phone-on", "phone-off"):
-            sets = {"in_app_phone": "on" if action == "phone-on" else "off"}
+        elif action == "unlock":
+            # Lifts the lock rather than granting anything: back to the rule.
+            sets = {"phone_locked_at": None}
         conn.execute(
             f"UPDATE game_sessions SET {', '.join(k + '=?' for k in sets)} WHERE id=?",  # noqa: S608
             (*sets.values(), sess["id"]))

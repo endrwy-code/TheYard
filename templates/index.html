@@ -1366,7 +1366,7 @@ VIEWS.esc = function(){
            fifteen", which is a good line and a bad ending: it never says
            what you are meant to do, so it reads as a sentence cut off. It
            now finishes the thought — one of them is lying, find out which. -->
-      <p class="esc-prem">Si Hong hosted four guests. At 10:30 PM he collapsed. All four say they had already left — and one of them is lying.</p>
+      <p class="esc-prem">Kai Chen hosted four guests. At 10:30 PM he collapsed. All four say they had already left — and one of them is lying.</p>
       <p class="esc-prem">You’ll be split into two groups — one inside his flat, one at the desk. When your game starts, his phone arrives on Telegram for every one of you. Each group finds things the other can’t see, so you’ll have to talk to each other to work out who’s lying. The police are fifteen minutes out, and so are you.</p>
     </div>
     <div class="esc-body">
@@ -1517,13 +1517,13 @@ function phoneCard(){
       return { title:'No game booked', body:'His phone is for the people in a game, once it starts.', openable:false, count:'' };
     case 'PHONE_OFF':
       return { title:'At the desk', body:'This game uses the handset on the desk. Ask the game master.', openable:false, count:'' };
-    case 'PHONE_LOCKED':
-      return { title:'Locked', body:'It opens when your game starts, and we’ll message you the moment it does.',
+    case 'NOT_YET':
+      return { title:'Not yet', body:'His phone opens at your booked time, and we’ll message you the moment it does. Nothing to check in for, nothing to ask anyone.',
                openable:false, count:minsUntil(p.game_starts_at) > 0 ? 'Your game starts ' + until(p.game_starts_at) : '' };
+    case 'PHONE_LOCKED':
+      return { title:'Locked', body:'The game master has locked the phone for this game. Ask them.', openable:false, count:'' };
     case 'RELOCKED':
       return { title:'Time’s up', body:'The phone has locked again. Your time is with the game master.', openable:false, count:'' };
-    case 'NOT_CHECKED_IN':
-      return { title:'Check in first', body:'Check in at ' + (ev().escape_meet || 'the escape room entrance') + ', then tap Open the phone in the message again.', openable:false, count:'' };
     default: {
       const left = Math.max(0, minsUntil(p.lock_at));
       return { title:'Unlocked', body:'Messages, calls and photos. Everything you need is on it.',

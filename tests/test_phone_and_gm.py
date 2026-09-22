@@ -64,13 +64,13 @@ def code(conn, handle, now):
 
 def test_locked_before_the_game_and_halves_stay_hidden(night, roster):
     out = game.phone_access(roster, pid(roster, desk(roster)), at(night, -3))
-    assert out["code"] == "PHONE_LOCKED" and out["zone"] is None
+    assert out["code"] == "NOT_YET" and out["zone"] is None
     assert game.phone_access(roster, pid(roster, "joncjy"), at(night, 1)) == {"code": "NO_BOOKING", "zone": None}
 
 
-def test_opens_for_a_checked_in_player_once_the_gm_starts(night, roster):
-    assert code(roster, desk(roster), at(night, 0)) == "PHONE_LOCKED"      # gm_start mode: not yet
-    game.act(roster, night["id"], "start", GM, at(night, 1))
+def test_opens_at_the_booked_time_with_nobody_pressing_anything(night, roster):
+    """24 Sep: the clock is the whole rule. No Start, no check-in, no half."""
+    assert code(roster, desk(roster), at(night, -0.1)) == "NOT_YET"
     out = game.phone_access(roster, pid(roster, desk(roster)), at(night, 2))
     assert out["code"] is None and out["zone"] == "B"
     assert game.phone_file(roster, pid(roster, desk(roster)), at(night, 2)) == PHONE_PAGE
@@ -80,25 +80,22 @@ def test_the_flat_group_gets_the_phone_too(night, roster):
     """Everyone in the game has the phone since 22 Sep (STATE.md 130). The
     two groups still decide where people start; they no longer decide who
     holds the phone."""
-    game.act(roster, night["id"], "start", GM, at(night, 0))
     assert code(roster, flat(roster), at(night, 2)) is None
     assert game.phone_file(roster, pid(roster, flat(roster)), at(night, 2)) == PHONE_PAGE
 
 
 def test_nobody_outside_the_game_gets_it(night, roster):
-    game.act(roster, night["id"], "start", GM, at(night, 0))
     assert code(roster, "joncjy", at(night, 2)) == "NO_BOOKING"
     with pytest.raises(ClaimError) as e:
         game.phone_file(roster, pid(roster, "joncjy"), at(night, 2))
-    assert e.value.code == "PHONE_LOCKED"
+    assert e.value.code == "NO_BOOKING"
 
 
-def test_not_checked_in_is_refused_unless_settings_say_otherwise(night, roster):
+def test_check_in_no_longer_gates_the_phone(night, roster):
+    """24 Sep: the booked time is the only condition, so somebody who walked
+    past the front desk still gets their phone."""
     h = desk(roster)
     roster.execute("UPDATE attendees SET checked_in_at=NULL WHERE handle=?", (h,))
-    game.act(roster, night["id"], "start", GM, at(night, 0))
-    assert code(roster, h, at(night, 1)) == "NOT_CHECKED_IN"
-    db.set_setting(roster, "require_checkin", False, by="test")
     assert code(roster, h, at(night, 1)) is None
 
 
@@ -106,19 +103,20 @@ def test_stays_open_25_minutes_from_the_start(night, roster):
     """A 15-minute game with leeway, so running out of time does not cut
     anyone off mid-thought (the organiser, 22 Sep)."""
     assert db.get_setting(roster, "phone_minutes") == 25
-    game.act(roster, night["id"], "start", GM, at(night, 0))
     h = flat(roster)
     assert code(roster, h, at(night, 24.9)) is None
     assert code(roster, h, at(night, 25.1)) == "RELOCKED"
     with pytest.raises(ClaimError) as e:
         game.phone_file(roster, pid(roster, h), at(night, 26))
-    assert e.value.code == "PHONE_LOCKED"
+    assert e.value.code == "RELOCKED"
 
 
-def test_the_window_follows_the_gms_start_not_the_booked_time(night, roster):
+def test_the_window_follows_the_booked_time_not_the_gm(night, roster):
+    """24 Sep, the other way round from before: a late Start no longer buys
+    anybody extra phone time, because the phone never waited for it."""
     game.act(roster, night["id"], "start", GM, at(night, 4))              # a late start
-    assert code(roster, desk(roster), at(night, 28.9)) is None
-    assert code(roster, desk(roster), at(night, 29.1)) == "RELOCKED"
+    assert code(roster, desk(roster), at(night, 24.9)) is None
+    assert code(roster, desk(roster), at(night, 25.1)) == "RELOCKED"
 
 
 def test_ending_the_game_does_not_lock_the_phone(night, roster):
@@ -128,12 +126,10 @@ def test_ending_the_game_does_not_lock_the_phone(night, roster):
     assert code(roster, desk(roster), at(night, 25.1)) == "RELOCKED"
 
 
-def test_the_gm_can_switch_the_in_app_phone_off_and_lock_it(night, roster):
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+def test_the_gms_emergency_lock_takes_it_away_and_undoes(night, roster):
+    """The one phone control left. It only ever takes the phone away — undo
+    puts everybody back to the rule rather than granting anything."""
     h = desk(roster)
-    game.act(roster, night["id"], "phone-off", GM, at(night, 1))
-    assert code(roster, h, at(night, 2)) == "PHONE_OFF"
-    game.act(roster, night["id"], "phone-on", GM, at(night, 2))
     game.act(roster, night["id"], "lock", GM, at(night, 3))
     assert code(roster, h, at(night, 4)) == "PHONE_LOCKED"
     game.act(roster, night["id"], "unlock", GM, at(night, 5))
@@ -141,15 +137,15 @@ def test_the_gm_can_switch_the_in_app_phone_off_and_lock_it(night, roster):
 
 
 def test_settings_can_switch_the_in_app_phone_off_for_everyone(night, roster):
-    game.act(roster, night["id"], "start", GM, at(night, 0))
     db.set_setting(roster, "in_app_phone", False, by="test")
     assert code(roster, desk(roster), at(night, 1)) == "PHONE_OFF"
 
 
-def test_clock_mode_opens_at_the_scheduled_time_without_the_gm(night, roster):
-    db.set_setting(roster, "phone_unlock_mode", "clock", by="test")
-    assert code(roster, desk(roster), at(night, -1)) == "PHONE_LOCKED"
-    assert code(roster, desk(roster), at(night, 0)) is None
+def test_named_accounts_can_open_it_whenever_for_testing(night, roster):
+    h = desk(roster)
+    assert code(roster, h, at(night, -30)) == "NOT_YET"
+    db.set_setting(roster, "phone_always_handles", h, by="test")
+    assert code(roster, h, at(night, -30)) is None
 
 
 def test_pausing_and_extending_push_the_relock_back(night, roster):
@@ -159,18 +155,19 @@ def test_pausing_and_extending_push_the_relock_back(night, roster):
     game.act(roster, night["id"], "extend", GM, at(night, 9))        # +1 minute
     s = game.state(roster, at(night, 10), night["id"])
     assert s["elapsed_seconds"] == 7 * 60 and s["game_seconds"] == 16 * 60
-    # 25 minutes, plus 3 paused and 1 extra: open until 29.
-    assert code(roster, desk(roster), at(night, 28.9)) is None
-    assert code(roster, desk(roster), at(night, 29.1)) == "RELOCKED"
+    # The game moved; the phone did not. Its 25 minutes are the slot's own.
+    assert code(roster, desk(roster), at(night, 24.9)) is None
+    assert code(roster, desk(roster), at(night, 25.1)) == "RELOCKED"
 
 
-def test_a_pause_in_progress_holds_the_window_open(night, roster):
+def test_a_pause_no_longer_holds_the_phone_window_open(night, roster):
+    """24 Sep: the window is anchored to the booked time, so a long pause
+    cannot stretch it. The ten minutes of slack after a 15-minute game are
+    what a pause has to come out of."""
     game.act(roster, night["id"], "start", GM, at(night, 0))
     game.act(roster, night["id"], "pause", GM, at(night, 20))
-    assert code(roster, desk(roster), at(night, 27)) is None          # still paused, 7 min in
-    game.act(roster, night["id"], "resume", GM, at(night, 27))
-    assert code(roster, desk(roster), at(night, 31.9)) is None        # 25 + 7
-    assert code(roster, desk(roster), at(night, 32.1)) == "RELOCKED"
+    assert code(roster, desk(roster), at(night, 24.9)) is None
+    assert code(roster, desk(roster), at(night, 25.1)) == "RELOCKED"
 
 
 # ---------------------------------------------------------------------------
@@ -181,36 +178,37 @@ def phone_rows(conn):
     return conn.execute("SELECT * FROM notifications WHERE kind='phone_open' ORDER BY id").fetchall()
 
 
-def test_starting_the_game_messages_the_phone_to_everyone_in_it(night, roster):
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+def test_the_booked_time_messages_the_phone_to_everyone_in_it(night, roster):
+    notify.schedule_due(roster, at(night, 0.2))
     rows = phone_rows(roster)
     assert len(rows) == 4
     assert {r["button_path"] for r in rows} == {notify.GO_PHONE}
     assert "his phone is unlocked" in rows[0]["text"]
-    # Once each: another press that leaves the phone open sends nothing new.
-    game.act(roster, night["id"], "unlock", GM, at(night, 1))
+    # Once each: nothing the GM does afterwards sends it again.
+    game.act(roster, night["id"], "start", GM, at(night, 1))
     game.act(roster, night["id"], "end", GM, at(night, 15))
     assert len(phone_rows(roster)) == 4
 
 
 def test_the_message_names_the_lock_time(night, roster):
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+    notify.schedule_due(roster, at(night, 0.2))
     lock = at(night, 25).astimezone(config.TIMEZONE)
     want = f"{lock.hour % 12 or 12}:{lock.minute:02d} {'PM' if lock.hour >= 12 else 'AM'}"
     assert f"open until {want}" in phone_rows(roster)[0]["text"]
 
 
 def test_no_phone_message_while_the_phone_is_off(night, roster):
-    game.act(roster, night["id"], "phone-off", GM, at(night, -1))
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+    db.set_setting(roster, "in_app_phone", False, by="test")
+    notify.schedule_due(roster, at(night, 0.2))
     assert phone_rows(roster) == []
-    game.act(roster, night["id"], "phone-on", GM, at(night, 2))        # the GM changes their mind
+    db.set_setting(roster, "in_app_phone", True, by="test")            # switched back on
+    notify.schedule_due(roster, at(night, 2))
     assert len(phone_rows(roster)) == 4
 
 
 def test_a_locked_phone_sends_nothing(night, roster):
     game.act(roster, night["id"], "lock", GM, at(night, -1))
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+    notify.schedule_due(roster, at(night, 0.2))
     assert phone_rows(roster) == []
 
 
@@ -218,15 +216,14 @@ def test_the_message_expires_when_the_phone_locks_on_the_real_clock(night, roste
     """The game's times may be test time; the outbox runs on the real clock.
     So the expiry is "25 minutes from now, really", never a fake timestamp
     that could already be in the past for bot.py."""
-    game.act(roster, night["id"], "start", GM, at(night, 0))
+    notify.schedule_due(roster, at(night, 0.2))
     r = phone_rows(roster)[0]
     left = datetime.fromisoformat(r["expires_at"]) - datetime.fromisoformat(r["send_after"])
     assert timedelta(minutes=24, seconds=50) <= left <= timedelta(minutes=25, seconds=10)
     assert abs(datetime.fromisoformat(r["send_after"]) - datetime.now(timezone.utc)) < timedelta(minutes=1)
 
 
-def test_clock_mode_messages_the_phone_at_the_booked_time(night, roster):
-    db.set_setting(roster, "phone_unlock_mode", "clock", by="test")
+def test_the_phone_is_messaged_at_the_booked_time(night, roster):
     notify.schedule_due(roster, at(night, -1))
     assert phone_rows(roster) == []
     notify.schedule_due(roster, at(night, 0.2))
@@ -234,11 +231,6 @@ def test_clock_mode_messages_the_phone_at_the_booked_time(night, roster):
     notify.schedule_due(roster, at(night, 3))
     assert len(phone_rows(roster)) == 4                                 # once each
     notify.schedule_due(roster, at(night, 26))                          # long over: nothing new either
-
-
-def test_gm_start_mode_waits_for_the_gm_even_at_the_booked_time(night, roster):
-    notify.schedule_due(roster, at(night, 1))
-    assert phone_rows(roster) == []
 
 
 def test_the_button_says_open_the_phone(monkeypatch):
