@@ -250,25 +250,20 @@ def kinds(conn):
     return [r[0] for r in conn.execute("SELECT kind FROM notifications ORDER BY id")]
 
 
-def test_verdicts_message_the_person_but_a_reopen_does_not(roster):
-    admin = Console("admin")
-    i = pid(roster, "heidily")
-    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "verified"})
-    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "reopen", "reason": "typo"})
-    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "rejected", "reason": "Amount is $5"})
-    assert kinds(roster) == ["payment_verified", "payment_rejected"]
-    assert "Amount is $5" in roster.execute(
-        "SELECT text FROM notifications WHERE kind='payment_rejected'").fetchone()[0]
-
-
-def test_a_refused_verdict_queues_nothing(roster):
+def test_no_verdict_ever_messages_the_person(roster):
+    """24 Sep. Telegram is a push: being told out of nowhere that a payment
+    was refused reads as an accusation, and being told it was accepted is
+    news to nobody — they are at the front desk when it happens. The verdict
+    lives on their page and in the audit trail instead."""
     admin = Console("admin")
     i = pid(roster, "heidily")
     assert admin.post(f"/admin/api/people/{i}/payment", {"verdict": "verified"}).status_code == 200
-    # Already settled: it has to be reopened first, so this one is refused.
-    assert admin.post(f"/admin/api/people/{i}/payment",
-                      {"verdict": "verified"}).status_code == 400
-    assert kinds(roster) == ["payment_verified"]
+    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "reopen", "reason": "typo"})
+    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "rejected", "reason": "Amount is $5"})
+    assert kinds(roster) == []
+    # It is still recorded where the staff need it.
+    assert roster.execute(
+        "SELECT COUNT(*) FROM audit_log WHERE action LIKE 'Payment %'").fetchone()[0] == 3
 
 
 def test_hand_overs_and_check_ins_send_nothing(roster):
@@ -285,8 +280,8 @@ def test_no_message_leaks_the_solution():
     texts = [notify.text_booked(now, "ESC-1", []), notify.text_jam_booked(now, now, "JAM-1"),
              notify.text_friend_added("@a", now, now), notify.text_friend_removed("@a", now),
              notify.text_member_left("@a", now), notify.text_reminder(now, 10),
-             notify.text_jam_reminder(now, 10), notify.text_payment_verified(),
-             notify.text_payment_rejected(""), notify.text_doors("5:00 PM", "10:00 PM", "X"),
+             notify.text_jam_reminder(now, 10),
+             notify.text_doors("5:00 PM", "10:00 PM", "X"),
              notify.text_last_call(["pastry"], "10:00 PM")]
     for t in texts:
         for word in ("lock code", "0000", "solution", "clock offset", "hint"):
@@ -299,10 +294,6 @@ def test_the_booth_call_endpoint_is_gone(roster):
     assert err(admin.post("/admin/api/claims/call", {"code": "ZZZZ-ZZZZ"}))["code"] == "NOT_FOUND"
     # Staff are refused before routing, as with any unlisted console path.
     assert err(Console().post("/admin/api/claims/call", {"code": "ZZZZ-ZZZZ"}))["code"] == "FORBIDDEN"
-
-
-def test_payment_verified_names_the_real_items():
-    assert "pastry, photo strip and vinyl making" in notify.text_payment_verified()
 
 
 def test_the_jam_reminder_goes_too(roster):

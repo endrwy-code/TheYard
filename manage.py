@@ -450,9 +450,6 @@ def cmd_notify_test(argv):
             # "Open the phone"; with no game running it opens to "Locked".
             ("phone_open", notify.text_phone(lock), notify.GO_PHONE),
             ("jam_reminder", notify.text_jam_reminder(at, 10), notify.GO_BOOKINGS),
-            ("payment_verified", notify.text_payment_verified(), notify.GO_FOOD),
-            ("payment_rejected", notify.text_payment_rejected("the amount shown is $5, not $12"),
-             notify.GO_HOME),
             ("doors_open", notify.text_doors(notify.hhmm_text(db.get_setting(conn, "doors_open")),
                                              notify.hhmm_text(db.get_setting(conn, "doors_close")),
                                              db.get_setting(conn, "venue")),

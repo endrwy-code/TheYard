@@ -1235,11 +1235,10 @@ function gateAllowedBody(){
 VIEWS.home = function(){
   const me = S.me;
   if (!me) return skeleton();
-  // Only worth saying when payment actually stops them collecting. With the
-  // check switched off (23 Sep, STATE.md 138) nobody is held up by it, so the
-  // warning would be a red banner about nothing.
-  const needsPayment = !me.payment_ok
-    && (me.payment_status === 'missing' || me.payment_status === 'rejected');
+  // Nothing here says anything about payment (24 Sep). A red banner on the
+  // first screen, every time they open the app, reads as being chased for
+  // money in front of their friends. The front desk raises it once, in
+  // person, with the people it actually applies to.
   const nx = nextUp(me);
   return `
   <div class="page view">
@@ -1254,13 +1253,6 @@ VIEWS.home = function(){
       <h1 class="display hello">Evening,<br>${esc(me.profile.first_name)}</h1>
     </header>
     ${photo('home', ev().venue || '')}
-    ${needsPayment ? `
-    <div class="strip strip-warn">
-      <div class="grow">
-        <div class="strip-t">We haven’t spotted your payment</div>
-        <div class="strip-b">Show it at the front desk and everything below opens up.</div>
-      </div>
-    </div>` : ''}
     ${me.can_message === false && tg && tg.requestWriteAccess ? `
     <div class="strip strip-warn" style="background:var(--paper-2)">
       <div class="grow"><div class="strip-b" style="margin:0">Let us message you — your reminders and the escape room’s phone arrive that way.</div></div>
@@ -1627,13 +1619,6 @@ VIEWS.food = function(){
   const items = ev().items || [];
   return `
   <div class="page view">
-    ${!canCollect(me) ? `
-    <div class="strip strip-warn">
-      <div class="grow">
-        <div class="strip-t">We haven’t spotted your payment</div>
-        <div class="strip-b">Show it at the front desk, then the counter can hand your stuff over.</div>
-      </div>
-    </div>` : ''}
     <div class="pass halftone">
       <img src="${esc(me.pass_qr)}" alt="Your pass QR code">
       <div class="code pass-code">${esc(me.profile.pass_code)}</div>

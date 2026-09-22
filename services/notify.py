@@ -254,20 +254,6 @@ def _items_sentence(items):
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
 
 
-def text_payment_verified():
-    return _msg(
-        "✅ payment verified",
-        footer=f"your Yard Pass covers your {_items_sentence(claims.ITEMS)}. "
-               "just show it when you collect")
-
-
-def text_payment_rejected(reason):
-    return _msg(
-        "⚠️ we couldn't verify your entry payment",
-        [("\U0001f4dd", esc(reason) if reason else None)],
-        footer="pop by the front desk when you arrive and we'll sort it out")
-
-
 def text_doors(opens, closes, venue):
     return _msg(
         "\U0001f39f The Yard is on today",

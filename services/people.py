@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 import config
 import db
 from auth import normalise_handle
-from services import bookings, claims, notify, receipts
+from services import bookings, claims, receipts
 from services.claims import ClaimError
 
 SEARCH_LIMIT = 50
@@ -295,14 +295,12 @@ def set_payment(conn, attendee_id, *, verdict, reason=None, by):
                   "reopen": "Payment reopened"}[verdict]
         db.audit(conn, "admin", action, actor_name=by, entity="attendee",
                  entity_id=row["id"], details=details)
-        # Only the two verdicts change what the person does next. A reopen is
-        # the admin's own business until they decide again.
-        if verdict == "verified":
-            notify.queue(conn, row["id"], "payment_verified", notify.text_payment_verified(),
-                         go=notify.GO_FOOD)
-        elif verdict == "rejected":
-            notify.queue(conn, row["id"], "payment_rejected",
-                         notify.text_payment_rejected(reason), go=notify.GO_HOME)
+        # No message goes out about a payment at all (24 Sep). Telegram is a
+        # push: being told out of nowhere that your payment was not accepted
+        # reads as an accusation, and being told it was is news to nobody —
+        # the person is standing at the front desk when it happens. The
+        # verdict is on their page and in the audit trail, where staff need
+        # it, and the front desk says the rest out loud.
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")
