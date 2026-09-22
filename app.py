@@ -5,6 +5,7 @@ Every response carries server_time, because the server is the only clock
 (§9 rule 34).
 """
 
+import hmac
 import json
 import logging
 import os
@@ -22,7 +23,8 @@ import auth
 import config
 import db
 from services import admin as console
-from services import bookings, claims, export, game, notify, orders, people, prices, receipts
+from services import (bookings, claims, export, game, notify, orders, paperform, people,
+                      prices, receipts)
 
 # The app.py window is the only place the organiser can see a crash, and the
 # RUNBOOK sends them there by name. Without this, a bare logger prints an
@@ -1047,6 +1049,50 @@ def admin_roster_preview():
 @app.route("/admin/api/roster/commit/<int:run_id>", methods=["POST"])
 def admin_roster_commit(run_id):
     return _run(lambda: console.roster_commit(g.db, run_id, g.console["name"]))
+
+
+# ---------------------------------------------------------------------------
+# Paperform's webhook (§9 r10-14). The one public write in the app: Paperform
+# calls it, not a signed-in person, so `console_guard` never sees it — it
+# guards /admin/api/ only — and everything that protects it is right here.
+# ---------------------------------------------------------------------------
+
+WEBHOOK_WINDOW = 60
+WEBHOOK_PER_WINDOW = 60          # a busy minute of sign-ups, and no more
+WEBHOOK_MAX_BYTES = 64 * 1024
+WEBHOOK_HITS = auth.RateLimiter()
+
+
+@app.route("/paperform/webhook", methods=["POST"])
+def paperform_webhook():
+    """One sign-up, live from Paperform, into the roster.
+
+    Open on purpose (22 Sep): the form sends no signature, so there is nothing
+    to check it against. Standing in for that are the switch on the Settings
+    screen, the rate limit and size cap below, and an audit row for every
+    arrival — accepted or refused — so anything odd is visible on the night.
+    Fill in PAPERFORM_WEBHOOK_SECRET and it is enforced as well.
+    """
+    if not g.settings.get("paperform_webhook", True):
+        # Switched off deliberately. 2xx, or Paperform retries it all day.
+        return ok({"ignored": "The Paperform webhook is switched off."})
+    secret = config.PAPERFORM_WEBHOOK_SECRET
+    if secret and not hmac.compare_digest(request.headers.get("X-Paperform-Secret", ""), secret):
+        return fail("FORBIDDEN", "Wrong or missing webhook secret.", 403)
+    if not WEBHOOK_HITS.take("paperform", WEBHOOK_PER_WINDOW, WEBHOOK_WINDOW):
+        return fail("RATE_LIMITED", "Too many webhook calls.", 429)
+    if (request.content_length or 0) > WEBHOOK_MAX_BYTES:
+        return fail("VALIDATION_FAILED", "That payload is too big.", 413)
+
+    payload = request.get_json(silent=True)
+    try:
+        result = paperform.receive(g.db, payload)
+    except sqlite3.Error:
+        # The one case worth a retry: the database was busy or locked. Paperform
+        # resends anything that is not a 2xx, and by then it will not be.
+        log.exception("paperform webhook: database error")
+        return fail("SERVER_ERROR", "Could not write that sign-up. Send it again.", 503)
+    return ok(result)
 
 
 @app.route("/admin/api/people", methods=["POST"])

@@ -388,7 +388,15 @@ def roster_view(conn):
         runs.append({"at": _day_clock(r["committed_at"]), "file_name": r["file_name"] or "—",
                      "summary": f"{counts.get('new', 0)} new, {counts.get('changed', 0)} changed, "
                                 f"{counts.get('missing', 0)} missing"})
+    # Webhook sign-ups arrive one at a time, so they are audit rows rather
+    # than import runs — 150 of them would push every real upload off the list
+    # above. Count them instead, and count what was refused: a refusal is the
+    # only sign that somebody signed up and is not on the list.
+    w = conn.execute(
+        "SELECT SUM(action='Sign-up from Paperform') took, "
+        "SUM(action='Paperform sign-up refused') refused FROM audit_log").fetchone()
     return {"active": c["active"] or 0, "inactive": c["inactive"] or 0, "walk_ins": c["walk_ins"] or 0,
+            "webhook": w["took"] or 0, "webhook_refused": w["refused"] or 0,
             "runs": runs}
 
 

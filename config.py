@@ -227,6 +227,10 @@ DEFAULT_SETTINGS = {
     "low_stock_at": LOW_STOCK_AT,    # "low" at the booth at or below this
     "block_at_zero": False,
     "claim_requires": "verified",
+    # Paperform's webhook writes a sign-up straight into the roster as it is
+    # submitted. It takes no secret (22 Sep), so this switch is how the
+    # organiser closes it — from the Settings screen, with no deploy.
+    "paperform_webhook": True,
     "gate_open": True,
     "claimed_handle_limit": 3,
     "lookup_rate_limit": 30,

@@ -1737,7 +1737,9 @@ SCREENS.roster = function(){
   <div class="wide">
     <div class="sub">
       <span class="t">Roster</span>
-      <span class="m">${esc(d.active)} active · ${esc(d.inactive)} inactive · ${esc(d.walk_ins)} walk-ins</span>
+      <span class="m">${esc(d.active)} active · ${esc(d.inactive)} inactive · ${esc(d.walk_ins)} walk-ins${
+        d.webhook ? ' · ' + esc(d.webhook) + ' from the webhook' : ''}${
+        d.webhook_refused ? ' · ' + esc(d.webhook_refused) + ' refused — see Audit' : ''}</span>
     </div>
     <div class="roster">
       <div style="display:flex;flex-direction:column;gap:18px">
@@ -2065,6 +2067,9 @@ const SETTINGS_SCHEMA = [
   { group:'Access & safety', fields:[
     { key:'gate_open', label:'The gate', type:'toggle', onLabel:'Open to the list', offLabel:'Closed to everyone', danger:true,
       help:'Closed means only always-allowed usernames get in. Everyone else sees "The Yard is closed".' },
+    { key:'paperform_webhook', label:'Paperform webhook', type:'toggle',
+      onLabel:'Accepting sign-ups', offLabel:'Closed', danger:true,
+      help:'Lets Paperform add a sign-up to the roster the moment it is submitted. It takes no password, so anyone who learns the address could add one — switch it off here if that ever matters. The .xlsx upload is unaffected either way.' },
     { key:'always_allow', label:'Always-allowed usernames', type:'text', mono:true,
       help:'Set in .env, shown here so you can check it. Excluded from headcounts.' },
     { key:'claimed_handle_limit', label:'"Signed up as" requests an hour', type:'number', min:1, max:20 },
