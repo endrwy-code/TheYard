@@ -1703,7 +1703,7 @@ function itemRow(item, claim){
       ${sub ? `<span class="item-s">${esc(sub)}</span>` : ''}
     </span>`;
   if (!claim.claimed){
-    return `<div class="item">${text}<span class="pill pill-ok">Ready</span></div>`;
+    return `<div class="item">${text}<span class="pill pill-ok">Scan to claim</span></div>`;
   }
   return `<div class="item done">${text}
     <span class="item-when">Collected<br>${esc(fmt(at(claim.at)))}</span>
@@ -1899,7 +1899,7 @@ VIEWS.help = function(){
   const faq = [
     ['Is there a price list?', priceList(e.prices)],
     ['I’ve ordered a matcha or panini. How do I know it’s ready?',
-     'We’ll message you on Telegram the moment it’s done, so you don’t have to wait at the counter. If you never tapped Allow on Home, listen for your name instead.'],
+     'We’ll message you on Telegram the moment it’s done, so you don’t have to wait at the counter. They’ll call your name as well.'],
     ['The counter says I already collected something.',
      'Have a word at ' + desk + '. Every hand-over is logged with the time, so it’s easy to check and undo.'],
     ['Can I change who’s in my booking?',
@@ -1989,8 +1989,6 @@ VIEWS.floorplan = function(){
     </div>
     <p class="label plan-hint" id="planhint">Pinch or double-tap to zoom</p>
     <ul class="help-list plan-notes">
-      <li>The Jamming Studio is the Jamming Room: ${esc(e.jam_room || 'Heaven 2')}</li>
-      <li>For The Last Guest, meet at ${esc(e.escape_meet || 'the escape room entrance')}</li>
       <li>${esc(capFirst(e.meeting_point || 'the front desk'))} is marked Registration on the plan</li>
     </ul>` : `<p class="help-p">The floorplan isn’t up yet. Ask at ${esc(e.meeting_point || 'the front desk')}.</p>`}
   </div>`;
