@@ -33,6 +33,12 @@ export DATA_DIR="${DATA_DIR:-$DISK/data}"
 # Setting it in the dashboard (a custom domain) wins.
 export PUBLIC_URL="${PUBLIC_URL:-${RENDER_EXTERNAL_URL:-}}"
 
+# Nothing else builds the timetable: init_db() seeds the settings rows but only
+# a Settings save or this command turns them into slots, so a fresh disk would
+# come up with nothing bookable. It reconciles to Settings and is safe to run
+# again — a time somebody has booked is kept and reported, never dropped.
+python manage.py generate-slots || echo "render_start: generate-slots failed; the app still starts." >&2
+
 # The bot: outbound only, no port. It sends everything the web process queues,
 # so if it stops, bookings and reminders go quiet while the app looks fine —
 # hence the restart loop rather than letting one crash end the evening.
