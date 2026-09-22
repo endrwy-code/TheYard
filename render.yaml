@@ -1,0 +1,80 @@
+# The Yard — Render Blueprint.
+#
+# One web service, on purpose. The Flask app and bot.py both read and write
+# data/app.db, and a Render disk attaches to exactly one service, so they have
+# to share a container: scripts/render_start.sh runs waitress in the foreground
+# and supervises bot.py beside it. See DEPLOY.md §1 for the hard constraints —
+# one web process, one Telegram poller, one persistent SQLite file.
+#
+# There is deliberately no `plan:` and no `numInstances:` here. Render leaves
+# out what a blueprint does not state, so the instance type you pick in the
+# dashboard survives every later sync instead of being reset to the file's
+# value. Leave it at one instance: two of anything breaks the bookings, the
+# live-update stream and the Telegram poller.
+
+services:
+  - type: web
+    name: the-yard
+    runtime: python
+    region: singapore          # the event and everyone at it are in Singapore
+    branch: main
+    autoDeploy: false          # a deploy restarts the bot and bounces the app;
+                               # on event day that is a decision, not a push
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash scripts/render_start.sh
+    healthCheckPath: /healthz
+
+    # Everything that must outlive a deploy: data/app.db (WAL), its automatic
+    # backups, and the saved payment screenshots. 1 GB is far more than the
+    # event needs and can be grown later — Render disks never shrink.
+    disk:
+      name: yard-data
+      mountPath: /var/yard
+      sizeGB: 1
+
+    envVars:
+      # --- Runtime ------------------------------------------------------
+      # DEPLOY.md asks for 3.12 or newer; every pin in requirements.txt
+      # supports it. A bare "3.12" works on Render too if you'd rather track
+      # the newest patch.
+      - key: PYTHON_VERSION
+        value: "3.12.12"
+      - key: WEB_THREADS
+        value: "24"
+
+      # --- Where state lives (must stay under the disk mount) -----------
+      - key: DATA_DIR
+        value: /var/yard/data
+
+      - key: TIMEZONE
+        value: Asia/Singapore
+
+      # --- Secrets: paste these in the dashboard from the organiser's .env
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: STAFF_PIN_HASH
+        sync: false
+      - key: GM_PIN_HASH
+        sync: false
+
+      # Signs the console's session cookie and nothing else, so a fresh value
+      # here costs at most one re-sign-in. Paste the laptop's own if you'd
+      # rather keep them identical.
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+
+      # Leave blank and the service uses its own Render URL. Set it once you
+      # point a custom domain at the service — no trailing slash, and update
+      # the Mini App URL in BotFather to match.
+      - key: PUBLIC_URL
+        sync: false
+
+      # Comma-separated Telegram handles, no @, lowercase. Copy from the .env.
+      - key: ALWAYS_ALLOW_HANDLES
+        sync: false
+
+      # Only if the Paperform plan has webhooks; blank is fine.
+      - key: PAPERFORM_WEBHOOK_SECRET
+        sync: false
