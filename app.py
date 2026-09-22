@@ -1157,6 +1157,16 @@ def admin_gm_state():
     return _run(lambda: game.state(g.db, now_utc(), request.args.get("slot_id")))
 
 
+@app.route("/admin/api/gm/phone-test", methods=["POST"])
+def admin_gm_phone_test():
+    """Send the phone to the escape room's test group, without editing
+    anything. Saving the Settings row already messages anybody newly added;
+    this is how to send it again."""
+    who = actor()
+    return _run(lambda: bookings._run(g.db, lambda: game.send_phone_to_testers(
+        g.db, actor=who["role"], actor_name=who["name"])))
+
+
 @app.route("/admin/api/gm/<int:slot_id>/hints/<key>", methods=["POST"])
 def admin_gm_hint(slot_id, key):
     return _run(lambda: game.give_hint(g.db, slot_id, key, actor(), now_utc()))

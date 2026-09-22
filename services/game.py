@@ -274,6 +274,48 @@ def send_phone_for_started_games(conn, now):
     return added
 
 
+def send_phone_to_testers(conn, settings=None, *, only=None, actor="system", actor_name=None):
+    """Hand the phone to the test group — the one in Settings, or a subset.
+
+    The test group needs no booking and no game: the message's button opens
+    the phone for them the same way it does for a player, which is the point.
+    It tests the way in, not just the phone.
+
+    `only` narrows it to particular handles, which is what saving Settings
+    passes: the people who were just added, rather than everyone on the list
+    all over again.
+
+    There is deliberately no dedupe key. `utcnow()` has only seconds in it, so
+    a key built from it would silently swallow a second run in the same
+    second — and running this twice in a row is exactly what testing looks
+    like.
+    """
+    settings = settings if settings is not None else db.get_settings(conn)
+    wanted = always_handles(settings)
+    if only is not None:
+        wanted &= {h.strip().lstrip("@").lower() for h in only if str(h).strip()}
+    if not wanted:
+        return {"sent": [], "missing": [], "unreachable": []}
+    rows = conn.execute(
+        f"SELECT id, name, handle, can_message FROM attendees WHERE handle IN "  # noqa: S608
+        f"({','.join('?' * len(wanted))})", tuple(sorted(wanted))).fetchall()
+    found = {r["handle"] for r in rows}
+    text = notify.text_phone_test()
+    for r in rows:
+        notify.queue(conn, r["id"], "phone_open", text, go=notify.GO_PHONE)
+    db.audit(conn, "system", "Phone sent to the test group", actor_name=actor_name or actor,
+             details={"handles": sorted(found)})
+    return {
+        "sent": sorted(found),
+        # On the list but not on the roster: nothing was sent, and nothing
+        # can be until somebody adds them.
+        "missing": sorted(wanted - found),
+        # On the roster but they have never written to the bot, so Telegram
+        # will not let it message them. They must send it /start first.
+        "unreachable": sorted(r["handle"] for r in rows if not r["can_message"]),
+    }
+
+
 def _phone_msg(status, person):
     """What the GM sees next to each player: did the phone reach them?"""
     if status is None:

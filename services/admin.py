@@ -226,6 +226,19 @@ def save_settings(conn, changes, by, now):
 
     bookings._run(conn, run)
     out = {"saved": len(changed)}
+    # Adding somebody to the escape room's test group is a request to let them
+    # in, and the only way in is the bot's message. Send it here rather than
+    # leaving them to find `python manage.py phone-test` (23 Sep). Only the
+    # handles just added: saving something else on the same screen should not
+    # message the whole group again.
+    if "phone_always_handles" in changed:
+        from services import game
+        added = game.always_handles({"phone_always_handles": changed["phone_always_handles"]})
+        added -= game.always_handles({"phone_always_handles": current.get("phone_always_handles")})
+        if added:
+            out["phone_test"] = bookings._run(
+                conn, lambda: game.send_phone_to_testers(
+                    conn, dict(merged), only=added, actor_name=by))
     if any(k in config.SCHEDULE_SETTINGS for k in changed):
         report = bookings.generate_slots(conn)
         out["schedule"] = report

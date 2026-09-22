@@ -449,50 +449,37 @@ def cmd_reset_event(argv):
 def cmd_phone_test(argv):
     """Send the Open the phone message to the escape room's test group.
 
-    The group is Settings -> Escape room -> Phone always open for. They need
-    no booking and no game: the message's button opens the phone for them the
-    same way it does for a player, which is the point — it tests the way in,
-    not just the phone.
+    The group is Settings -> Escape room -> Test group. Saving that row in the
+    console already messages anybody newly added; this is the way to send it
+    again without editing anything.
     """
-    from services import game, notify
+    from services import game
     db.init_db()
     conn = db.connect()
     try:
         settings = db.get_settings(conn)
-        wanted = game.always_handles(settings)
-        if not wanted:
+        if not game.always_handles(settings):
             _say("Nobody is in the test group yet.")
-            _say("Settings -> Escape room -> Phone always open for. Usernames, no @.")
+            _say("Settings -> Escape room -> the phone -> Test group. Usernames, no @.")
             return 1
-        rows = conn.execute(
-            f"SELECT id, name, handle, can_message FROM attendees WHERE handle IN "  # noqa: S608
-            f"({','.join('?' * len(wanted))})", tuple(sorted(wanted))).fetchall()
-        found = {r["handle"] for r in rows}
-        for missing in sorted(wanted - found):
-            _say(f"  @{missing} is in the list but not on the roster — nothing sent.")
-        sent = 0
         conn.execute("BEGIN IMMEDIATE")
         try:
-            for r in rows:
-                # No dedupe key at all. utcnow() only has seconds in it, so a
-                # key built from it would silently swallow a second run in the
-                # same second — and running this twice in a row is exactly
-                # what testing looks like.
-                notify.queue(conn, r["id"], "phone_open", notify.text_phone_test(),
-                             go=notify.GO_PHONE)
-                sent += 1
-                if not r["can_message"]:
-                    _say(f"  @{r['handle']} has never written to the bot, so it cannot "
-                         "message them. They must send it /start first.")
-            db.audit(conn, "system", "Phone sent to the test group", actor_name="manage.py",
-                     details={"handles": sorted(found)})
+            out = game.send_phone_to_testers(conn, settings, actor_name="manage.py")
             conn.execute("COMMIT")
         except BaseException:
             conn.execute("ROLLBACK")
             raise
     finally:
         conn.close()
-    _say(f"Queued for {sent}: {', '.join('@' + h for h in sorted(found))}.")
+    for h in out["missing"]:
+        _say(f"  @{h} is in the list but not on the roster - nothing sent.")
+    for h in out["unreachable"]:
+        _say(f"  @{h} has never written to the bot, so it cannot message them. "
+             "They must send it /start first.")
+    if not out["sent"]:
+        _say("Nothing was sent.")
+        return 1
+    _say(f"Queued for {len(out['sent'])}: {', '.join('@' + h for h in out['sent'])}.")
     _say("bot.py sends it within a few seconds.")
     return 0
 

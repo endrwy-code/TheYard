@@ -2028,9 +2028,13 @@ SCREENS.settings = function(){
     }
     const dim = f.dimIf && f.dimIf(v);
     const help = f.help ? `<div class="h">${esc(f.help)}</div>` : '';
+    // A row that can do something as well as hold a value. The test group's
+    // is "send it to them again", which used to mean a PowerShell command.
+    const send = f.send === 'phone-test'
+      ? `<button class="smallbtn setsend" id="sendPhoneTest">Send it now</button>` : '';
     return `<div class="setrow ${isPlaceholder ? 'placeholder' : ''}">
       <div><div class="k">${esc(f.label)}</div>${help}</div>
-      <div class="${dim ? 'dimmed' : ''}">${control}</div>
+      <div class="${dim ? 'dimmed' : ''}">${control}${send}</div>
       ${below}
     </div>`;
   };
@@ -2451,6 +2455,8 @@ function wire(){
   });
   const save = document.getElementById('saveSettings');
   if (save) save.onclick = saveSettings;
+  const sendTest = document.getElementById('sendPhoneTest');
+  if (sendTest) sendTest.onclick = sendPhoneTest;
 
   // audit
   root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.auditTab = b.dataset.tab; render(); });
@@ -2618,7 +2624,8 @@ async function saveSettings(){
   const sc = r.data.schedule;
   const warnings = r.data.warnings || [];
   toast('Saved ' + r.data.saved + ' change' + (r.data.saved === 1 ? '' : 's') + '.'
-    + (sc ? ' Timetable rebuilt: ' + sc.escape.total + ' games, ' + sc.jam.total + ' jam slots.' : ''),
+    + (sc ? ' Timetable rebuilt: ' + sc.escape.total + ' games, ' + sc.jam.total + ' jam slots.' : '')
+    + phoneTestLine(r.data.phone_test),
     warnings.length ? 'bad' : 'good');
   // A stranded time or an over-full game leaves real people in the wrong
   // place, and a toast that fades is not enough to act on. Say it in a box
@@ -2626,6 +2633,28 @@ async function saveSettings(){
   if (warnings.length) alert('The timetable changed, but this needs your attention:\n\n' + warnings.join('\n\n'));
   S.settingsDraft = {};
   load();
+}
+
+/* Adding somebody to the test group is a request to let them in, and the
+   only way in is the bot's message. Say who got it, and name anybody it
+   could not reach — silence there looks like it worked. */
+function phoneTestLine(t){
+  if (!t) return '';
+  const bits = [];
+  if (t.sent && t.sent.length) bits.push('Sent Kai Chen’s phone to ' + t.sent.map(h => '@' + h).join(', ') + '.');
+  if (t.missing && t.missing.length) bits.push('Not on the roster: ' + t.missing.map(h => '@' + h).join(', ') + '.');
+  if (t.unreachable && t.unreachable.length){
+    bits.push(t.unreachable.map(h => '@' + h).join(', ')
+      + (t.unreachable.length === 1 ? ' has' : ' have') + ' never written to the bot, so it cannot message them — they send it /start first.');
+  }
+  return bits.length ? ' ' + bits.join(' ') : '';
+}
+
+async function sendPhoneTest(){
+  const r = await api('POST /admin/api/gm/phone-test', { path:'/admin/api/gm/phone-test' });
+  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
+  const line = phoneTestLine(r.data).trim();
+  toast(line || 'Nobody is in the test group yet.', r.data.sent && r.data.sent.length ? 'good' : 'bad');
 }
 
 function doExport(kind){

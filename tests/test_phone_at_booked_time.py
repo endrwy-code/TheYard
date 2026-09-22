@@ -6,9 +6,9 @@ rule the room depends on is executed wherever the suite runs:
 
     a booking in this game, and the clock past the booked time. That is all.
 
-No GM press, no check-in, no half. The two things that can still close it —
-the admin's in-app phone switch and the GM's emergency lock — are checked
-here too, along with the named accounts that ignore the clock for testing.
+No press, no check-in, no half, and no switch — the one thing that can close
+it early is the game master's lock, checked here too, along with the named
+accounts that ignore the clock for testing.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -293,3 +293,61 @@ def test_a_tester_opening_it_is_never_told_it_is_locked(conn):
     # And the page itself serves them, which is what the button lands on.
     (config.PHONE_DIR / "the-phone.html").write_text("<html>the phone</html>", encoding="utf-8")
     assert game.phone_file(conn, tester, datetime.now(timezone.utc))
+
+
+_TESTER_N = [0]
+
+
+def _tester(conn, handle="tester"):
+    now = db.utcnow()
+    _TESTER_N[0] += 1
+    return conn.execute(
+        "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
+        "pass_code,created_at,updated_at) VALUES ('T',?,?,'walk_in','active',1,"
+        "'missing',?,?,?)", (handle, "@" + handle, f"TST{_TESTER_N[0]}-TTTT", now, now)).lastrowid
+
+
+def test_adding_somebody_to_the_test_group_messages_them(conn):
+    """23 Sep. Adding a tester is a request to let them in, and the only way
+    in is the message. Leaving them to find a PowerShell command was the
+    difference between a setting and a working test."""
+    from services import admin
+    who = _tester(conn)
+    conn.commit()
+    out = admin.save_settings(conn, {"phone_always_handles": "tester"}, "Maximus",
+                              datetime.now(timezone.utc))
+    assert out["phone_test"]["sent"] == ["tester"]
+    rows = queued(conn)
+    assert [r["attendee_id"] for r in rows] == [who]
+    assert rows[0]["button_path"] == "phone" and "testing" in rows[0]["text"]
+
+
+def test_only_the_handles_just_added_are_messaged(conn):
+    """Saving something else on the same screen must not message the whole
+    group all over again."""
+    from services import admin
+    first, second = _tester(conn, "tester"), _tester(conn, "tester_two")
+    conn.commit()
+    admin.save_settings(conn, {"phone_always_handles": "tester"}, "Maximus",
+                        datetime.now(timezone.utc))
+    out = admin.save_settings(conn, {"phone_always_handles": "tester, tester_two"}, "Maximus",
+                              datetime.now(timezone.utc))
+    assert out["phone_test"]["sent"] == ["tester_two"]
+    assert [r["attendee_id"] for r in queued(conn)] == [first, second]
+    # Saving an unrelated row sends nothing at all.
+    out = admin.save_settings(conn, {"meeting_point": "the front desk again"}, "Maximus",
+                              datetime.now(timezone.utc))
+    assert "phone_test" not in out
+    assert len(queued(conn)) == 2
+
+
+def test_the_save_names_anybody_it_could_not_reach(conn):
+    """Silence there looks like it worked, and it has not."""
+    from services import admin
+    _tester(conn, "tester")
+    conn.execute("UPDATE attendees SET can_message=0 WHERE handle='tester'")
+    conn.commit()
+    out = admin.save_settings(conn, {"phone_always_handles": "tester, ghost"}, "Maximus",
+                              datetime.now(timezone.utc))
+    assert out["phone_test"] == {"sent": ["tester"], "missing": ["ghost"],
+                                 "unreachable": ["tester"]}

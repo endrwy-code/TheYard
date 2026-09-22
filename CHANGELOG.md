@@ -1476,3 +1476,30 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Next step:** the organiser rehearses one game on test time and confirms
   the phone opens at the booked minute with nothing pressed, that the picker
   says **In progress**, and that a pause holds the phone open.
+
+## 2026-09-23 — Adding a tester now hands them the phone
+
+- **Changed:** the escape room's **Test group** (Settings → Escape room — the
+  phone) let named Telegram accounts open Kai Chen's phone at any time, but
+  adding somebody to it sent them nothing. The only way into the phone is the
+  bot's message, so a tester was added and then left to wait for something
+  that was never coming — unless whoever added them knew to run
+  `python manage.py phone-test` in PowerShell.
+- **Now:** saving that row messages **the handles just added**, and the toast
+  says who got it. Saving anything else on the Settings screen sends nothing,
+  so an unrelated edit never spams the group. A **Send it now** button beside
+  the row sends it again without an edit
+  (`POST /admin/api/gm/phone-test`, open to any console sign-in).
+- **It names what went wrong, too**: anybody on the list who is not on the
+  roster, and anybody who has never written to the bot — Telegram will not let
+  the bot message them until they send it `/start`. Silence there used to look
+  like it had worked.
+- **One copy of the logic.** `game.send_phone_to_testers()` is new;
+  `manage.py phone-test` now calls it rather than holding its own version.
+  Deliberately no dedupe key: `utcnow()` has only seconds in it, so a key
+  built from it would swallow a second run in the same second, and running it
+  twice in a row is exactly what testing looks like.
+- **Current state:** 535 tests pass. Three new ones cover the save path, the
+  "only the ones just added" rule, and the unreachable/missing report.
+- **Next step:** the organiser adds their own handle to the Test group, saves,
+  and confirms the message arrives with a button that opens the phone.
