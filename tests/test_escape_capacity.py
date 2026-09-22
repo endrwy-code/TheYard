@@ -832,7 +832,7 @@ def test_the_jam_room_through_the_api(games, client):
 
 def test_the_app_gets_the_event_facts_from_settings(games, client):
     d = client.get("/api/me", headers=tma(sign(2001, "heidily"))).get_json()["data"]["event"]
-    assert d["venue"] == "The Hub @ Hafary Gallery L5" and d["opens"] == "3:00 PM" and d["closes"] == "10:00 PM"
+    assert d["venue"] == "Hafary Gallery L5" and d["opens"] == "3:00 PM" and d["closes"] == "10:00 PM"
     assert d["address"] == "105 Eunos Ave 3, Singapore 409836"
     assert d["last_game"] == "9:45 PM" and d["entry_fee"].startswith("$12")
     # The pass: one pastry (of four kinds), the first photo strip, vinyl

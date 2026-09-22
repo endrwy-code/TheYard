@@ -642,6 +642,69 @@ def cmd_outbox(argv):
         conn.close()
 
 
+def cmd_reset_settings(argv):
+    """Put named Settings rows back to the defaults in config.py.
+
+    config.py holds only the *starting* text. db.init_db seeds a row from it
+    once, and after that the database wins — so editing config.py does not
+    change what a running app shows. This is how a default that has been
+    rewritten gets back onto the night without retyping a price list into a
+    text box by hand.
+    """
+    names = [a for a in argv if not a.startswith("-")]
+    if not names:
+        _say("Which settings? For example:")
+        _say("  python manage.py reset-settings venue price_list")
+        _say()
+        _say("Settings you can reset:")
+        for k in sorted(set(config.DEFAULT_SETTINGS) - set(config.INTERNAL_SETTINGS)):
+            _say(f"  {k}")
+        return 1
+    unknown = [n for n in names if n not in config.DEFAULT_SETTINGS
+               or n in config.INTERNAL_SETTINGS]
+    if unknown:
+        _say(f"No such setting: {', '.join(unknown)}. Run it with no arguments for the list.")
+        return 1
+    db.init_db()
+    conn = db.connect()
+    try:
+        current = db.get_settings(conn)
+        changed = [n for n in names if current.get(n) != config.DEFAULT_SETTINGS[n]]
+        if not changed:
+            _say("Already on the defaults: " + ", ".join(names) + ". Nothing changed.")
+            return 0
+        for n in changed:
+            before, after = current.get(n), config.DEFAULT_SETTINGS[n]
+            _say(f"{n}:")
+            _say(f"  was : {_one_line(before)}")
+            _say(f"  now : {_one_line(after)}")
+        if "--yes" not in argv:
+            if input("Type YES to write these: ").strip() != "YES":
+                _say("Nothing changed.")
+                return 1
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            for n in changed:
+                db.set_setting(conn, n, config.DEFAULT_SETTINGS[n], by="manage.py")
+                db.audit(conn, "admin", "Setting changed", actor_name="manage.py reset-settings",
+                         entity="setting", entity_id=n,
+                         details={"before": current.get(n), "after": config.DEFAULT_SETTINGS[n]})
+            conn.execute("COMMIT")
+        except BaseException:
+            conn.execute("ROLLBACK")
+            raise
+    finally:
+        conn.close()
+    _say(f"Reset {len(changed)}: {', '.join(changed)}.")
+    return 0
+
+
+def _one_line(value):
+    text = str(value if value is not None else "")
+    text = " / ".join(line.strip() for line in text.splitlines() if line.strip())
+    return text[:110] + ("..." if len(text) > 110 else "")
+
+
 COMMANDS = {
     "init-db": cmd_init_db,
     "import": cmd_import,
@@ -656,6 +719,7 @@ COMMANDS = {
     "void-claim": cmd_void_claim,
     "generate-slots": cmd_generate_slots,
     "reset-event": cmd_reset_event,
+    "reset-settings": cmd_reset_settings,
     "phone-test": cmd_phone_test,
     "cancel-group": cmd_cancel_group,
     "set-public-url": cmd_set_public_url,

@@ -196,7 +196,7 @@ def test_the_doors_message_goes_out_on_the_day_in_real_time(roster):
     assert notify.schedule_due(roster, at(13, 31)) == 0
     assert notify.schedule_due(roster, at(15, 1)) == 0               # doors already open
     text = roster.execute("SELECT text FROM notifications").fetchone()[0]
-    assert "🕐 3:00 PM–10:00 PM\n📍 The Hub @ Hafary Gallery L5" in text
+    assert "🕐 3:00 PM–10:00 PM\n📍 Hafary Gallery L5" in text
     # The chill voice (22 Sep, STATE.md 132): no "paid at the front desk" line.
     assert "front desk" not in text
 
@@ -247,7 +247,7 @@ def test_last_call_only_for_people_with_something_left(roster):
     assert notify.schedule_due(roster, at(21, 30)) == 2
     rows = roster.execute("SELECT * FROM notifications WHERE kind='last_call'").fetchall()
     assert {r["attendee_id"] for r in rows} == {pid(roster, "heidily"), pid(roster, "t_shixuan")}
-    assert "pastry, photo strip and vinyl making" in rows[0]["text"] and "10:00 PM" in rows[0]["text"]
+    assert "pastry, photo strip and vinyl crafting" in rows[0]["text"] and "10:00 PM" in rows[0]["text"]
     assert notify.schedule_due(roster, at(22, 0)) == 0               # closed
 
 

@@ -293,7 +293,7 @@ def test_the_schedules_screen_shows_how_full_a_jam_slot_is(world):
 
 def test_the_pass_covers_a_pastry_the_photo_strip_and_vinyl_making(world):
     """The canned drink left the pass at the organiser's instruction (19 Sep);
-    vinyl making joined it on 22 Sep (STATE.md 132). The pastry is still one
+    vinyl crafting joined it on 22 Sep (STATE.md 132). The pastry is still one
     item, whichever of its four kinds is taken."""
     assert list(config.ITEM_KEYS) == ["pastry", "photo", "vinyl"]
     who = pid(world, "heidily")

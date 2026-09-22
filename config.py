@@ -74,11 +74,11 @@ EVENT_DATE = "2026-09-24"
 # decision 123). Bot sentences lower-case them where they fall mid-sentence.
 #
 # Since 22 Sep (evening, STATE.md 132) the pass holds three things: one
-# pastry of the person's choosing, their first photo strip, and vinyl making.
+# pastry of the person's choosing, their first photo strip, and vinyl crafting.
 ITEMS = (
     ("pastry", "Pastry"),
     ("photo", "Photo Strip"),
-    ("vinyl", "Vinyl Making"),
+    ("vinyl", "Vinyl Crafting"),
 )
 ITEM_KEYS = tuple(key for key, _ in ITEMS)
 ITEM_LABELS = dict(ITEMS)
@@ -168,7 +168,7 @@ DEFAULT_SETTINGS = {
     # 3–10 PM since 22 Sep (STATE.md 131); the rooms open with the doors.
     "doors_open": "15:00",
     "doors_close": "22:00",
-    "venue": "The Hub @ Hafary Gallery L5",
+    "venue": "Hafary Gallery L5",
     "venue_address": "105 Eunos Ave 3, Singapore 409836",
     "entry_fee": "$12 ($10 early bird until 20 Sep, 11:59 PM)",
     "meeting_point": "the front desk",

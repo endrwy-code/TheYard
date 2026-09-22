@@ -1503,3 +1503,35 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   "only the ones just added" rule, and the unreachable/missing report.
 - **Next step:** the organiser adds their own handle to the Test group, saves,
   and confirms the message arrives with a button that opens the phone.
+
+## 2026-09-23 — The victim has a name, and three other words
+
+- **Changed:** the escape room's phone was "his phone" and "The phone" on
+  every screen, which reads as a placeholder rather than a story. It is
+  **Kai Chen's phone** now — on the escape screen, on the ticket, on the
+  phone's own screen, in Help, in the bot's messages and on the button
+  Telegram draws. `ESCAPE_ROOM_FLOW.md` had the name all along.
+- **Nothing about the phone until it is theirs.** The escape screen's premise
+  no longer mentions a phone arriving, and the ticket's phone row says
+  *At 7:40 PM* until the phone is genuinely open, then *Open now*. The button
+  still appears only when the server says the phone is open to that person,
+  which is unchanged — but now there is nothing else on the screen promising
+  something that has not happened yet.
+- **Up next** → the button reads **Manage**, not "Open it". It opens a
+  booking to change, which is what people want it for.
+- **Vinyl Making** → **Vinyl Crafting**, from `config.ITEMS`, so the pass, the
+  Home blurb, Help, the booth and the stock row all follow.
+- **The Start screen** reads **Hafary Gallery L5**, with no "The Hub @", and
+  the **Pre-U event** chip is gone.
+- **New:** `python manage.py reset-settings <name>...` puts named Settings
+  rows back to the defaults in `config.py`. It shows before and after and asks
+  for YES unless given `--yes`. It is needed because `config.py` is only the
+  *starting* text: a row **nobody has edited** follows the default when the
+  default changes (`db.seed_settings`), but one somebody has typed into on the
+  Settings screen never does — and retyping a price list into a text box on
+  the night is not a reasonable thing to ask.
+- **Current state:** 539 tests pass. On this laptop's database every settings
+  row is still `updated_by = 'system'`, so the venue and the price list picked
+  up their new defaults by themselves.
+- **Next step:** none for the wording. If the organiser edits a row on the
+  night and wants the default back, that is what `reset-settings` is for.

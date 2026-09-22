@@ -46,7 +46,7 @@ def test_overview_counts_the_real_list(world):
     d = data(Console("admin").get("/admin/api/overview"))
     labels = [s["label"] for s in d["stats"]]
     assert labels[:4] == ["Signed up", "Opened the app", "At the event", "Payments verified"]
-    assert {"Pastry", "Photo Strip", "Vinyl Making", "Escape seats", "Jam slots"} <= set(labels)
+    assert {"Pastry", "Photo Strip", "Vinyl Crafting", "Escape seats", "Jam slots"} <= set(labels)
     assert d["stats"][0]["value"] == "17"                    # the owner row is a test account
     assert len(d["bars"]) == 21 and d["seats_total"] == 252
     assert [q["what"] for q in d["queue"]][0] == "Refused at the gate"

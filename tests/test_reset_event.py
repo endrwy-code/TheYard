@@ -178,3 +178,44 @@ def test_without_the_word_nothing_is_touched(conn, monkeypatch):
     assert manage.cmd_reset_event([]) == 1
     assert count(conn, "escape_bookings") == 1
     assert db.get_setting(conn, "test_clock") is True
+
+
+# ---------------------------------------------------------------------------
+# `manage.py reset-settings` — putting a default back on the night
+# ---------------------------------------------------------------------------
+
+def test_a_row_nobody_edited_already_follows_the_default(conn):
+    """Which is why reset-settings is only for the other kind."""
+    db.seed_settings(conn)
+    row = conn.execute("SELECT updated_by FROM settings WHERE key='venue'").fetchone()
+    assert row["updated_by"] == "system"
+
+
+def test_reset_settings_puts_an_edited_row_back(conn):
+    db.set_setting(conn, "venue", "Somewhere else entirely", by="Maximus")
+    db.set_setting(conn, "meeting_point", "the side door", by="Maximus")
+    conn.commit()
+    assert manage.cmd_reset_settings(["venue", "--yes"]) == 0
+    fresh = db.connect()
+    try:
+        assert db.get_setting(fresh, "venue") == config.DEFAULT_SETTINGS["venue"]
+        # Only what was asked for.
+        assert db.get_setting(fresh, "meeting_point") == "the side door"
+        assert fresh.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE entity='setting' AND entity_id='venue'"
+        ).fetchone()[0] == 1
+    finally:
+        fresh.close()
+
+
+def test_reset_settings_refuses_a_name_it_does_not_know(conn):
+    conn.commit()
+    assert manage.cmd_reset_settings(["venu", "--yes"]) == 1
+    assert manage.cmd_reset_settings(["actor_chat_id", "--yes"]) == 1     # internal
+    assert manage.cmd_reset_settings([]) == 1                             # no names: the list
+
+
+def test_reset_settings_says_when_there_is_nothing_to_do(conn):
+    db.seed_settings(conn)
+    conn.commit()
+    assert manage.cmd_reset_settings(["venue", "--yes"]) == 0
