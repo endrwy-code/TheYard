@@ -47,7 +47,7 @@ class ClaimError(Exception):
         "NOT_A_YARD_CODE": 400, "UNKNOWN_CODE": 404, "INACTIVE": 403,
         "PAYMENT_NOT_VERIFIED": 403, "ALREADY_CLAIMED": 409, "OUT_OF_STOCK": 409,
         "FORBIDDEN": 403, "VALIDATION_FAILED": 400,
-        "NOT_FOUND": 404, "DUPLICATE_TXN_REF": 409,
+        "NOT_FOUND": 404,
     }
 
     def __init__(self, code, message="", **extra):
@@ -136,15 +136,17 @@ def find_attendee(conn, code=None, attendee_id=None):
 
 
 def payment_ok(conn, row):
-    """§9 rule 25 — verified, or submitted too when the setting relaxes it.
+    """§9 rule 25 — a screenshot, or a verdict when the setting is stricter.
 
-    Since 23 Sep the organiser can also turn the check off altogether
-    (`claim_requires` = "none", STATE.md 138): with 150 receipts still
-    unchecked the day before, they chose to hand over to anyone on the list
-    rather than verify each one. The screenshots are still on the person
-    page; nothing stops an admin looking, it just isn't a gate any more.
+    "submitted" is how the night runs (24 Sep): with 150 receipts unchecked
+    the day before, reading a reference off each one was never going to
+    happen, so a screenshot counts the moment it arrives and a rejection is
+    what takes the hand-over away again. "verified" is the old strict mode,
+    where every person needs a verdict first; "none" (23 Sep, STATE.md 138)
+    drops the gate altogether and hands over to anyone on the list. The
+    screenshots stay on the person page under all three.
     """
-    requires = db.get_setting(conn, "claim_requires", "verified")
+    requires = db.get_setting(conn, "claim_requires", "submitted")
     if requires == "none":
         return True
     allowed = {"verified"}

@@ -226,7 +226,12 @@ DEFAULT_SETTINGS = {
     "vinyl_stock": 0,
     "low_stock_at": LOW_STOCK_AT,    # "low" at the booth at or below this
     "block_at_zero": False,
-    "claim_requires": "verified",
+    # A screenshot at sign-up is enough to collect (24 Sep): there is no
+    # reference to read off it any more, so it counts the moment it arrives and
+    # an admin only steps in to reject a bad one or to mark somebody paid who
+    # turned up without one. "verified" and "none" still work; this is the
+    # middle setting, and the one the night runs on.
+    "claim_requires": "submitted",
     # Paperform's webhook writes a sign-up straight into the roster as it is
     # submitted. It takes no secret (22 Sep), so this switch is how the
     # organiser closes it — from the Settings screen, with no deploy.

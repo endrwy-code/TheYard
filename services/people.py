@@ -1,16 +1,20 @@
 """P0.3 — admin search, the person page, entrance payments, voids, the
 gate-denial list (§9 rules 14, 26, 30-33).
 
-Payment verdicts are admin-only (§9 r14). The transaction reference is
-stored on the person's entrance `receipts` row, and the partial unique index
-`receipts_txn` refuses a reference that already proved another payment — the
-layer that makes each payment count once (§9 r30). As with claims, there is no
-"already used?" check before the write; the index decides.
+Payment verdicts are admin-only (§9 r14), and since 24 Sep there is only one
+thing to decide. The transaction reference is gone: reading one off 150
+screenshots was the step that never got done, so a screenshot now counts on
+its own and `claim_requires` = "submitted" lets the booth hand over on it.
+What is left for a person is the two cases a screenshot cannot settle —
+somebody who paid at the front desk without one, and one that is wrong.
+
+The `receipts.txn_ref` column and its unique index stay in the schema so the
+references recorded before the change are still readable on the audit screen;
+nothing writes them any more. The duplicate-screenshot warnings (§9 r30) are
+untouched: they warn, and an admin still decides.
 """
 
 import json
-import re
-import sqlite3
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse
 
@@ -212,7 +216,7 @@ def person(conn, attendee_id, role):
         # Whether anyone is meant to check payments at all (STATE.md 138).
         # With it off, the console shows the screenshot and drops the whole
         # verdict workflow — there is no step to do.
-        "payment_required": db.get_setting(conn, "claim_requires", "verified") != "none",
+        "payment_required": db.get_setting(conn, "claim_requires", "submitted") != "none",
         "payment": last_verdict(conn, row["id"]),
         "checked_in_at": claims.local_iso(row["checked_in_at"]),
         "checked_in_by": row["checked_in_by"],
@@ -232,25 +236,20 @@ def person(conn, attendee_id, role):
 # Payment verdicts (§9 rules 14 and 30)
 # ---------------------------------------------------------------------------
 
-def normalise_ref(raw):
-    return re.sub(r"\s+", "", str(raw or "")).upper()[:64]
+def set_payment(conn, attendee_id, *, verdict, reason=None, by):
+    """Mark one person's entrance payment paid, reject it, or change a verdict.
 
-
-def _ref_owner(conn, ref):
-    r = conn.execute(
-        "SELECT a.handle, a.name FROM receipts r JOIN attendees a ON a.id = r.attendee_id "
-        "WHERE r.txn_ref = ?", (ref,)).fetchone()
-    if r is None:
-        return None
-    return ("@" + r["handle"] if r["handle"] else r["name"]) + "'s entrance payment"
-
-
-def set_payment(conn, attendee_id, *, verdict, txn_ref=None, reason=None, by):
-    """Verify, reject, or reopen one person's entrance payment."""
+    There is no transaction reference to check any more (24 Sep): a screenshot
+    uploaded at sign-up counts on its own, and `claim_requires` = "submitted"
+    lets the booth hand over on it without anybody approving it first. So this
+    screen is left with the two cases that genuinely need a person — somebody
+    who paid at the front desk with no screenshot, and a screenshot that turns
+    out to be wrong. Reading a reference off 150 screenshots was the step that
+    never got done; rejecting the occasional bad one is a job that can be.
+    """
     if verdict not in VERDICTS:
         raise ClaimError("VALIDATION_FAILED", "Verdict must be verified, rejected or reopen.")
     row = get_attendee(conn, attendee_id)
-    ref = normalise_ref(txn_ref)
     reason = " ".join(str(reason or "").split())[:300]
     current = row["payment_status"]
 
@@ -259,13 +258,9 @@ def set_payment(conn, attendee_id, *, verdict, txn_ref=None, reason=None, by):
                          f"This payment is already {current}. Use Change verdict first.")
     if verdict == "reopen" and current not in ("verified", "rejected"):
         raise ClaimError("VALIDATION_FAILED", "There is no verdict to change.")
-    if verdict == "verified":
-        if ref and len(ref) < 4:
-            raise ClaimError("VALIDATION_FAILED", "That reference is too short.")
-        if not ref and not reason:
-            raise ClaimError("VALIDATION_FAILED",
-                             "Type the reference, or say why the screenshot has none.")
-    elif not reason:
+    # Marking someone paid needs no words — the audit row already carries who
+    # did it and when. Taking a hand-over away from them does.
+    if verdict != "verified" and not reason:
         raise ClaimError("VALIDATION_FAILED", "A reason is required.")
 
     rec = entrance_receipt(conn, row["id"])
@@ -278,23 +273,15 @@ def set_payment(conn, attendee_id, *, verdict, txn_ref=None, reason=None, by):
     conn.execute("BEGIN IMMEDIATE")
     try:
         if verdict == "verified":
-            skip = None if ref else reason
-            details.update(txn_ref=ref or None, skip_reason=skip)
+            if reason:
+                details.update(reason=reason)
+            # Someone who paid at the desk has no screenshot and so no receipts
+            # row; give them one, so the panel can say where the money was seen.
             if rec is None:
                 conn.execute(
-                    "INSERT INTO receipts (attendee_id, purpose, source, uploaded_at, txn_ref, "
-                    "txn_ref_skip_reason) VALUES (?, 'entrance', ?, ?, ?, ?)",
-                    (row["id"], "paperform" if row["paperform_receipt_url"] else "admin",
-                     now, ref or None, skip))
-            else:
-                conn.execute("UPDATE receipts SET txn_ref=?, txn_ref_skip_reason=? WHERE id=?",
-                             (ref or None, skip, rec["id"]))
-        elif verdict == "reopen":
-            old = rec["txn_ref"] if rec is not None else None
-            details.update(reason=reason, released_txn_ref=old)
-            # Changing the verdict frees the reference, so a mistyped one can be fixed.
-            conn.execute("UPDATE receipts SET txn_ref=NULL, txn_ref_skip_reason=NULL "
-                         "WHERE attendee_id=? AND purpose='entrance'", (row["id"],))
+                    "INSERT INTO receipts (attendee_id, purpose, source, uploaded_at) "
+                    "VALUES (?, 'entrance', ?, ?)",
+                    (row["id"], "paperform" if row["paperform_receipt_url"] else "admin", now))
         else:
             details.update(reason=reason)
 
@@ -317,14 +304,6 @@ def set_payment(conn, attendee_id, *, verdict, txn_ref=None, reason=None, by):
             notify.queue(conn, row["id"], "payment_rejected",
                          notify.text_payment_rejected(reason), go=notify.GO_HOME)
         conn.execute("COMMIT")
-    except sqlite3.IntegrityError:
-        conn.execute("ROLLBACK")
-        first = _ref_owner(conn, ref)
-        db.audit(conn, "admin", "Payment verify refused — reference already used", actor_name=by,
-                 entity="attendee", entity_id=row["id"], details={"txn_ref": ref, "first": first})
-        raise ClaimError("DUPLICATE_TXN_REF",
-                         f"Reference {ref} already proved {first or 'another payment'}. "
-                         "The database refuses it.", first=first)
     except BaseException:
         conn.execute("ROLLBACK")
         raise

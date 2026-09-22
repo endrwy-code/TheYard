@@ -812,7 +812,6 @@ const S = {
   overview:null, people:null, person:null, gmState:null,
   slots:null, roster:null, settings:null, audit:null, denials:null,
   lookup:null, lookupCode:'',
-  txn:'',
   resetDone:{}, gmSlot:null, gmAt:0, live:false,
   selectedPerson:null, peopleQuery:'', focusSearch:false,
   auditTab:'log',
@@ -1441,20 +1440,13 @@ SCREENS.person = function(){
 
           ${pay.open && checking ? `
           <div style="display:flex;flex-direction:column;gap:10px;animation:rise .3s var(--ease) both">
-            <div class="txnfield">
-              <div class="kicker-s" style="color:#3C4654;margin-bottom:6px">Transaction reference</div>
-              <input id="txn" value="${esc(S.txn)}" placeholder="read it off the screenshot"
-                     autocapitalize="off" autocorrect="off" spellcheck="false">
-              <div class="txnnote" style="color:${pay.txnTone}">${esc(pay.txnNote)}</div>
-            </div>
-            <button class="verifybtn ${pay.canVerify ? 'ready' : 'off'}" id="verify">${esc(pay.verifyLabel)}</button>
+            ${pay.canMarkPaid ? `<button class="verifybtn ready" id="verify">Mark paid at the front desk</button>` : ''}
             <div class="payactions">
-              <button class="skip" id="skipref">No reference on it</button>
-              <button class="rej" id="rejectpay">Reject — reason</button>
+              <button class="rej" id="rejectpay" style="flex:1">Reject — reason</button>
             </div>
           </div>` : ''}
 
-          ${checking && !isAdmin ? `<div class="staffnote">Only an admin can verify or reject. Ask Maximus.</div>` : ''}
+          ${checking && !isAdmin ? `<div class="staffnote">Only an admin can mark paid or reject. Ask Maximus.</div>` : ''}
           ${checking && pay.settled ? `<button class="smallbtn" id="reopen">Change verdict — reason required</button>` : ''}
           <div class="paylog">${checking
             ? 'Every verdict goes in the audit trail with your name and reason.'
@@ -1469,20 +1461,18 @@ SCREENS.person = function(){
 /* Payment card — the prototype's five states. Whether a reference is already
    used is the server's call (DUPLICATE_TXN_REF), never guessed here. */
 function payVals(p){
-  const txn = (S.txn || '').trim();
   const isAdmin = S.session.role === 'admin';
-  const long = txn.length >= 4;
   const v = p.payment || {};
   const when = v.at ? ' at ' + fmtIso(v.at) : '';
   const status = p.payment_status === 'verified' && v.skip_reason ? 'skipped' : p.payment_status;
   const defs = {
-    submitted:{ pill:['#AE7338','#101010','Payment submitted'], card:'#AE7338', fg:'#101010',
-      title:'Waiting on you',
-      body:'They uploaded a screenshot at sign-up. Nothing has been handed over and the booth sees an amber card until you decide.',
+    submitted:{ pill:['#1F7A4C','#fff','Screenshot in'], card:'#1F7A4C', fg:'#fff',
+      title:'Screenshot accepted',
+      body:'They uploaded a screenshot at sign-up, and that counts on its own — the counter can hand over ' + listOf(S.items.map(i => i.label.toLowerCase())) + ', once each. Look at it above if you want to; reject it only if it is wrong.',
       open:true },
-    verified:{ pill:['#1F7A4C','#fff','Payment verified'], card:'#1F7A4C', fg:'#fff',
-      title:'Verified',
-      body:'Verified by ' + (v.by || 'an admin') + when + (v.txn_ref ? ' against reference ' + v.txn_ref : '') + '. The counter can hand over ' + listOf(S.items.map(i => i.label.toLowerCase())) + ', once each.',
+    verified:{ pill:['#1F7A4C','#fff','Paid'], card:'#1F7A4C', fg:'#fff',
+      title:'Marked paid',
+      body:'Recorded by ' + (v.by || 'an admin') + when + (v.txn_ref ? ' against reference ' + v.txn_ref : '') + (v.reason ? ': "' + v.reason + '"' : '') + '. The counter can hand over ' + listOf(S.items.map(i => i.label.toLowerCase())) + ', once each.',
       open:false },
     skipped:{ pill:['#1F7A4C','#fff','Payment verified'], card:'#1F7A4C', fg:'#fff',
       title:'Verified without a reference',
@@ -1492,9 +1482,9 @@ function payVals(p){
       title:'Rejected',
       body:'Rejected by ' + (v.by || 'an admin') + when + (v.reason ? ': "' + v.reason + '"' : '') + '. The bot has told them to see the front desk. Their pass still scans so the counter can find them, but nothing can be handed over.',
       open:false },
-    missing:{ pill:['#3C4654','#fff','No receipt'], card:'#3C4654', fg:'#fff',
-      title:'No receipt at all',
-      body:'They signed up without a screenshot. If they pay at the front desk, mark it paid here — type the reference, or say why there is none (e.g. "paid cash at the desk").',
+    missing:{ pill:['#AE7338','#101010','No screenshot'], card:'#AE7338', fg:'#101010',
+      title:'No screenshot',
+      body:'They signed up without one, so the booth sees an amber card and can hand nothing over. Take the money at the front desk, then mark it paid here.',
       open:true }
   };
   // Payments are not being checked (STATE.md 138): the screenshot is here to
@@ -1510,7 +1500,7 @@ function payVals(p){
       body:(seen[status] || 'Recorded at sign-up.')
            + ' Payments are not being checked tonight, so everyone on the list can collect. '
            + 'The screenshot above is here if you want to look.',
-      open:false, settled:false, canVerify:false, txnNote:'', txnTone:'#3C4654', verifyLabel:''
+      open:false, settled:false, canMarkPaid:false
     };
   }
   const d = defs[status] || defs.submitted;
@@ -1518,11 +1508,10 @@ function payVals(p){
     pillBg:d.pill[0], pillFg:d.pill[1], pillLabel:d.pill[2],
     card:d.card, fg:d.fg, title:d.title, body:d.body,
     open:d.open && isAdmin, settled:!d.open && isAdmin,
-    canVerify:long,
-    txnNote: !long ? 'Approving needs it, or say the screenshot has none.'
-      : 'Checked against every other payment when you press Verify.',
-    txnTone: '#3C4654',
-    verifyLabel: !long ? 'Type the reference to verify' : 'Verify payment'
+    // Only somebody with no screenshot needs marking paid. A screenshot
+    // already counts, so offering it there would just be a second name for
+    // "leave it alone".
+    canMarkPaid: status === 'missing'
   };
 }
 
@@ -2046,8 +2035,8 @@ const SETTINGS_SCHEMA = [
     { key:'block_at_zero', label:'When stock runs out', type:'seg', dimIf:NO_STOCK,
       options:[[false,'Warn only'],[true,'Block the hand-over','warn']] },
     { key:'claim_requires', label:'Hand-over needs payment', type:'seg',
-      options:[['verified','Verified'],['submitted','Submitted is enough'],['none','Not needed','warn']],
-      help:'Not needed hands over to anyone on the list, without looking at payments at all — the payment screenshots are still on each person\'s page. On Verified, staff may never hand over on an unverified receipt, though an admin can override with a reason.' },
+      options:[['submitted','A screenshot'],['verified','Marked paid'],['none','Not needed','warn']],
+      help:'A screenshot is how the night runs: anyone who uploaded one at sign-up can collect straight away, and you only step in to reject a bad one or to mark someone paid who arrived without one. Marked paid is stricter — every single person needs a verdict on their page first. Not needed hands over to everyone on the list and looks at nothing.' },
   ]},
   // One "collected at" row per made-to-order item, from the server's list
   // (settings_view → order_items), like the Orders screen's buttons.
@@ -2232,7 +2221,7 @@ function wire(){
     const id = Number(b.dataset.person);
     const p = await fetchPerson(id);
     if (!p) return;
-    S.selectedPerson = id; S.person = p; S.txn = '';
+    S.selectedPerson = id; S.person = p;
     render();
   });
   const ps = document.getElementById('psearch');
@@ -2257,28 +2246,12 @@ function wire(){
       : rc && rc.expired ? rc.note
       : 'No receipt to open.', 'bad');
   };
-  const txn = document.getElementById('txn');
-  if (txn){
-    // Update the note and button in place — re-rendering would drop the caret
-    // mid-reference, and this box gets typed into with a queue waiting.
-    txn.oninput = e => {
-      S.txn = e.target.value;
-      const pay = payVals(S.person);
-      const note = root.querySelector('.txnnote');
-      if (note){ note.textContent = pay.txnNote; note.style.color = pay.txnTone; }
-      const btn = document.getElementById('verify');
-      if (btn){ btn.textContent = pay.verifyLabel; btn.className = 'verifybtn ' + (pay.canVerify ? 'ready' : 'off'); }
-    };
-    txn.onkeydown = e => { if (e.key === 'Enter') doVerify(); };
-  }
   const verify = document.getElementById('verify');
-  if (verify) verify.onclick = doVerify;
-  const skip = document.getElementById('skipref');
-  if (skip) skip.onclick = () => doPayment('verified', null, prompt('Why is there no reference on this screenshot?'));
+  if (verify) verify.onclick = () => doPayment('verified', null);
   const rej = document.getElementById('rejectpay');
-  if (rej) rej.onclick = () => doPayment('rejected', null, prompt('Reason — the bot quotes this back to them verbatim:'));
+  if (rej) rej.onclick = () => doPayment('rejected', prompt('Reason — the bot quotes this back to them verbatim:'));
   const reopen = document.getElementById('reopen');
-  if (reopen) reopen.onclick = () => doPayment('reopen', null, prompt('Why are you changing the verdict?'));
+  if (reopen) reopen.onclick = () => doPayment('reopen', prompt('Why are you changing the verdict?'));
   const unlink = document.getElementById('unlink');
   if (unlink) unlink.onclick = doUnlink;
   const move = document.getElementById('moveesc');
@@ -2566,7 +2539,7 @@ function endSession(message){
   try { sessionStorage.removeItem('yard_screen'); } catch (e){}
   S.slots = S.roster = S.settings = S.audit = S.denials = null;
   S.settingsDraft = {}; S.rosterPreview = null; S.lookup = null; S.lookupCode = '';
-  S.selectedPerson = null; S.peopleQuery = ''; S.txn = '';
+  S.selectedPerson = null; S.peopleQuery = '';
   S.signinErr = message || '';
   const f = document.getElementById('flash');
   f.className = '';
@@ -2864,26 +2837,17 @@ function stopCamera(){
 
 /* ---- payment actions ------------------------------------------------ */
 
-async function doVerify(){
-  const p = S.person;
-  const pay = payVals(p);
-  if (!pay.canVerify) return;
-  await doPayment('verified', S.txn.trim(), null);
-}
-
-async function doPayment(verdict, txnRef, reason){
+async function doPayment(verdict, reason){
   reason = (reason || '').trim();
-  if (!txnRef && !reason) return;          // a prompt was cancelled or left blank
+  // Marking someone paid needs no words; taking a hand-over away from them
+  // does, and a cancelled prompt must not be read as an empty reason.
+  if (verdict !== 'verified' && !reason) return;
   const r = await api('POST /admin/api/payment', { path:'/admin/api/people/' + S.selectedPerson + '/payment',
-    json:{ verdict, txn_ref:txnRef, reason } });
+    json:{ verdict, reason } });
   if (!r.ok){
-    // The server's message names where a reused reference was first used.
-    const map = { DUPLICATE_TXN_REF:'That reference already proved another payment. The database refuses it.',
-                  FORBIDDEN:'Only an admin can do that.' };
-    toast(r.error.message || map[r.error.code] || r.error.code, 'bad');
+    toast(r.error.message || (r.error.code === 'FORBIDDEN' ? 'Only an admin can do that.' : r.error.code), 'bad');
     return;
   }
-  S.txn = '';
   toast('Recorded — it is in the audit trail.', 'good');
   load();
 }

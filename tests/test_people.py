@@ -1,16 +1,13 @@
 """P0.3 — search, the person page, payment verdicts, voids,
-the gate-denial list. §9 rules 14, 26, 30 (transaction reference), 31-33.
+the gate-denial list. §9 rules 14, 26, 30, 31-33.
 
 Runs against the real Paperform export and a real WAL file (conftest).
 """
 
-import threading
-
 import pytest
 
-import db
 from conftest import import_real_export, sign
-from services import claims, people
+from services import people
 from test_claims_concurrent import (  # noqa: F401 - fixtures are used by name
     Console, err, person, roster, secrets_and_limits,
 )
@@ -96,7 +93,8 @@ def test_list_tags(roster, admin):
 def test_person_page_shape(roster, admin):
     d = admin.get(f"/admin/api/people/{pid(roster, 'heidily')}").get_json()["data"]
     assert d["handle"] == "heidily"
-    assert d["payment_status"] == "submitted" and d["payment_ok"] is False
+    # A screenshot is enough since 24 Sep, so this person is already good.
+    assert d["payment_status"] == "submitted" and d["payment_ok"] is True
     assert d["pass_qr"].startswith("data:image/png;base64,")
     assert d["claims"] == {"pastry": {"claimed": False}, "photo": {"claimed": False}, "vinyl": {"claimed": False}}
     assert d["bookings"] == [] and d["payment"] is None
@@ -135,74 +133,42 @@ def test_the_real_exports_links_expire_before_the_event(roster):
 
 
 # ---------------------------------------------------------------------------
-# Payment verdicts — §9 r14 and the transaction-reference layer of r30
+# Payment verdicts — §9 r14. No transaction reference since 24 Sep: a
+# screenshot counts on its own, and an admin only marks somebody paid who
+# arrived without one, or rejects one that is wrong.
 # ---------------------------------------------------------------------------
 
-def test_verify_with_a_reference_lets_the_booth_hand_over(roster, admin):
+def test_a_screenshot_needs_no_verdict_at_all(roster, admin):
     i = pid(roster, "heidily")
     code = person(roster, "heidily", "submitted")["pass_code"]
-    assert Console().lookup(code).get_json()["data"]["can_hand_over"] is False
-    r = pay(admin, i, verdict="verified", txn_ref=" ab 12 34 ")
-    assert r.status_code == 200, r.get_json()
-    assert r.get_json()["data"]["payment"]["txn_ref"] == "AB1234"
-    assert status(roster, "heidily") == "verified"
+    assert status(roster, "heidily") == "submitted"
+    # Nobody has touched it, and the booth can already hand over.
+    assert Console().lookup(code).get_json()["data"]["can_hand_over"] is True
+    assert admin.get(f"/admin/api/people/{i}").get_json()["data"]["payment"] is None
+
+
+def test_marking_someone_paid_needs_no_reference_and_no_reason(roster, admin):
+    """The person who turned up without a screenshot and paid at the desk."""
+    h = roster.execute("SELECT handle FROM attendees WHERE payment_status='missing' "
+                       "ORDER BY id LIMIT 1").fetchone()["handle"]
+    i = pid(roster, h)
+    code = person(roster, h, "missing")["pass_code"]
+    assert err(Console().hand_over(code))["code"] == "PAYMENT_NOT_VERIFIED"
+    assert pay(admin, i, verdict="verified").status_code == 200
+    assert status(roster, h) == "verified"
     assert Console("staff", "Aisha", "Booth 2").lookup(code).get_json()["data"]["can_hand_over"] is True
     page = admin.get(f"/admin/api/people/{i}").get_json()["data"]
     assert page["payment"]["by"] == "Organiser"
-    assert any("Payment verified — ref AB1234" in a["what"] for a in page["audit"])
+    assert any(a["what"].startswith("Payment verified") for a in page["audit"])
 
 
-def test_a_reference_proves_one_payment_only(roster, admin):
-    assert pay(admin, pid(roster, "heidily"), verdict="verified", txn_ref="8842119").status_code == 200
-    r = pay(admin, pid(roster, "bananabelles"), verdict="verified", txn_ref="  8842 119")
-    assert r.status_code == 409
-    e = err(r)
-    assert e["code"] == "DUPLICATE_TXN_REF" and "@heidily" in e["message"]
-    assert status(roster, "bananabelles") == "submitted"
-    # Nothing half-written: still exactly one receipt row carries the reference.
-    assert roster.execute("SELECT COUNT(*) FROM receipts WHERE txn_ref='8842119'").fetchone()[0] == 1
-    assert roster.execute(
-        "SELECT COUNT(*) FROM audit_log WHERE action LIKE 'Payment verify refused%'").fetchone()[0] == 1
-
-
-def test_two_admins_racing_on_one_reference(roster):
-    """The unique index decides, even in the same instant."""
-    handles = ["heidily", "bananabelles", "mr_rishieparker", "sharmaineangg"]
-    ids = [pid(roster, h) for h in handles]
-    barrier = threading.Barrier(len(ids))
-    results = []
-
-    def run(i):
-        c = db.connect()
-        try:
-            barrier.wait()
-            people.set_payment(c, i, verdict="verified", txn_ref="RACE-1", by="admin")
-            results.append("ok")
-        except claims.ClaimError as exc:
-            results.append(exc.code)
-        finally:
-            c.close()
-
-    threads = [threading.Thread(target=run, args=(i,)) for i in ids]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    assert sorted(results) == ["DUPLICATE_TXN_REF"] * 3 + ["ok"]
-    verified = [h for h in handles if status(roster, h) == "verified"]
-    assert len(verified) == 1
-
-
-def test_verify_without_a_reference_needs_a_reason(roster, admin):
-    i = pid(roster, "heidily")
-    assert err(pay(admin, i, verdict="verified"))["code"] == "VALIDATION_FAILED"
-    assert err(pay(admin, i, verdict="verified", txn_ref="ab"))["code"] == "VALIDATION_FAILED"
-    r = pay(admin, i, verdict="verified", reason="Cropped above the reference")
-    assert r.status_code == 200
-    assert r.get_json()["data"]["payment"]["skip_reason"] == "Cropped above the reference"
-    # Skipped references are NULL, and NULLs never clash.
-    assert pay(admin, pid(roster, "bananabelles"), verdict="verified",
-               reason="No reference shown").status_code == 200
+def test_the_same_screenshot_on_two_people_is_a_warning_not_a_refusal(roster, admin):
+    """§9 r30 layer one still warns; nothing about it blocks a second person,
+    because two people can honestly send one screenshot — one paid for both."""
+    a, b = pid(roster, "heidily"), pid(roster, "bananabelles")
+    assert pay(admin, a, verdict="verified").status_code == 200
+    assert pay(admin, b, verdict="verified").status_code == 200
+    assert status(roster, "heidily") == "verified" and status(roster, "bananabelles") == "verified"
 
 
 def test_reject_needs_a_reason_and_blocks_the_booth(roster, admin):
@@ -219,26 +185,18 @@ def test_reject_needs_a_reason_and_blocks_the_booth(roster, admin):
 def test_a_verdict_must_be_reopened_before_it_changes(roster, admin):
     i = pid(roster, "heidily")
     assert pay(admin, i, verdict="rejected", reason="Blurry").status_code == 200
-    assert err(pay(admin, i, verdict="verified", txn_ref="REF-9"))["code"] == "VALIDATION_FAILED"
+    assert err(pay(admin, i, verdict="verified"))["code"] == "VALIDATION_FAILED"
     assert err(pay(admin, i, verdict="reopen"))["code"] == "VALIDATION_FAILED"
     assert pay(admin, i, verdict="reopen", reason="They sent a clearer one").status_code == 200
     assert status(roster, "heidily") == "submitted"
-    assert pay(admin, i, verdict="verified", txn_ref="REF-9").status_code == 200
-
-
-def test_reopening_frees_a_mistyped_reference(roster, admin):
-    a, b = pid(roster, "heidily"), pid(roster, "bananabelles")
-    assert pay(admin, a, verdict="verified", txn_ref="TYPO-77").status_code == 200
-    assert pay(admin, b, verdict="verified", txn_ref="TYPO-77").status_code == 409
-    assert pay(admin, a, verdict="reopen", reason="Typed Annabelle's ref by mistake").status_code == 200
-    assert pay(admin, b, verdict="verified", txn_ref="TYPO-77").status_code == 200
+    assert pay(admin, i, verdict="verified").status_code == 200
 
 
 def test_reopen_without_a_receipt_goes_back_to_missing(roster, admin):
     h = roster.execute("SELECT handle FROM attendees WHERE payment_status='missing' "
                        "ORDER BY id LIMIT 1").fetchone()["handle"]
     i = pid(roster, h)
-    assert pay(admin, i, verdict="verified", txn_ref="SEEN-AT-DESK").status_code == 200
+    assert pay(admin, i, verdict="verified").status_code == 200
     assert pay(admin, i, verdict="reopen", reason="Wrong person").status_code == 200
     assert status(roster, h) == "missing"
 
@@ -249,19 +207,19 @@ def test_unknown_verdict_is_refused(roster, admin):
 
 def test_gm_cannot_change_payments(roster):
     gm = Console("gm", "Ryan", "Escape desk")
-    r = pay(gm, pid(roster, "heidily"), verdict="verified", txn_ref="GM-1")
+    r = pay(gm, pid(roster, "heidily"), verdict="verified")
     assert r.status_code == 403 and status(roster, "heidily") == "submitted"
 
 
 def test_payment_needs_the_csrf_token(roster, admin):
     r = admin.post(f"/admin/api/people/{pid(roster, 'heidily')}/payment",
-                   {"verdict": "verified", "txn_ref": "NOCSRF"}, csrf=False)
+                   {"verdict": "verified"}, csrf=False)
     assert r.status_code == 403 and status(roster, "heidily") == "submitted"
 
 
 def test_reimport_never_undoes_a_verdict(roster, admin):
     """§9 r14 — the roster only lifts missing to submitted."""
-    assert pay(admin, pid(roster, "heidily"), verdict="verified", txn_ref="KEEP-1").status_code == 200
+    assert pay(admin, pid(roster, "heidily"), verdict="verified").status_code == 200
     assert pay(admin, pid(roster, "bananabelles"), verdict="rejected", reason="x").status_code == 200
     import_real_export(roster)
     assert status(roster, "heidily") == "verified"

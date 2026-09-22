@@ -253,7 +253,7 @@ def kinds(conn):
 def test_verdicts_message_the_person_but_a_reopen_does_not(roster):
     admin = Console("admin")
     i = pid(roster, "heidily")
-    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "verified", "txn_ref": "NR-10"})
+    admin.post(f"/admin/api/people/{i}/payment", {"verdict": "verified"})
     admin.post(f"/admin/api/people/{i}/payment", {"verdict": "reopen", "reason": "typo"})
     admin.post(f"/admin/api/people/{i}/payment", {"verdict": "rejected", "reason": "Amount is $5"})
     assert kinds(roster) == ["payment_verified", "payment_rejected"]
@@ -263,10 +263,11 @@ def test_verdicts_message_the_person_but_a_reopen_does_not(roster):
 
 def test_a_refused_verdict_queues_nothing(roster):
     admin = Console("admin")
-    admin.post(f"/admin/api/people/{pid(roster, 'heidily')}/payment",
-               {"verdict": "verified", "txn_ref": "SAME-1"})
-    admin.post(f"/admin/api/people/{pid(roster, 'bananabelles')}/payment",
-               {"verdict": "verified", "txn_ref": "SAME-1"})
+    i = pid(roster, "heidily")
+    assert admin.post(f"/admin/api/people/{i}/payment", {"verdict": "verified"}).status_code == 200
+    # Already settled: it has to be reopened first, so this one is refused.
+    assert admin.post(f"/admin/api/people/{i}/payment",
+                      {"verdict": "verified"}).status_code == 400
     assert kinds(roster) == ["payment_verified"]
 
 

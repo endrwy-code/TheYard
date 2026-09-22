@@ -895,7 +895,7 @@ def admin_payment(attendee_id):
     body = request.get_json(silent=True) or {}
     return _run(lambda: people.set_payment(
         g.db, attendee_id, verdict=str(body.get("verdict") or ""),
-        txn_ref=body.get("txn_ref"), reason=body.get("reason"), by=g.console["name"]))
+        reason=body.get("reason"), by=g.console["name"]))
 
 
 @app.route("/admin/api/claims/<int:claim_id>/void", methods=["POST"])

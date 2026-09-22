@@ -253,6 +253,9 @@ def test_a_voided_claim_can_be_collected_again(roster):
 # ---------------------------------------------------------------------------
 
 def test_unverified_payment_is_refused(roster):
+    """Strict mode, which is no longer the default: every person needs a
+    verdict on their page before the booth may hand anything over."""
+    db.set_setting(roster, "claim_requires", "verified", by="test")
     p = person(roster, "bananabelles", "submitted")
     r = Console().hand_over(p["pass_code"])
     assert r.status_code == 403
@@ -262,11 +265,23 @@ def test_unverified_payment_is_refused(roster):
 
 
 def test_lookup_says_unpaid_and_offers_no_hand_over(roster):
+    db.set_setting(roster, "claim_requires", "verified", by="test")
     p = person(roster, "bananabelles", "submitted")
     d = Console().lookup(p["pass_code"]).get_json()["data"]
     assert d["payment_ok"] is False
     assert d["can_hand_over"] is False
     assert d["can_override"] is False            # staff never get the override
+
+
+def test_a_screenshot_is_enough_without_anybody_approving_it(roster):
+    """The default since 24 Sep: the screenshot counts the moment it arrives,
+    and the only thing that takes a hand-over away is a rejection."""
+    p = person(roster, "bananabelles", "submitted")
+    assert Console().lookup(p["pass_code"]).get_json()["data"]["can_hand_over"] is True
+    assert Console().hand_over(p["pass_code"]).status_code == 200
+    # Nobody without one, though: they pay at the desk and get marked paid.
+    q = person(roster, "t_shixuan", "missing")
+    assert err(Console().hand_over(q["pass_code"]))["code"] == "PAYMENT_NOT_VERIFIED"
 
 
 def test_setting_can_relax_to_submitted(roster):
@@ -729,6 +744,7 @@ def test_me_shows_a_hand_over_as_punched(roster, client):
 
 
 def test_me_reports_unverified_payment(roster, client):
+    db.set_setting(roster, "claim_requires", "verified", by="test")
     person(roster, "bananabelles", "submitted")
     d = me(client, sign(1001, "bananabelles", "Annabelle")).get_json()["data"]
     assert d["payment_status"] == "submitted" and d["payment_ok"] is False
