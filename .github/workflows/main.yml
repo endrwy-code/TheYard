@@ -1,0 +1,42 @@
+name: Deploy
+
+# Render's own auto-deploy is off in render.yaml (autoDeploy: false), so this
+# is what ships the app. Every push to main triggers one deploy.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # and a "Run workflow" button, for redeploying by hand
+
+# Two pushes in quick succession should mean one deploy of the newer commit,
+# not a queue of stale ones.
+concurrency:
+  group: render-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK is not set. Add it under" \
+                 "Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          # The hook URL carries its own key, so it is never printed. The
+          # response body is just a deploy id and is safe to show.
+          code=$(curl -sS -X POST -o response.json -w '%{http_code}' "$HOOK")
+          echo "Render answered HTTP $code"
+          cat response.json || true
+          echo
+
+          case "$code" in
+            2*) echo "Deploy queued for ${GITHUB_SHA::7}." ;;
+            *)  echo "::error::Render refused the deploy hook (HTTP $code)."
+                exit 1 ;;
+          esac
