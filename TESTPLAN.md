@@ -343,10 +343,9 @@ out; the cue is still recorded.)
 **You should see** "N saved". This takes a copy of every Paperform payment
 screenshot onto the laptop.
 
-**Started for you on 22 September at 6:55 PM** — 152 to save, 7 links already
-dead. Paperform's links expire seven days after each person signed up, and a
-dead link cannot be copied afterwards, so run this again if the card still
-shows any not saved. Payment is no longer checked before a hand-over
+**Done for you on 22 September, 6:55–7:20 PM: 145 of 152 saved.** The other 7
+links had already expired and cannot be copied now (they are named in
+`CHANGELOG.md`); those screenshots are only in Paperform's dashboard. Payment is no longer checked before a hand-over
 (`STATE.md` 138); the copies are so the screenshots can still be *looked at*
 on the day, with no Paperform and no wifi. The card on that screen shows the
 next deadline.

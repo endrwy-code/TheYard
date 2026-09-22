@@ -15,7 +15,9 @@ Last updated: 22 Sep 2026, 18:50. **Latest (decisions 135–137, live):**
 Overview counts **Opened the app** and **At the event** apart, the second
 only from 3 PM on the 24th; **"the front desk"** is the one name for the desk
 (Registration on the plan); the floorplan is a fixed frame you **pinch,
-double-tap and drag**, with no Zoom button. **432 tests pass.**
+double-tap and drag**, with no Zoom button; and **payments are not checked at
+all** (decision 138) while their screenshots stay on the person page —
+145 of 152 are now saved on the laptop. **434 tests pass.**
 **22 Sep (late):** decisions 132–134,
 live — the pass is **Pastry (four kinds, staff tap which), Photo Strip,
 Vinyl Making**, with no circles; Help has a **price list** (a Settings row)
@@ -197,7 +199,7 @@ tests/              conftest.py, test_gate.py, test_roster_import.py,
                     test_phone_and_gm.py, test_admin_screens.py,
                     test_receipts.py, test_phone_links.py,
                     test_error_reporting.py, test_invariants.py,
-                    test_orders.py (432 tests)
+                    test_orders.py (434 tests)
 services/orders.py  matcha/panini orders and the "ready" call (decision 125)
 private/receipts/   our own copies of the Paperform screenshots. Random
                     filenames, admin-only, never served without a sign-in
@@ -1309,10 +1311,12 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        asked for and none is logged.
      - **The screenshots.** Still on the person page, admin-only (§9 r31).
        Because Paperform's links die 7 days after each sign-up, `manage.py
-       fetch-receipts` was run at 18:55 to save our own copies while they
-       still work — 0 had been saved before tonight, 7 links were already
-       dead. A saved copy is served from the laptop and keeps working on the
-       day with no Paperform and no wifi.
+       fetch-receipts` was run at 18:55 — the first time it had ever been
+       run — and saved **145 of 152**. The 7 failures are the links that had
+       already expired (@bananabelles, @sharmaineangg, @t_shixuan,
+       @jananabana, @bingkiat, @heidily, @feliciaandiana); those screenshots
+       now exist only in Paperform's dashboard. A saved copy is served from
+       the laptop and keeps working on the day with no Paperform and no wifi.
      - **The console stops nagging**: with the check off, Overview drops the
        "Payments to check" job from the queue, and the Payments card reads
        "N unchecked, N with no receipt · not needed to collect" in plain
@@ -1363,7 +1367,7 @@ venv\Scripts\activate
 python -m pytest tests -q
 ```
 
-**You should see** `432 passed` (takes about 15–100 seconds).
+**You should see** `434 passed` (takes about 15–100 seconds).
 
 The two pages are checked separately, because pytest never runs their
 JavaScript:
@@ -1451,7 +1455,7 @@ These block nothing, but they need answers before the day.
 2. **Paperform webhooks** — only on certain plans. The upload path works either
    way and stays the safety net (§10).
 3. **Three Settings placeholders** remain: GM and actor handles, the
-   finder's name. Stock counts (pastries, photo strips) are 0, meaning
+   finder's name. Stock counts (pastries, photo strips, vinyl) are 0, meaning
    not counted, until someone sets them on the Settings screen. (The photo
    strip question is answered: it is tracked, decision 68.)
 4. **The phone file's pictures.** Confirmed 18 Sep: the organiser will supply
@@ -1491,10 +1495,10 @@ These block nothing, but they need answers before the day.
    The dates suggest the expiry is tied to the submission, not the export.
    **Fixed 18 Sep (decision 85):** the lasting fix — saving a copy of each
    receipt on the laptop — is built. `python manage.py fetch-receipts`, or
-   **Save receipt copies** on the Audit screen. **The organiser still has to
-   run it before 22 Sep 15:26**, because nothing can copy a link that has
-   already died. Until they do, verifying every payment before that time
-   remains the fallback plan. Side finding: the
+   **Save receipt copies** on the Audit screen. **Run at last on 22 Sep,
+   18:55: 145 of 152 saved** (decision 138). The 7 whose links had already
+   died could not be copied and are only in Paperform's dashboard now.
+   Side finding: the
    exact 7-day match suggests "Submitted At" is Singapore time (§9 r10 calls
    it unknown). Nothing relies on that yet.
 
@@ -1507,8 +1511,9 @@ These block nothing, but they need answers before the day.
 **Hand-over needs payment = Not needed**, live and audited: anyone on the list
 collects, whatever their payment says. The payment status, the verify/reject
 buttons and the screenshots are all still there — `manage.py fetch-receipts`
-was started at 18:55 to save our own copies of all 152 before Paperform's
-links expire (0 were saved before; 7 links were already dead). **434 tests
+ran at 18:55–19:20 and saved **145 of 152** payment screenshots onto the
+laptop (none had ever been saved; the 7 that failed are the ones whose
+Paperform links had already expired, named in `CHANGELOG.md`). **434 tests
 pass.** The repository at github.com/endrwy-code/TheYard was **public** when
 found — the organiser is making it private before the next push.
 
@@ -1659,8 +1664,8 @@ The organiser's next steps, in order:
    the old, buggy logic, so it still plans `@maxi_muslim` as a new person and
    will be refused by name. Upload the file again and commit the fresh preview.
    Expect 15 new, 1 changed (them), 0 missing.
-3. **`python manage.py fetch-receipts`** — before **22 Sep 15:26**. This one
-   has a real deadline and nothing can recover a link that has already died.
+3. ~~**`python manage.py fetch-receipts`**~~ — **done 22 Sep, 18:55: 145 of
+   152 saved**; the other 7 links had already died (decision 138).
 4. **`TESTPLAN.md` Part A** — alone, one phone, about 30 minutes.
 5. **Fill in Settings**: GM and actor handles, the finder's name, stock counts.
 6. **`TESTPLAN.md` Part B** — book it for 21 or 22 Sep, not the 23rd.

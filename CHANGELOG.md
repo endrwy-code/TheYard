@@ -1333,13 +1333,15 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Changed:** ran `python manage.py fetch-receipts` (18:55). Nothing in the
   code changed; the mechanism was built on 18 Sep (STATE.md 85) and had never
   been run — 0 of 152 were saved, and 7 Paperform links had already expired.
-- **Current state:** running; copies land in `private\receipts` and are served
-  admin-only from the person page. A saved copy works on the day with no
-  Paperform, no link and no wifi.
-- **Known bug, left unfixed:** the 7 dead links cannot be recovered from here.
-  Those people's screenshots are only in Paperform's own dashboard.
-- **Next step:** check Audit → Exports & backups shows none left unsaved, and
-  run it again if it does.
+- **Current state:** done at 19:20 — **145 of 152 saved** (28.5 MB in
+  `private\receipts`, served admin-only from the person page). A saved copy
+  works on the day with no Paperform, no link and no wifi.
+- **Known bug, left unfixed:** the **7** whose links had already expired
+  could not be copied: @bananabelles, @sharmaineangg, @t_shixuan,
+  @jananabana, @bingkiat, @heidily, @feliciaandiana. Their screenshots exist
+  only in Paperform's own dashboard now.
+- **Next step:** none for the other 145. If those 7 ever matter, open
+  Paperform's dashboard.
 
 ## 2026-09-22 — Known risk: the GitHub repository was public
 
