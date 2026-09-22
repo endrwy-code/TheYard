@@ -78,7 +78,7 @@ def test_nobody_outside_the_game_gets_it(night, roster):
 
 
 def test_check_in_no_longer_gates_the_phone(night, roster):
-    """24 Sep: the booked time is the only condition, so somebody who walked
+    """23 Sep: the booked time is the only condition, so somebody who walked
     past the front desk still gets their phone."""
     roster.execute("UPDATE attendees SET checked_in_at=NULL WHERE handle=?", (GROUP[0],))
     assert code(roster, GROUP[0], at(night, 1)) is None

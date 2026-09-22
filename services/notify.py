@@ -22,7 +22,7 @@ MAX_ATTEMPTS = 5
 # Where the "Open The Yard" button lands. The Mini App reads ?go= after Start.
 GO_TICKET, GO_FOOD, GO_HOME, GO_BOOKINGS = "ticket", "food", "home", "bookings"
 # The escape room's phone. This message's button is one way in; the escape
-# screen carries another, shown only once the phone is genuinely open (24 Sep).
+# screen carries another, shown only once the phone is genuinely open (23 Sep).
 GO_PHONE = "phone"
 BUTTON_LABELS = {GO_PHONE: "\U0001f4f1 Open Kai Chen's phone"}
 

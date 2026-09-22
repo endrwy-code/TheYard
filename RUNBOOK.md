@@ -518,7 +518,7 @@ whole window.
 **You should see** a real QR code (no longer the demo picture), your pass code
 under it (like `7K3M-Q9XT`), and three things marked **Ready**: **Pastry**
 (with "Mini tart, brownie, cookie or shiopan" under it), **Photo Strip** and
-**Vinyl Making**.
+**Vinyl Crafting**.
 
 **If you see** "Payment not verified yet" — payment checking has been switched
 back on (Settings → **Hand-over needs payment**), and this account has not been
@@ -776,11 +776,10 @@ It is split by what each test needs, not by when you do it:
 
 - **Part A — you, one phone, about 30 minutes.** The gate, your pass, the
   booth scanner and its once-only rule, booking, the jam room, the bot, the
-  GM console, the phone and its half rule, the receipt copies, Settings.
+  GM console, the phone, the receipt copies, Settings.
   Everything that can be proved alone. **Run this first.**
 - **Part B — the crowd, about 90 minutes.** Group booking all-or-nothing,
-  the two halves with real people, the actor, two phones in one game, two
-  booths racing for one pass. Book it for **21 or 22 September**, so there
+  the actor, two phones in one game, two booths racing for one pass. Book it for **21 or 22 September**, so there
   is a clear day afterwards to fix what it finds.
 
 Part A exists because a broken tunnel or a broken Telegram sign-in stops
@@ -990,9 +989,9 @@ It asks which tunnel to use.
 | You need to see the error inside Telegram | Mini Apps can be inspected, but the setting is hidden | In Telegram Desktop, open Settings and tap the version number several times until a debug menu appears, then enable inspecting web views. Then right-click inside the Mini App → Inspect |
 | **Tapping Up next: the card stutters, flashes or lands in the wrong place** | The grow animation added 21 Sep (`STATE.md` decision 121) is misbehaving on that phone | Turn it off: open `templates\index.html` in VS Code, press Ctrl+F, search `const MORPH = true`, change `true` to `false`, save, then close and reopen the Mini App. Up next still opens Your bookings, with the ordinary short slide. Nothing else changes |
 | **On an older iPhone, Up next just slides instead of growing** | Normal. The grow needs iOS 18 or later; older phones get the ordinary slide | Nothing to do |
-| **Players say the escape-room phone never arrived** | Since 22 Sep the phone comes only as a bot message when the game starts. Either `bot.py` isn't running, messages aren't set to Everyone, or that person never opened the bot | GM screen: each name says **Phone sent**, **Can't reach — desk handset** or **Not sent (test mode)**. Test mode → Settings → Who gets messages → **Everyone**. `bot.py` window closed → start it. Can't reach → hand them the desk handset, or let them share with their group |
-| **"Open the phone" opens a screen saying Locked** | The game hasn't started yet (the GM hasn't pressed Start), or someone tapped an old message | Press Start on the GM screen; the same button then works |
-| **The phone says "Time's up" before the group is done** | It stays open 25 minutes from the start | Settings → Escape room → **Phone stays open** — raise it and Save. It applies at once |
+| **Players say the escape-room phone never arrived** | Since 22 Sep the phone comes only as a bot message, and since 23 Sep it goes out at the **booked time** with nobody pressing anything. Either `bot.py` isn't running, messages aren't set to Everyone, or that person never opened the bot | GM screen: each name says **Phone sent**, **Can't reach — desk handset** or **Not sent (test mode)**. Test mode → Settings → Who gets messages → **Everyone**. `bot.py` window closed → start it. Can't reach → hand them the desk handset, or let them share with their group |
+| **"Open Kai Chen's phone" opens a screen saying Not yet** | The booked time hasn't come round. Since 23 Sep that is the whole rule — **there is no Start to press** | Wait for the booked minute; the same button then works. If it says **Locked**, a game master has locked it: GM screen → **Unlock the phone** |
+| **The phone says "Time's up" before the group is done** | It stays open 25 minutes from the **booked time**, plus whatever the GM has paused or added | Settings → Escape room → **Phone stays open** — raise it and Save. It applies at once. Mid-game, **Pause** also holds it open for as long as the pause, and **+1 min** adds a minute to both |
 | **Your code changes go live the moment you save a file**, or `app.py` restarts by itself | `python app.py` runs in development mode, which reloads itself whenever a `.py` file changes. A half-finished save can stop it | Don't edit code while people are using it. On the night the RUNBOOK's `start_event.ps1` uses waitress, which never reloads |
 
 ### Mini App won't open — check in this order

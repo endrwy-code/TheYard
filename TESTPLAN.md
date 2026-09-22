@@ -10,8 +10,8 @@ It is split by **what each test needs**, not by when you feel like doing it:
   alone. This is where the failures that stop *everything* hide: the tunnel,
   Telegram's sign-in, the camera, the bot. Run this first, this week.
 - **Part B — the crowd, about 90 minutes.** Everything that genuinely needs
-  other people with other Telegram accounts: group booking, the two halves,
-  the actor, two phones in one game.
+  other people with other Telegram accounts: group booking, the actor, two
+  phones in one game.
 
 **Why the split matters.** If the tunnel or the Telegram sign-in is broken,
 *nothing* in Part B can run — and you would find out with eight people standing
@@ -104,7 +104,7 @@ you are", the bot token and the app disagree — Phase 18.
 
 **You should see** your QR, and three items — **Pastry** (with "Mini tart,
 brownie, cookie or shiopan" under it), **Photo Strip** ("Your first strip") and
-**Vinyl Making** — none collected, and **no circle** before any of them
+**Vinyl Crafting** — none collected, and **no circle** before any of them
 (22 Sep, `STATE.md` 132). Headings and buttons across the app are in
 normal capitals now ("Evening, …", "The Jamming Studio"); only the small spaced
 labels are in capitals.
@@ -112,28 +112,36 @@ labels are in capitals.
 7b. Home → **Help**.
 
 **You should see** each section in its own card with a brown heading; **When
-and where** shows "The Hub @ Hafary Gallery L5" and "105 Eunos Ave 3, Singapore
-409836" with an **Open in Maps** button; the questions open and close when
+and where** shows "Hafary Gallery L5" — no "The Hub @" since 23 Sep
+(`STATE.md` 142) — and "105 Eunos Ave 3, Singapore 409836" with an **Open in Maps** button; the questions open and close when
 tapped.
 
 7c. Help → **Is there a price list?** Then, without closing it, tap another
     question. (22 Sep, `STATE.md` 132.)
 
 **You should see** the prices in groups — Activities, Pastries, Shiopan and
-Panini, Ice Cream Waffle, Matcha and Hojicha, Canned Drinks — with the price
+Panini, **MUTED. Gelato**, Matcha and Hojicha, Canned Drinks — with the price
 on the right of each line, and **the price list closes by itself** when you
 open another question. **Included with entry** lists Pastry, Photo Strip,
-Vinyl Making, The Last Guest, The Jamming Studio, Board Games.
+**Vinyl Crafting**, The Last Guest, The Jamming Studio, Board Games.
+Since 23 Sep (`STATE.md` 143) the prices also have a **screen of their own**,
+and the ice cream and waffle is under the stall's own name.
 
-7d. Help → **See the floorplan** (also Home → **Floorplan**). Double-tap the
-    map, drag it about, pinch to zoom in and out, then double-tap again
-    (23 Sep, `STATE.md` 135).
+7d. Help → **See the floorplan** (also Home → **Floorplan**). Pinch to zoom
+    in and out, and drag the map about (23 Sep, `STATE.md` 144).
 
-**You should see** the whole plan sitting in a frame that never changes size.
-Double-tapping zooms in on the spot you tapped, dragging moves the map inside
-the frame and never goes back a screen, pinching zooms as it would in your
-photos, and a double-tap brings the whole map back. You should never end up
-stuck in a zoomed-in map.
+**You should see** the organiser's plan — DIY down the left, the jamming room
+and two chill rooms, the photo booth, and Two Goose, Paninis, Pastries and
+**MUTED. Gelato** along the top — sitting in a frame that never changes size.
+Pinching zooms as it would in your photos, dragging moves the map inside the
+frame and never goes back a screen, and letting go of a zoomed-out pinch
+brings the whole map back. You should never end up stuck in a zoomed-in map.
+
+The hint reads **Pinch to zoom**. **Double-tap does nothing now** (23 Sep): it
+was a second way to do what pinch already does, and it fired by accident — two
+quick taps while you worked out where you were, and the plan jumped somewhere
+you were not looking. Under the plan is the way to the escape room: out of the
+entrance, first door on the right.
 
 ## A3. The booth, against your own pass
 
@@ -265,26 +273,34 @@ testing — your own account is always allowed).
 
 16c. On your phone, open **The Last Guest**.
 
-**You should see** the board with no phone card on it any more. Tap your game
-(**Yours**): the ticket has a row **His phone — On Telegram, when the game
-starts**.
+**You should see** the board with no phone card on it. Tap your game
+(**Yours**): the ticket has a row **Kai Chen's phone — At 7:50 PM**, and a
+**Where is it?** button that opens the floorplan. Nothing on the screen offers
+you a phone yet, because you do not have one yet (23 Sep, `STATE.md` 142).
 
-17. Console → **Game** → pick your game → **Start**. (This works on a Mobile
-    sign-in too, since 22 Sep.)
+17. Console → **Game** → pick your game. **Then wait** — do not look for a
+    Start button. There isn't one any more (23 Sep, `STATE.md` 140).
 
-**You should see** the timer counting and the hint cues listed. Within about
-five seconds your phone gets a message from **@The_YardBot**: **📱 HIS PHONE IS
-UNLOCKED — THE LAST GUEST**, "Open until" a time 25 minutes after you pressed
-Start, and a button **📱 Open the phone**. On the GM screen your name says
-**Phone sent**.
+**You should see**, at 7:50 PM on the test clock, the timer start counting on
+its own and the status line read **In progress · phone open until 8:15**.
+Within about five seconds your phone gets a message from **@The_YardBot**:
+**📱 kai chen's phone is open**, "open until" a time 25 minutes after the
+**booked** time, and a button **📱 Open Kai Chen's phone**. On the GM screen
+your name says **Phone sent**.
+
+This is the whole point of the change: **the booked minute is the only rule.**
+Nobody presses anything, and nobody has to have checked in.
 
 If no message comes: is the `bot.py` window open? The GM screen says **Phone on
-its way** while it waits for the bot, and **Can't reach** if the bot has no
-chat with you (open @The_YardBot and tap Start).
+its way** while it waits for the bot, and **Can't reach — desk handset** if the
+bot has no chat with that person (they open @The_YardBot and tap Start). If it
+says **Not sent (test mode)**, that is Settings → Who gets messages.
 
-18. Tap **📱 Open the phone** in that message, then **Start** in the app.
+18. Tap **📱 Open Kai Chen's phone** in that message, then **Start** in the app.
 
-**You should see** the escape-room phone fill the screen. Open **Photos**.
+**You should see** the escape-room phone fill the screen, with the **dock**
+— Phone, Messages, Photos — fully on screen and tappable, no page scrolling
+(23 Sep, `STATE.md` 139). Open **Photos**.
 
 **You should see** a grid of grey tiles until the photographs are added. That is
 expected — the pictures do not exist yet. To check which are still missing:
@@ -300,37 +316,60 @@ Nothing needs rebuilding: add the file, reload the phone, it is there.
 
 19. Close the phone (Back).
 
-**You should see** a dark **His Phone** screen: **Unlocked**, the minutes left,
-**Open the phone**, and "Phone not working? Open it in your browser". Nothing
-else in the app leads here — only the message does.
+**You should see** a dark **Kai Chen's phone** screen: the minutes left,
+**Open Kai Chen's phone**, and "Phone not working? Open it in your browser".
+Nothing else in the app leads here — only the message does.
 
-20. On the GM screen, tap your name to **swap yourself to the other half**.
-    Tap **📱 Open the phone** in the message again.
+20. On the GM screen, look at the list under **In this game**.
 
-**You should see** it still opens. Since 22 Sep both halves have the phone; the
-halves only decide where people start.
+**You should see** everybody booked, with their number, name, handle, whether
+they are checked in, and whether the phone's message reached them. **There are
+no halves to swap** (23 Sep, `STATE.md` 140): everyone in the game has the
+phone, so there is nothing to put anybody on either side of.
 
-21. On the His Phone screen, tap **Phone not working? Open it in your browser**.
+21. On the **Kai Chen's phone** screen, tap **Phone not working? Open it in
+    your browser**.
 
 **You should see** your phone's normal browser open with the escape-room phone
 in it. Go back and tap the same link a second time.
 
 **You should see** it refuse: the link works once, and dies after 90 seconds.
 
-22. On the GM screen: **+1 minute**, **Pause**, **Resume**, then **End**.
+22. On the GM screen: **Pause**, wait a minute on the clock, then **Resume**.
 
-**You should see** the timer respond to each. End asks "…their phone stays open
-until …" — and the phone **does** still open after End.
+**You should see** the timer stop and start again — and the status line's
+**phone open until** time move **one minute later**. That is the point: sorting
+something out in the room must never be the reason a group loses their phone
+(23 Sep, `STATE.md` 140). Then try **+1 min** and **−1 min**, and **End**.
+End asks "…their phone stays open until …" — and the phone **does** still
+open after End.
 
-23. Settings → Clock → slide the test time to **27 minutes after you pressed
-    Start** → Save. Tap **📱 Open the phone** again.
+23. Settings → Clock → slide the test time to **28 minutes after the booked
+    time** → Save. Tap **📱 Open Kai Chen's phone** again.
 
-**You should see** "Time's up". (25 minutes, plus the 1 minute you added.)
+**You should see** "Time's up". (25 minutes, plus the minute you paused, plus
+the minute you added, less the minute you took off.)
 
-24. Mark one hint cue **done**.
+24. On the GM screen, give a hint: tap **Give it** on the first one.
 
-**You should see** it turn green. (With no actor set up, the GM reads the line
-out; the cue is still recorded.)
+**You should see** it turn quiet and the button read **Given 8:05**. With an
+actor registered the line goes to their Telegram; with none, the GM screen says
+so and the game master reads it out. **Nothing goes amber on a timer** and
+nothing is "due" (23 Sep, `STATE.md` 140) — the game master watches the room
+and gives a hint when the room needs one.
+
+24b. Tap two of the **Changeover** boxes, then reload the console.
+
+**You should see** them still ticked. They survive a reload.
+
+24c. Console → **Settings** → **Escape room — the phone** → add your own
+     handle to the **Test group** and **Save changes** (23 Sep, `STATE.md` 141).
+
+**You should see** a toast naming who was just sent the phone, and the message
+arrives on your phone — at any time, with no game booked. Saving anything else
+on Settings sends nothing. **Send it now** beside the row sends it again. If
+somebody is not on the roster, or has never sent the bot `/start`, it says so
+rather than going quiet.
 
 25. **Settings → Clock → Real time → Save changes.**
 
@@ -338,7 +377,7 @@ out; the cue is still recorded.)
 
 ## A6. Settings, receipts, and the things with deadlines
 
-24. Console → **Audit** → **Exports & backups** → **Save receipt copies**.
+26. Console → **Audit** → **Exports & backups** → **Save receipt copies**.
 
 **You should see** "N saved". This takes a copy of every Paperform payment
 screenshot onto the laptop.
@@ -352,17 +391,17 @@ next deadline.
 
 **If any fail**, it names them. Open Paperform's own dashboard for those.
 
-25. Console → **People** → open anyone with a receipt.
+27. Console → **People** → open anyone with a receipt.
 
 **You should see** "Saved copy" rather than "Paperform receipt", and the
 screenshot opens from the laptop.
 
-26. Console → **Settings**. Fill in: **GM handle**, **actor handle**, **finder's
+28. Console → **Settings**. Fill in: **GM handle**, **actor handle**, **finder's
     name**, and the three stock counts if you are counting stock.
 
 **You should see** the amber "needs filling in" marks clear.
 
-27. Console → **Schedules**. Reload the page.
+29. Console → **Schedules**. Reload the page.
 
 **You should see** 21 games from 3:05 to 9:45 and 14 jam slots from 3:00, and you stay
 signed in through the reload.
@@ -372,7 +411,7 @@ signed in through the reload.
 This one is not about data. It is the only check the automated tests cannot
 make, because nothing in them runs a browser.
 
-28. On your phone, in Telegram, walk this exact path twice:
+30. On your phone, in Telegram, walk this exact path twice:
     **Home → The Last Guest → back → The Last Guest → back → Your pass →
     back → Home**. Watch the photographs, the QR and the buttons, not the
     screens.
@@ -389,7 +428,7 @@ second is the animation. If anything still goes blank, say which screen and
 whether it was the whole page or one part of it — those point at different
 causes.
 
-28b. **The Up next card growing into Your bookings** (21 Sep, `STATE.md`
+30b. **The Up next card growing into Your bookings** (21 Sep, `STATE.md`
      decision 121). With both rooms booked, on Home tap the dark **Up next**
      card.
 
@@ -417,7 +456,7 @@ slide instead. That is the planned fallback, not a fault.
 what you saw. It can be switched off with one line (`MORPH = false` at the
 top of the Mini App's script) and everything else keeps working.
 
-28c. **Every button goes somewhere sensible.** Tap each and check where it
+30c. **Every button goes somewhere sensible.** Tap each and check where it
      lands:
 
 | On | Tap | Lands on | Back goes to |
@@ -436,7 +475,7 @@ hold** buttons any more — Back does their job.
 
 ## A8. Tidy up
 
-29. Cancel your jam slot and your game booking. Void the pastry hand-over on
+31. Cancel your jam slot and your game booking. Void the pastry hand-over on
     your own person page so your pass is clean for the day.
 
 **You should see** all three gone, and the voids in the audit log with a reason.
@@ -474,22 +513,18 @@ with no Add or Remove buttons, and a **Leave this game** button.
 **You should see** a Telegram message telling you they left, and the group drop
 by one.
 
-5. **Check the halves on the GM screen now.**
+5. **Check the GM screen now.**
 
-**You should see** everyone who booked together **in the same half**, as long as
-another group is there to fill the other one. Friends are no longer split up.
+**You should see** the list under **In this game** one person shorter, with the
+person who left gone from it.
 
-**You should also see** both halves occupied — somebody in the flat and somebody
-at the desk. Each side finds things the other can't see, so a game with an
-empty side cannot be played.
+**There are no halves any more** (23 Sep, `STATE.md` 140). Everyone in the game
+gets Kai Chen's phone and the room is played as one group, so there is nothing
+to balance and nobody to swap. If you remember this screen showing an A and a B
+column, that is what went.
 
-**The one time a group is still split** is when they are the *only* group in
-that game. There is nobody else to put in the other half, and the game is
-played from both rooms, so they are divided as evenly as possible. That is
-correct, not a bug.
-
-**Say so if** two separate groups end up mixed together, or if one half is
-empty while two or more people are booked.
+**Say so if** the list still shows somebody who has left, or if the count above
+it disagrees with the number of names under it.
 
 ## B1b. The jamming studio, by instrument
 
@@ -526,7 +561,8 @@ instrument free again on the board.
 
 6. Book a game for six.
 
-**You should see** three in each half on the GM screen.
+**You should see** all six under **In this game** on the GM screen, with the
+count reading **6 booked**.
 
 7. Check everyone in at the booth, on the real scanner, one after another.
 
@@ -534,20 +570,27 @@ instrument free again on the board.
 
 ## B3. The game itself, two phones
 
-**Rewritten 22 Sep (`STATE.md` 130):** the phone goes to everyone in the game,
-only as a bot message. Before this part: `bot.py` running, and Settings → Who
-gets messages → **Everyone** (in testing mode only `@maxi_muslim` would get it).
+**Rewritten 22 Sep (`STATE.md` 130), again 23 Sep (`STATE.md` 140):** the phone
+goes to everyone in the game, only as a bot message, and it goes **at the
+booked time with nobody pressing anything**. Before this part: `bot.py`
+running, and Settings → Who gets messages → **Everyone** (in testing mode only
+`@maxi_muslim` would get it).
 
-8. GM: **Start**.
+8. GM: **nothing.** Watch the clock reach the booked minute.
 
-**Everyone in the game should get** a Telegram message, **📱 HIS PHONE IS
-UNLOCKED**, with a **📱 Open the phone** button, within a few seconds. The GM
-screen marks each name **Phone sent**; anyone marked **Can't reach** gets the
-desk handset.
+**Everyone in the game should get** a Telegram message, **📱 kai chen's phone
+is open**, with a **📱 Open Kai Chen's phone** button, within a few seconds of
+the booked time. The GM screen marks each name **Phone sent**; anyone marked
+**Can't reach — desk handset** gets the handset at the desk.
 
-9. Everyone taps **📱 Open the phone**, then Start.
+**There is no Start to press** (23 Sep). If anybody is waiting for one, that is
+the thing this change removed: forgetting it used to hold the room up with the
+clock reading zero.
 
-**They should all see** the phone open — both halves.
+9. Everyone taps **📱 Open Kai Chen's phone**, then Start.
+
+**They should all see** the phone open, and all four dock icons — Phone,
+Messages, Photos — fully on screen without the page scrolling.
 
 10. Have someone open The Yard **from the menu button** (not the message) and
     look for the phone anywhere: Home, The Last Guest, their ticket.
@@ -561,16 +604,21 @@ desk handset.
 90 seconds. *This is worth doing once — it is the one place where a link
 leaves the app and could leak.*
 
-12. With the actor signed in (they send `/actor <GM PIN>` to the bot), mark each
-    hint cue done as its time arrives.
+12. With the actor signed in (they send `/actor <GM PIN>` to the bot), tap
+    **Give it** on a hint when the room needs one.
 
-**The actor should see** each hint line arrive in their own Telegram.
+**The actor should see** that hint line arrive in their own Telegram, and the
+button read **Given 8:05**. Nothing is due and nothing goes amber on a timer
+(23 Sep) — the game master decides.
 
-13. GM: **+1 minute**, then **End** at the right moment.
+13. GM: **Pause** for a minute, **Resume**, **+1 min**, then **End** at the
+    right moment.
 
 **Everyone should see** the phone **stay open** after End — until 25 minutes
-(plus the extra minute) after Start, then "Time's up". To close it sooner, the
-GM taps **Lock phone**, and it locks at once.
+after the **booked time**, plus the minute paused and the minute added, then
+"Time's up". **The pause gives its own length back to the phone** (23 Sep):
+sorting something out in the room must never cost a group their phone. To close
+it sooner, the GM taps **Lock the phone**, and it locks at once.
 
 ## B4. The awkward ones
 
@@ -578,7 +626,7 @@ GM taps **Lock phone**, and it locks at once.
     game.
 
 **They should see** a Telegram message about the move, and the GM screen should
-show the halves re-assigned for the new game.
+show them under **In this game** on the new game and gone from the old one.
 
 15. **Block** a slot on the Schedules screen with a reason.
 

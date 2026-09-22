@@ -109,7 +109,7 @@ Space Mono and Inter are retired.
 
 - Sentence case, active voice, no apologies, no codes on screen.
 - **Names of things take title case** (22 Sep, decision 123): The Yard Pass,
-  Pastry, Photo Strip, Vinyl Making, The Last Guest, The Jamming Studio, Your
+  Pastry, Photo Strip, Vinyl Crafting, The Last Guest, The Jamming Studio, Your
   Bookings. Sentences and buttons stay sentence case ("Book 5:30 PM for 3",
   "That time has gone"). Item and instrument names come from `config.py`, so
   that is where their capitals are set.

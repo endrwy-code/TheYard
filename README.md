@@ -137,7 +137,7 @@ The wiring loop after that: build an endpoint → switch that call to live → t
 organiser tests it in Telegram → next endpoint.
 
 Two things the front-end deliberately does **not** do, and must never start
-doing: it makes no decision the server owns (capacity, eligibility, halves,
+doing: it makes no decision the server owns (capacity, eligibility,
 unlock time — it renders what the server says), and it uses device storage only
 for harmless preferences, never for access or claims.
 
@@ -240,7 +240,7 @@ entries for each change.
 - **The organiser's list of 22 Sep is the source of truth for what's included
   and what it costs** (`STATE.md` decision 132): the pass covers a pastry (Mini
   Tart, Brownie, Cookie or Shiopan — the booth records which), the first photo
-  strip and vinyl making; everything with a price is the `price_list` Setting,
+  strip and vinyl crafting; everything with a price is the `price_list` Setting,
   shown on Help. Escape games run 3:05–9:45 PM (decision 133).
 - **Hosting.** The code goes to a *private* GitHub repository and
   `DEPLOY.md` is the guide for moving it from the laptop + tunnel to a real

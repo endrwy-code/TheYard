@@ -29,7 +29,7 @@ After any major decision, update `STATE.md`, `README.md`, this file,
 | Cadence | A new group every 20 minutes |
 | First game | 5:30 PM |
 | Venue | @ Hub @ L5 Hafary |
-| Included in entry | *Since 22 Sep (`STATE.md` 132): a pastry — Mini Tart, Mini Brownie, Mini Cookie or Shiopan, the kind recorded — the first photo strip, and vinyl making (once each, tracked), plus the escape room, the jamming studio and board games. Everything else has a price: the `price_list` Setting, shown on Help. The canned drink left the pass 19 Sep* |
+| Included in entry | *Since 22 Sep (`STATE.md` 132): a pastry — Mini Tart, Mini Brownie, Mini Cookie or Shiopan, the kind recorded — the first photo strip, and vinyl crafting (once each, tracked; **Vinyl Crafting** since 23 Sep, `STATE.md` 142), plus the escape room, the jamming studio and board games. Everything else has a price: the `price_list` Setting, shown on Help. The canned drink left the pass 19 Sep* |
 | Last game | 9:30 PM. *Since 22 Sep, decision 133: games 3:05–9:45 PM, 21 games, 252 seats, so the last one ends with the doors at 10 PM. It was 3:30–9:30 (19 games, 228 seats), and 5:30 PM (13 games, 156 seats) before that* |
 | Capacity | **12 players**, 6 per half |
 | Phone unlock mode | `gm_start` |
@@ -62,7 +62,7 @@ does not block on them.
 The Yard is a one-day event. People sign up on Paperform and upload a payment
 screenshot. The entrance fee includes one cookie or pastry and one canned
 drink. *(Since 22 Sep, `STATE.md` 132: a pastry of four kinds, the first
-photo strip and vinyl making; no canned drink.)*
+photo strip and vinyl crafting; no canned drink.)*
 
 Attendees open a Telegram bot whose Mini App has three areas:
 
@@ -276,6 +276,11 @@ receipts        id, attendee_id, purpose (entrance|jam), jam_booking_id NULL, fi
 game_sessions   id, slot_id UNIQUE, started_at, halves_locked_at, paused_seconds, extended_seconds,
                 ended_at, phone_unlocked_at, phone_locked_at, in_app_phone (on|off),
                 result (escaped|timed_out), finish_seconds, gm_name
+                -- 23 Sep (STATE.md 140): halves_locked_at and in_app_phone are
+                -- dead columns. Nothing reads or writes them. They stay because
+                -- dropping a column from a live SQLite the night before an
+                -- event buys nothing. escape_bookings.zone and .zone_changed_by
+                -- are dead for the same reason.
 
 hint_sends      id, session_id, hint_key, sent_at, sent_by
 
@@ -406,8 +411,25 @@ letters, some names have trailing spaces, 3 rows have no receipt link.
     (the GM's Start in `gm_start` mode, the booked time in `clock` mode), whose
     "📱 Open the phone" button opens the Mini App at `?go=phone`. Nothing in
     the Mini App links there; the server's check above is still the lock.*
-22. **Halves lock when the game starts.** After that only the GM can swap
-    someone, and every swap is logged.
+    *Changed 23 Sep (`STATE.md` decision 140): **the booked time is the whole
+    rule.** There is no `gm_start` mode and no `clock` mode, because there is
+    no Start — a game begins at its booked minute. **The check-in condition
+    is removed** too: somebody who walked past the front desk still gets their
+    phone. The relock time is `phone_minutes` after the **booked time**, plus
+    whatever has been paused or added, so a pause never costs a group the
+    phone. `PHONE_OFF` no longer means an admin switched the phone off — the
+    `in_app_phone` setting is gone — and now means one thing, a fault: the
+    phone's file is not on this laptop. What is left: `NOT_YET`, `NO_BOOKING`,
+    `RELOCKED`, `PHONE_LOCKED` (the GM's hand, never anything automatic) and
+    `PHONE_OFF`. The button reads "📱 Open Kai Chen's phone" (`STATE.md`
+    142).*
+22. ~~**Halves lock when the game starts.** After that only the GM can swap
+    someone, and every swap is logged.~~ *Withdrawn 23 Sep (`STATE.md`
+    decision 140): **there are no halves.** Since 22 Sep everyone in the game
+    had the phone, which left the split deciding only where two groups stood,
+    and the app never enforced that. `_assign_halves`, `_zone`, `game.halves`,
+    the `/halves` route and the A/B columns on four screens are gone. The GM
+    card lists who is in this game instead.*
 23. **One-time links** for the full-page fallback work once, expire after about
     a minute, and are only issued when rule 21 passes. *Built 18 Sep:
     `POST /api/escape/phone/link` issues one; `GET /p/{token}` spends it. 90
@@ -596,9 +618,10 @@ The UI maps error codes to copy.
 | POST /admin/api/checkins | Event, escape or jam check-in |
 | GET /admin/api/slots, POST /admin/api/slots/{id}/block, POST /admin/api/escape/move | Schedules |
 | GET /admin/api/gm/state | GM console state (gm and admin only) |
-| POST /admin/api/gm/{slot_id}/halves | Re-balance, or swap one player's half |
-| POST /admin/api/gm/{slot_id}/{action} | start, pause, extend, end, unlock, lock, phone-on, phone-off |
-| POST /admin/api/gm/hints/{key}/send | Send a hint line to the actor |
+| ~~POST /admin/api/gm/{slot_id}/halves~~ | *Gone 23 Sep — there are no halves* |
+| POST /admin/api/gm/{slot_id}/{action} | pause, resume, shorten, extend, end, lock, unlock *(23 Sep: no start, no phone-on/phone-off)* |
+| POST /admin/api/gm/{slot_id}/hints/{key} | Give a hint — sends the line to the actor *(23 Sep: was `…/cues/{key}`)* |
+| POST /admin/api/gm/phone-test | Send Kai Chen's phone to the Test group *(23 Sep, `STATE.md` 141)* |
 | POST /admin/api/roster/preview, POST /admin/api/roster/commit/{run_id} | Import |
 | GET /admin/api/gate-attempts, POST /admin/api/gate-attempts/{id}/resolve | Front desk |
 | GET, PUT /admin/api/settings | Settings |
@@ -750,9 +773,10 @@ and in `STATE.md` §5.
 - **Bookings:** `SLOT_FULL`, `SLOT_CLOSED`, `SLOT_STARTED`, `SLOT_BLOCKED`,
   `ALREADY_BOOKED`, `TIME_CONFLICT`, `LIMIT_REACHED`, `NO_BOOKING`,
   `FRIEND_NOT_ELIGIBLE`, `FRIEND_ALREADY_BOOKED`
-- **Phone:** `PHONE_LOCKED`, `PHONE_OFF`, `PHONE_NOT_YOUR_HALF` (not returned
-  since 22 Sep — everyone in the game has the phone),
-  `NOT_CHECKED_IN`, `HALVES_LOCKED`, `LINK_USED`
+- **Phone:** `PHONE_LOCKED`, `PHONE_OFF`, `NOT_YET`, `NO_BOOKING`,
+  `RELOCKED`, `LINK_USED`. *`PHONE_NOT_YOUR_HALF` has not been returned since
+  22 Sep, and `HALVES_LOCKED` and `NOT_CHECKED_IN` since 23 Sep — there are
+  no halves, and check-in no longer gates the phone (`STATE.md` 140).*
 - **Claims:** `PAYMENT_NOT_VERIFIED`, `ALREADY_CLAIMED`, `OUT_OF_STOCK`,
   `UNKNOWN_CODE`, `NOT_A_YARD_CODE`
 - **Payments:** `DUPLICATE_TXN_REF` (receipt uploads were removed 18 Sep)
@@ -779,7 +803,7 @@ change both.
 - One data layer at the top of each file with `MODE = 'mock' | 'live'`. Mock
   responses follow §12 exactly — same shapes, same error codes. Live mode calls
   the real endpoints with the headers from §3 and §5.
-- The UI never makes decisions the server owns (capacity, eligibility, halves,
+- The UI never makes decisions the server owns (capacity, eligibility,
   unlock time). It renders what the server says.
 - Device storage is used only for harmless preferences, never for access or claims.
 
@@ -828,10 +852,11 @@ Live status for each item is tracked in `STATE.md` §2.
    signed off 17 Sep**
 3. Admin search and the person page, with receipts and payment status —
    **built 17 Sep, tested by the organiser (Phase 13b)**
-4. Escape-room booking with capacity and halves — **built 17 Sep, with
-   group booking; not yet tested on real phones**
-5. Phone lock and unlock, with the half rule — **built 18 Sep**, including
-   the one-time full-page links of rule 23
+4. Escape-room booking with capacity ~~and halves~~ — **built 17 Sep, with
+   group booking; the halves went 23 Sep**
+5. Phone lock and unlock ~~, with the half rule~~ — **built 18 Sep**, including
+   the one-time full-page links of rule 23; **23 Sep: the booked time is the
+   whole rule, and the only lock left is the GM's**
 6. Jam booking — free, confirmed at once (payments dropped 18 Sep) — **built**
 7. The audit log — **built**
 8. Backups — **built**, automatic inside `app.py`
@@ -879,15 +904,17 @@ Run before the event. The test clock is on for testing only.
 4. Two phones hand over the same photo strip at the same moment. Exactly one
    succeeds; the other shows "already collected" with the first one's time.
 5. **Escape booking:** the 13th person can't book a 12-seat game; a group
-   booking with one ineligible friend books nobody; twelve bookings split into
-   halves of six.
+   booking with one ineligible friend books nobody; twelve bookings fill a
+   game. *(23 Sep: they no longer split into halves of six — there are no
+   halves.)*
 6. Games start at 3:05, 3:25, 3:45 PM and so on to 9:45 PM (since 22 Sep,
    `STATE.md` 133), each with a 15:00 timer, and the hint times match Settings.
 7. **`/api/escape/phone`, called directly:** refuses before the game; works for a
    checked-in desk-half player during the game; refuses a flat-half player during
    the game; refuses after the relock time; refuses everyone when the GM switches
-   the in-app phone off. *Since 22 Sep: works for **every** checked-in player in
-   the game, either half; refuses anyone not in it; open until 25 minutes after
+   the in-app phone off. *Since 23 Sep: works for **everyone booked** in the
+   game, checked in or not; refuses anyone not in it; the GM's Lock is the only
+   lock. Since 22 Sep: open until 25 minutes after
    the start, even after End; and the GM's Start sends each player one "Open the
    phone" message.*
 8. **Jam and receipts.** *Rewritten 18 Sep: jam holds and payments are gone —
@@ -923,7 +950,7 @@ Run before the event. The test clock is on for testing only.
 | `test_escape_capacity.py` | §17.5 — concurrent bookings against a 12-seat game never exceed capacity; all-or-nothing friend groups; **and §17.8, the jam room as a group booking** |
 | `test_phone_and_gm.py` | §17.7 — all five refusal paths of §9 r21; the GM console; §9 r16 and r22 |
 | `test_phone_links.py` | §9 r23 — one-time link single use, expiry, re-check on spend; the phone's pictures |
-| `test_invariants.py` | Halves after a removal and the grouping rule; over-full games after a seat change; retired item keys; the jam room's knock-on messages |
+| `test_invariants.py` | The grouping rule after a removal *(the halves went 23 Sep)*; over-full games after a seat change; retired item keys; the jam room's knock-on messages |
 | `test_receipts.py` | §9 r29–r30 — sha256 exact match, dhash threshold on a re-saved copy, `DUPLICATE_TXN_REF`, non-image rejection, metadata stripping |
 | `test_roster_import.py` | §17.9 — idempotent re-import, float Paperform IDs, `@Name ` normalisation, blank-row skipping, inactive-on-missing |
 | `test_admin_screens.py` | §17.10 and §17.11 — every console screen, settings validation, the audit log, exports in Paperform's layout |

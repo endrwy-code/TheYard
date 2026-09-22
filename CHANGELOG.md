@@ -1638,3 +1638,42 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Next step:** the organiser scans a pass on the counter phone and checks
   that the verdict and the hand-over buttons are on screen without scrolling,
   and that **Scan the next pass** sits above the gesture bar.
+
+## 2026-09-23 — The written record catches up with the room
+
+- **Changed:** seven commits went in today and none reached the documents.
+  `TESTPLAN.md` was the urgent one — the organiser works through it by hand,
+  the event is tomorrow, and it still told them to press a **Start** that no
+  longer exists, to swap somebody's **half**, and to look for "The Hub @" and
+  "Vinyl Making".
+- **`STATE.md`:** decisions **139–145** with their reasons, and a §8 status
+  block for 23 Sep.
+- **`BUILD_SPEC.md`**, following its own convention of a dated note appended
+  to a rule rather than a rewrite: **rule 21** gains the 23 Sep change (the
+  booked time is the whole rule; no check-in condition; `PHONE_OFF` is a fault
+  and not a switch); **rule 22** (halves lock at Start) is struck through as
+  withdrawn; the endpoint table drops `/halves`, renames `…/cues/{key}` to
+  `…/hints/{key}` and adds `/gm/phone-test`; the error list is the five codes
+  that are actually returned; and `halves_locked_at` and `in_app_phone` are
+  marked dead in the schema.
+- **`TESTPLAN.md`:** §A5 rewritten around a game that starts itself — step 17
+  is now *"then wait — do not look for a Start button"* — with new steps for
+  the Test group (24c) and for the changeover ticks surviving a reload (24b).
+  Part B's halves check becomes a group check, and §A6's numbering, which
+  restarted at 24 and collided with §A5, is fixed through to 31.
+- **`RUNBOOK.md`:** the troubleshooting table no longer answers *"the phone
+  says Locked"* with *"press Start"*. It now separates **Not yet** (wait for
+  the booked minute) from **Locked** (a game master did that; Unlock), and
+  says that Pause holds the phone open.
+- **`ESCAPE_ROOM_FLOW.md`** keeps the **physical** two-space split, which is
+  real and still how the room is played. What went is the app's part in it:
+  the game master splits the group at the door themselves, because the console
+  no longer assigns anybody to a side. The hint table's clock column stays as
+  a guide to when a room usually needs each hint, not as something the console
+  enforces.
+- **Also** `README.md`, `DESIGN.md`, `HOW_IT_WORKS.md` — vinyl crafting, and
+  halves out of the list of decisions the server owns.
+- **Current state:** 539 tests pass; 18 console states render; both pages pass
+  `node scripts/check_pages.mjs`.
+- **Next step:** the organiser runs `TESTPLAN.md` Part A end to end. §A5 is
+  the part that changed most and is worth reading before starting.

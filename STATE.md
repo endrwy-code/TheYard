@@ -1336,6 +1336,141 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        **Verified** brings the whole workflow back. The screenshot itself is
        untouched: same place, same admin-only rule (§9 r31).
 
+### 23 Sep — the escape room runs itself, the victim has a name, one thing at a time
+
+139. **The victim's phone is a home screen, not a scrolling page.** The dock
+     — Phone, Messages, Photos — was the last thing in one scrolling flex
+     column, so on any viewport shorter than that column it went under the
+     fold. Inside Telegram's in-app browser that is every phone, and the dock
+     is where the game starts. It is built the way a home screen is now: a
+     scrolling middle with the widgets and the app grid, and a footer that
+     does not scroll with the Search pill and the dock. The two widgets take
+     `min(132px, 17vh)`, so a short screen gives their height to the apps.
+     - **The file is a generated bundle**, JavaScript gzipped to one base64
+       line. The markup is ordinary HTML inside a JSON string in
+       `<script type="__bundler/template">`. `scripts/phone_template.py`
+       decodes it, hands the markup over and encodes it back, and **refuses
+       to proceed unless re-encoding the untouched string reproduces the file
+       byte for byte** — the bundler writes the closing script tag escaped,
+       so a plain search-and-replace would destroy it.
+     - `fitPhoneFrame()` takes the **smaller** of Telegram's
+       `viewportStableHeight` and `window.visualViewport.height`. Telegram's
+       is the only figure that knows its own chrome; `visualViewport` is the
+       only one that exists outside Telegram and the only one that shrinks
+       for a keyboard.
+
+140. **The escape room runs itself: no Start, no switch, no split.** Three
+     mechanisms had each been overtaken, and each was propping up the others,
+     so they went together.
+     - **`in_app_phone` is gone.** It was an admin switch that answered a
+       player, at their booked minute, with *"This game uses the handset at
+       the desk"* — and the desk could do nothing about it. That is the
+       refusal the organiser hit in rehearsal. `PHONE_OFF` now means one
+       thing, and it is a fault: the phone's file is not on this laptop.
+     - **Start is gone.** `game.timing()` takes the booked time as the start.
+       Pause, ±1 min and End stamp it into `game_sessions.started_at` on
+       first use, so a touched row still says what it always said. Forgetting
+       Start used to hold a room up with the clock reading zero.
+     - **The split is gone.** Since decision 130 everyone in the game gets the
+       phone, which left the halves deciding only where two groups stood —
+       and the app never enforced that. `_assign_halves`, `_zone`,
+       `game.halves`, the `/halves` route and the A/B columns on four screens
+       went. The GM card lists **who is in this game** instead: number, name,
+       handle, checked in, and whether the phone's message reached them.
+     - **Pausing holds the phone open.** `relock_at` is the booked time plus
+       `phone_minutes` **plus whatever has been paused or added**. Sorting
+       something out in the room must never be why a group loses the phone.
+     - **The lock stays**, manual and off by default, moved out of the main
+       button row into a quiet row with End, both behind a confirm.
+     - **The script became a hint list.** `private/gm/script.json` holds
+       `hints` with no times against them; nothing goes amber on a timer,
+       because the game master watches the room. `game.send_cue` is
+       `game.give_hint`; the cues route is now `…/hints/<key>`.
+     - **One vocabulary:** `upcoming · in_progress · finished · blocked`,
+       printed the same by the picker, the card and the timetable. `missed`
+       is gone — with no Start, nothing can be missed. This is the "ended"
+       the organiser saw on a game that was happening.
+     - **Left on purpose:** `escape_bookings.zone`, `.zone_changed_by`,
+       `game_sessions.halves_locked_at` and `.in_app_phone` stay in `db.py`,
+       read and written by nothing. Dropping a column from a live SQLite the
+       night before an event buys nothing.
+
+141. **Adding a tester hands them the phone.** The Test group let named
+     accounts open the phone at any time, but adding somebody sent them
+     nothing — and the bot's message is the only way in, so a tester was left
+     waiting for something that was never coming. Saving that row now messages
+     **the handles just added**, and the toast says who got it; saving
+     anything else on Settings sends nothing, so an unrelated edit never spams
+     the group. A **Send it now** button sends again without an edit. It names
+     what went wrong, too: anybody not on the roster, and anybody who has
+     never sent the bot `/start`, because Telegram will not let the bot message
+     them until they do. `game.send_phone_to_testers()` is the one copy of the
+     logic; `manage.py phone-test` calls it. **No dedupe key on purpose** —
+     `utcnow()` has only seconds in it, and running it twice in a row is
+     exactly what testing looks like.
+
+142. **The victim has a name: Kai Chen.** "His phone" and "The phone" read as
+     a placeholder rather than a story. It is **Kai Chen's phone** on the
+     escape screen, the ticket, the phone's own screen, Help, the bot's
+     messages and the button Telegram draws; `ESCAPE_ROOM_FLOW.md` had the
+     name all along. **Nothing about the phone until it is theirs**: the
+     premise no longer mentions a phone arriving, and the ticket's phone row
+     says *At 7:40 PM* until it is genuinely open, then *Open now*. Also
+     **Up next**'s button is **Manage**, not "Open it"; **Vinyl Making** is
+     **Vinyl Crafting** in `config.ITEMS`, so the pass, Home, Help, the booth
+     and the stock row all follow; and the Start screen reads **Hafary
+     Gallery L5** with no "The Hub @" and no **Pre-U event** chip.
+     - **New:** `python manage.py reset-settings <name>…` puts named rows
+       back to the `config.py` defaults, showing before and after and asking
+       for YES. It is needed because `config.py` is only the *starting* text:
+       a row **nobody has edited** follows the default when it changes
+       (`db.seed_settings`), but one somebody has typed into never does — and
+       retyping a price list into a text box on the night is not a reasonable
+       thing to ask.
+
+143. **Prices is a screen of its own, and the gelato has its name.** Taken
+     from the organiser's list; **MUTED. Gelato** is the stall, so the ice
+     cream and waffle is under its own name rather than a generic one.
+
+144. **The floorplan pinches, and only pinches.** `static/floorplan.png` is
+     the organiser's new plan (DIY down the left, the jamming room and two
+     chill rooms, the photo booth, and Two Goose, Paninis, Pastries and
+     MUTED. Gelato along the top) — same 2000×1414 shape, so the clamping is
+     unchanged and `floorplan_url()` still cache-busts on the file's modified
+     time. **Double-tap-to-zoom is gone**: it was a second way to do what
+     pinch already does, and on a phone it fires by accident — two quick taps
+     while you work out where you are, and the plan jumps to 2.6× somewhere
+     you were not looking. The hint reads **Pinch to zoom**. The way to the
+     escape room is a note under the plan, and the escape ticket carries a
+     **Where is it?** button to it, which is the moment anybody wants it.
+
+145. **The booth counter shows one thing at a time.** The screen stacked the
+     viewfinder, the code box, the verdict, the person and the hand-over
+     buttons into one scroll, and the viewfinder is a 4:3 block — so on a
+     counter phone the thing somebody had just scanned a pass to find out was
+     below the fold. Two states on one `.booth-body` class: **scanning**, the
+     viewfinder fills the phone; **a result**, the camera is already off, so
+     it shrinks to a 52px strip and everything else gets the room.
+     - **What is still to collect comes first and big.** What has gone sits
+       under a rule at the bottom, quiet. It used to be a red `.blocked-item`
+       per item, the same size as the buttons and mixed in with them, so a
+       pass with two items collected read as two errors and pushed the one
+       live button to third place. A pass with nothing left says
+       *"Everything on this pass has been collected."*
+     - **Scan next is always under a thumb**: `position:sticky; bottom:0`
+       with `padding-bottom:max(2px, env(safe-area-inset-bottom, 0px))`, so
+       it clears Android's gesture bar however long the list runs.
+     - **The scanning mechanism is untouched.** `startCamera`, `stopCamera`,
+       `scanLocked`, `camStarting` and the jsQR loop are byte-for-byte what
+       they were, and both states keep every id the camera code reaches for.
+       The 17 Sep one-read-per-scan fix stands.
+     - **New `scripts/render_console.mjs`**, the console's answer to
+       `scripts/render_views.mjs`: 18 booth and GM states rendered in Node,
+       each asserting what it must and must not contain. It caught the GM
+       card reading *"0 of 6 have it"* before the booked time — a count of
+       something that has not happened, which reads as a fault when it is the
+       design. The count appears only once something has been sent.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1517,6 +1652,30 @@ These block nothing, but they need answers before the day.
 ---
 
 ## 8. Next step — `TESTPLAN.md` Part A, and the 22 Sep receipt deadline
+
+### BUILT 23 Sep: the escape room runs itself; the booth shows one thing at a time (decisions 139–145)
+
+Seven changes, all committed and none yet on a phone. The escape room has no
+Start, no `in_app_phone` switch and no split: a game begins at its booked
+minute and **Kai Chen's phone** opens then, for everyone in it, and a pause
+holds it open for as long as the pause. The GM console lists who is in the
+game and whether the bot's message reached them, gives hints with no timer
+against them, and prints one vocabulary — `upcoming · in_progress ·
+finished · blocked` — in the picker, the card and the timetable. Adding
+somebody to the Test group now sends them the phone. The booth counter is two
+states instead of one scroll, with the scanning mechanism byte-for-byte
+unchanged. The floorplan is the organiser's new plan and pinches only.
+
+**539 tests pass** (7 that were failing on `main`, describing behaviour
+replaced on 22–24 Sep and never re-asserted, are fixed rather than left).
+`node --check` passes on both page scripts; `scripts/render_views.mjs` and the
+new `scripts/render_console.mjs` render every screen state with no failures.
+
+**Next:** the organiser rehearses one game on test time — the phone opens at
+the booked minute with nothing pressed, the picker says **In progress**, a
+pause holds the phone open — then scans a pass on the counter phone and
+checks the verdict and the hand-over buttons are on screen without scrolling,
+with **Scan the next pass** above the gesture bar.
 
 ### LIVE 22 Sep, 19:04: no payment checking; the receipts are being saved (decision 138)
 

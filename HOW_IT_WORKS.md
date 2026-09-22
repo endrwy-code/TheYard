@@ -34,7 +34,7 @@ badly.
         v
   4. THE SERVICES        services\*.py
         |                Where every rule actually lives: who may book,
-        |                once-only, halves, the phone, payments.
+        |                once-only, the phone, payments.
         v
   5. THE DATABASE        data\app.db  (SQLite, one file)
                          The last word. Refuses anything that would break

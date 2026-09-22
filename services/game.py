@@ -215,7 +215,7 @@ def phone_access(conn, attendee_id, now):
             return dict(out, code=None, always=True)
         return dict(out, code=code)
     # Everyone in the game has the phone (22 Sep), and the booked time is the
-    # whole rule (24 Sep): no half to be on, nothing to check in for.
+    # whole rule (23 Sep): no half to be on, nothing to check in for.
     return dict(out, code=None)
 
 

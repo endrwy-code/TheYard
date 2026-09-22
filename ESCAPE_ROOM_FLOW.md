@@ -127,9 +127,12 @@ Subtract 15 and the picture flips.
 
 **Rule:** anything with a timestamp is on the phone; anything with a signature
 is paper. Since 22 Sep (`STATE.md` decision 130) **every player gets the
-phone**, so the phone no longer separates the two halves. The paper does that now.
+phone**, so the phone no longer separates the two halves. The paper does that
+now — and since 23 Sep (`STATE.md` 140) **so does the game master**. The
+console no longer assigns anybody to a side; the room is still played from
+two spaces, but who stands where is decided at the door, by a person.
 
-### The phone: every player gets it on Telegram at Start, open for 25 minutes
+### The phone: every player gets it on Telegram at the booked time, open for 25 minutes
 
 | Where | What's there | What it gives |
 |---|---|---|
@@ -176,16 +179,19 @@ minute matters. Both have the phone. The warrant needs both halves.
 
 ## 6. Minute by minute (15:00)
 
-The GM console counts cue times from Start. In Settings, `hint_1` 4:30, `hint_2`
-6:45, `forced_merge` 7:30 and `hint_3` 10:30 are the deck's 20-minute timings
-× 0.75, so they stay as they are.
+*Changed 23 Sep (`STATE.md` 140): the console no longer counts cue times from
+anything, and `hint_1`, `hint_2`, `hint_3` and `forced_merge` have left
+Settings. The hints are a list with one **Give it** button each and no times
+against them — the game master watches the room. The clock column below is
+the deck's shape, kept as a guide to when a room usually needs each one, not
+as something the console enforces.*
 
 | Clock | What happens | GM / actor |
 |---|---|---|
-| Changeover (5 min) | Reset (§9). GM checks the next group in, splits them at the door by the console's halves, walks the flat half into Zone A, seats the desk half, gives the three rules | The phone only reaches checked-in players |
-| **0:00** | Lights down, background music, smoke. **GM presses Start** and the phone goes to every player's Telegram. The door bursts open: the finder | Actor's opening (§7) |
+| Changeover (5 min) | Reset (§9). GM checks the next group in, splits them at the door themselves, walks one half into Zone A, seats the other at the desk, gives the three rules | Since 23 Sep the phone reaches **everyone booked**, checked in or not |
+| **0:00** | Lights down, background music, smoke. The game **starts itself** at the booked minute and the phone goes to every player's Telegram — there is no Start to press (23 Sep). The door bursts open: the finder | Actor's opening (§7) |
 | 0:45–7:30 | **Split.** Flat: plates, receipt, EpiPen case, allergy card, will, notebook. Desk: statements, board, stills | |
-| 4:30 | Hint 1: the Jasmine plant | GM taps Send |
+| 4:30 | Hint 1: the Jasmine plant | GM taps **Give it** when the room needs it |
 | 6:45 | Hint 2: the clock | Send, or skip if they already have it |
 | 7:30 | **Forced merge** at the desk | GM taps Merge; the actor says the line |
 | 7:30–10:30 | Window + corrected times: only Natalie, at 10:12 | |
@@ -265,7 +271,8 @@ Print this table small as **the finder's answer card**.
 6. Desk handset: hold the top strip of the screen (where the time is) for 3
    seconds and the phone returns to its home screen. Check it's charging.
 7. Kai Chen in place. Lights, music and smoke back to the start.
-8. Console: next game, check-in, halves.
+8. Console: next game, check-in. (No halves to set since 23 Sep — split them
+   at the door yourself.)
 
 ---
 
