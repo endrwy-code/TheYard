@@ -591,12 +591,27 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
 .plan-notes{ margin-top:4px }
 
 /* ---- the phone ------------------------------------------------------- */
+/* How much of the top and bottom of the screen belongs to the device rather
+   than to us. iOS reports it through env(); plenty of Android builds report
+   nothing at all and still lay a status bar over the top inch and a gesture
+   bar over the bottom one, which is where the phone's own status bar and dock
+   sit. So take the largest of what the browser says, what Telegram says, and
+   a floor big enough to clear a gesture bar on its own. max() never adds them
+   up, so a notched iPhone still gets exactly its own inset. */
+:root{
+  --phone-top:max(18px, env(safe-area-inset-top, 0px), var(--tgsafetop, 0px));
+  --phone-bottom:max(24px, env(safe-area-inset-bottom, 0px), var(--tgsafebottom, 0px));
+}
 #phoneframe{
   position:fixed; left:0; top:0; right:0; bottom:auto;
   width:100%;
   height:100vh;                     /* oldest browsers */
   height:100dvh;                    /* the visible viewport, not the layout one */
   height:var(--tgvh, 100dvh);       /* Telegram's own stable height, when it gives one */
+  /* Then inset it. An engine without max() or calc() skips these two and
+     keeps the full-height version above, which is the old behaviour. */
+  top:var(--phone-top);
+  height:calc(var(--tgvh, 100dvh) - var(--phone-top) - var(--phone-bottom));
   border:0; background:#000; z-index:60; display:none;
 }
 body.phoneopen #phoneframe{ display:block }
@@ -1534,6 +1549,12 @@ function phoneCard(){
     case 'RELOCKED':
       return { title:'Time’s up', body:'The phone has locked again. Your time is with the game master.', openable:false, count:'' };
     default: {
+      // Somebody from Settings -> Phone always open for has no booking and so
+      // no time it locks at. "NaN min left" is worse than saying nothing.
+      if (p.always && !p.lock_at){
+        return { title:'Unlocked', body:'Testing access. It stays open for you, with or without a game.',
+                 openable:true, count:'' };
+      }
       const left = Math.max(0, minsUntil(p.lock_at));
       return { title:'Unlocked', body:'Messages, calls and photos. Everything you need is on it.',
                openable:true, count:left + ' min left' };
@@ -2726,8 +2747,18 @@ try {
    height that is actually visible; feed it to the frame and re-feed it every
    time the keyboard or the chrome moves. */
 function fitPhoneFrame(){
-  const h = tg && tg.viewportStableHeight;
-  if (h > 0) document.documentElement.style.setProperty('--tgvh', h + 'px');
+  if (!tg) return;
+  const root = document.documentElement;
+  const h = tg.viewportStableHeight;
+  if (h > 0) root.style.setProperty('--tgvh', h + 'px');
+  // Telegram knows about the cut-outs and bars its own window is sitting
+  // under, on devices where the browser will not say. Newer clients only;
+  // older ones fall through to env() and the floor.
+  const safe = tg.contentSafeAreaInset || tg.safeAreaInset;
+  if (safe){
+    if (safe.top >= 0) root.style.setProperty('--tgsafetop', safe.top + 'px');
+    if (safe.bottom >= 0) root.style.setProperty('--tgsafebottom', safe.bottom + 'px');
+  }
 }
 
 if (tg){
@@ -2735,7 +2766,11 @@ if (tg){
   tg.expand();
   tg.BackButton.onClick(back);
   fitPhoneFrame();
-  tg.onEvent && tg.onEvent('viewportChanged', fitPhoneFrame);
+  if (tg.onEvent){
+    tg.onEvent('viewportChanged', fitPhoneFrame);
+    tg.onEvent('safeAreaChanged', fitPhoneFrame);
+    tg.onEvent('contentSafeAreaChanged', fitPhoneFrame);
+  }
   if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
   // Telegram's own bars start on paper; render() switches them per screen.
   setChrome(false);

@@ -2029,33 +2029,39 @@ const SETTINGS_SCHEMA = [
     { key:'help_handle', label:'Help contact', type:'text', mono:true,
       help:'Shown on the attendee help screen and by /help.' }
   ]},
-  { group:'Escape room', fields:[
+  { group:'Escape room \u2014 the games', fields:[
     { key:'capacity', label:'Players a game', type:'number', min:6, max:16 },
     { key:'game_minutes', label:'Game length (minutes)', type:'number', min:5, max:30 },
-    { key:'changeover_minutes', label:'Changeover (minutes)', type:'number', min:0, max:20 },
+    { key:'changeover_minutes', label:'Changeover (minutes)', type:'number', min:0, max:20,
+      help:'Added to the game length to space the games out. 15 + 5 puts a game on every 20 minutes.' },
     { key:'first_game', label:'First game', type:'time' },
     { key:'last_game', label:'Last game', type:'time' },
     { key:'escape_meet', label:'Where players gather', type:'text',
       help:'On the ticket and in the bot\'s messages, e.g. "the escape room entrance".' },
-    { key:'phone_always_handles', label:'Phone always open for', type:'text', mono:true,
-      help:'Telegram usernames that can open the victim\'s phone at any time, with or without a booking \u2014 for testing the room. Comma separated, no @. Leave empty on the night: it hands out the whole solution.' },
-    { key:'in_app_phone', label:'Phone in the app', type:'seg',
-      options:[[true,'On','go'],[false,'Off — desk handset only']],
-      help:'The GM can still switch it off for one game from the GM console.' },
-    { key:'phone_minutes', label:'Phone stays open', type:'number', min:5, max:60, unit:'minutes from the start',
-      help:'Longer than the game, so time running out doesn\'t cut anyone off. Lock phone on the GM screen closes it sooner.' },
-    { key:'hint_1', label:'Hint line 1 at', type:'text', mono:true, help:'Minutes:seconds into the game.' },
-    { key:'hint_2', label:'Hint line 2 at', type:'text', mono:true },
-    { key:'hint_3', label:'Hint line 3 at', type:'text', mono:true },
-    { key:'forced_merge', label:'Forced merge at', type:'text', mono:true,
-      help:'Both halves work in the same room from here.' },
     { key:'booking_cutoff_minutes', label:'Booking closes (minutes before)', type:'number', min:0, max:60 },
     { key:'cancel_cutoff_minutes', label:'Cancelling closes (minutes before)', type:'number', min:0, max:180 },
     { key:'max_party', label:'Biggest group one person can book', type:'number', min:1, max:12,
-      help:'Including the person booking.' },
+      help:'Including the person booking.' }
+  ]},
+  { group:'Escape room \u2014 the phone', fields:[
+    { key:'phone_minutes', label:'Phone stays open', type:'number', min:5, max:60, unit:'minutes from the booked time',
+      help:'It opens by itself at the booked time \u2014 nobody presses anything \u2014 and closes this many minutes later. Longer than the game, so time running out does not cut anyone off.' },
+    { key:'phone_always_handles', label:'Test group', type:'text', mono:true,
+      help:'Telegram usernames that can open the victim\'s phone at any time, with or without a booking. Comma separated, no @. Send them the phone with:  python manage.py phone-test . Leave this empty on the night \u2014 it hands out the whole solution.' },
+    { key:'in_app_phone', label:'Phone in the app', type:'seg',
+      options:[[true,'On','go'],[false,'Off \u2014 desk handset only']],
+      help:'Off means nobody gets it in the app at all. The GM can also lock it for one game from the GM console.' }
+  ]},
+  { group:'Escape room \u2014 the script', fields:[
+    { key:'hint_1', label:'Hint 1 \u2014 the clock', type:'text', mono:true, help:'Minutes:seconds into the game.' },
+    { key:'hint_2', label:'Hint 2 \u2014 the window', type:'text', mono:true },
+    { key:'hint_3', label:'Hint 3 \u2014 opportunity', type:'text', mono:true },
+    { key:'forced_merge', label:'Forced merge at', type:'text', mono:true,
+      help:'Both halves work in the same room from here.' },
     { key:'gm_handle', label:'Game master', type:'text', mono:true },
     { key:'actor_handle', label:'Actor', type:'text', mono:true },
-    { key:'finder_name', label:"The finder's name", type:'text' }
+    { key:'finder_name', label:"The finder's name", type:'text',
+      help:'The actor who finds the body. He is nowhere on the victim\'s phone \u2014 the room only.' }
   ]},
   { group:'Jamming studio (free)', fields:[
     { key:'jam_room', label:'Room name', type:'text',

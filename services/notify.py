@@ -221,12 +221,21 @@ def text_reminder(starts_utc, minutes, where=None):
 
 
 def text_phone(lock_utc):
-    """Sent to everyone in the game the moment its phone opens. Its button is
-    the only way to the phone, so it says so."""
+    """Sent to everyone in the game the moment its phone opens. Since 24 Sep
+    the escape screen has a button too, so this no longer claims to be the
+    only way in — saying so was true when the GM's Start opened the phone."""
     return _msg(
         "\U0001f4f1 his phone is unlocked",
         [("\U0001f550", f"open until {claims.clock(lock_utc)}")],
-        footer="tap below to open it. it only opens from this message")
+        footer="tap below to open it")
+
+
+def text_phone_test():
+    """The same thing for the test group, who have no game and so no clock."""
+    return _msg(
+        "\U0001f4f1 his phone is open for testing",
+        footer="tap below to open it. this is the tester's copy, so it does "
+               "not lock and it is not tied to a game")
 
 
 def text_jam_reminder(starts_utc, minutes, where=None):

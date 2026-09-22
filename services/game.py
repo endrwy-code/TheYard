@@ -142,6 +142,12 @@ def _phone_state(slot, sess, t, settings, now):
 # The in-app phone (§9 r21)
 # ---------------------------------------------------------------------------
 
+def always_handles(settings):
+    """The test group: Telegram handles from Settings, tidied."""
+    return {h.strip().lstrip("@").lower()
+            for h in str(settings.get("phone_always_handles") or "").split(",") if h.strip()}
+
+
 def always_allowed(conn, attendee_id, settings=None):
     """Named accounts that may open the phone whenever they like.
 
@@ -150,8 +156,7 @@ def always_allowed(conn, attendee_id, settings=None):
     switch: "everyone" would hand the solution to the queue.
     """
     settings = settings if settings is not None else db.get_settings(conn)
-    wanted = {h.strip().lstrip("@").lower()
-              for h in str(settings.get("phone_always_handles") or "").split(",") if h.strip()}
+    wanted = always_handles(settings)
     if not wanted:
         return False
     row = conn.execute("SELECT handle FROM attendees WHERE id=?", (attendee_id,)).fetchone()

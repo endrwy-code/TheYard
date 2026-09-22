@@ -17,6 +17,7 @@ import pytest
 
 import config
 import db
+import manage
 from services import game
 from services.claims import ClaimError
 
@@ -226,3 +227,73 @@ def test_the_halves_stay_hidden_until_the_booked_time(conn):
     _, starts, me = make_game(conn)
     assert game.phone_access(conn, me, at(starts, -1))["zone"] is None
     assert game.phone_access(conn, me, at(starts, 1))["zone"] == "A"
+
+
+# ---------------------------------------------------------------------------
+# Handing the phone to the test group  (manage.py phone-test)
+# ---------------------------------------------------------------------------
+
+def test_the_test_group_is_read_the_way_people_type_it():
+    got = game.always_handles({"phone_always_handles": " @Ada_Lovelace , grace_hopper ,, "})
+    assert got == {"ada_lovelace", "grace_hopper"}
+    assert game.always_handles({"phone_always_handles": ""}) == set()
+    assert game.always_handles({}) == set()
+
+
+def queued(conn):
+    return conn.execute("SELECT * FROM notifications WHERE kind='phone_open'").fetchall()
+
+
+def test_phone_test_sends_to_the_group_and_nobody_else(conn):
+    _, _, me = make_game(conn)                      # booked, but not a tester
+    now = db.utcnow()
+    tester = conn.execute(
+        "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
+        "pass_code,created_at,updated_at) VALUES ('T','tester','@tester','walk_in','active',1,"
+        "'missing','TTTT-TTTT',?,?)", (now, now)).lastrowid
+    db.set_setting(conn, "phone_always_handles", "@Tester, not_on_the_roster", by="test")
+    conn.commit()
+
+    assert manage.cmd_phone_test([]) == 0
+    rows = queued(conn)
+    assert [r["attendee_id"] for r in rows] == [tester]      # not the booked player
+    assert rows[0]["button_path"] == "phone"
+    assert "testing" in rows[0]["text"]
+    assert "open until" not in rows[0]["text"]               # a tester has no clock
+    assert me is not None
+
+
+def test_phone_test_can_be_run_again(conn):
+    now = db.utcnow()
+    conn.execute("INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,"
+                 "payment_status,pass_code,created_at,updated_at) VALUES ('T','tester','@tester',"
+                 "'walk_in','active',1,'missing','TTTT-TTTT',?,?)", (now, now))
+    db.set_setting(conn, "phone_always_handles", "tester", by="test")
+    conn.commit()
+    manage.cmd_phone_test([])
+    manage.cmd_phone_test([])
+    assert len(queued(conn)) == 2          # testing twice should send twice
+
+
+def test_phone_test_says_so_when_the_group_is_empty(conn):
+    db.set_setting(conn, "phone_always_handles", "", by="test")
+    conn.commit()
+    assert manage.cmd_phone_test([]) == 1
+    assert queued(conn) == []
+
+
+def test_a_tester_opening_it_is_never_told_it_is_locked(conn):
+    """What the message's button lands on. No booking, no game running, and
+    it still has to open — otherwise the message is a dead end."""
+    now = db.utcnow()
+    tester = conn.execute(
+        "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
+        "pass_code,created_at,updated_at) VALUES ('T','tester','@tester','walk_in','active',1,"
+        "'missing','TTTT-TTTT',?,?)", (now, now)).lastrowid
+    db.set_setting(conn, "phone_always_handles", "tester", by="test")
+    out = game.phone_access(conn, tester, datetime.now(timezone.utc))
+    assert out["code"] is None and out["always"] is True
+    assert "lock_at" not in out            # nothing for the card to count down to
+    # And the page itself serves them, which is what the button lands on.
+    (config.PHONE_DIR / "the-phone.html").write_text("<html>the phone</html>", encoding="utf-8")
+    assert game.phone_file(conn, tester, datetime.now(timezone.utc))
