@@ -2747,19 +2747,30 @@ try {
    height that is actually visible; feed it to the frame and re-feed it every
    time the keyboard or the chrome moves. */
 function fitPhoneFrame(){
-  if (!tg) return;
   const root = document.documentElement;
-  const h = tg.viewportStableHeight;
-  if (h > 0) root.style.setProperty('--tgvh', h + 'px');
+  // Two answers to "how tall is the part you can see", and the frame wants
+  // the smaller. Telegram's is the only one that knows about its own chrome;
+  // visualViewport is the only one there is outside Telegram, and it is the
+  // one that shrinks when a keyboard comes up. Taking the smaller means the
+  // frame is never taller than the glass, whichever is reporting.
+  const heights = [];
+  if (tg && tg.viewportStableHeight > 0) heights.push(tg.viewportStableHeight);
+  if (window.visualViewport && window.visualViewport.height > 0) heights.push(window.visualViewport.height);
+  if (heights.length) root.style.setProperty('--tgvh', Math.min.apply(null, heights) + 'px');
   // Telegram knows about the cut-outs and bars its own window is sitting
   // under, on devices where the browser will not say. Newer clients only;
   // older ones fall through to env() and the floor.
-  const safe = tg.contentSafeAreaInset || tg.safeAreaInset;
+  const safe = tg && (tg.contentSafeAreaInset || tg.safeAreaInset);
   if (safe){
     if (safe.top >= 0) root.style.setProperty('--tgsafetop', safe.top + 'px');
     if (safe.bottom >= 0) root.style.setProperty('--tgsafebottom', safe.bottom + 'px');
   }
 }
+if (window.visualViewport){
+  window.visualViewport.addEventListener('resize', fitPhoneFrame);
+  window.visualViewport.addEventListener('scroll', fitPhoneFrame);
+}
+fitPhoneFrame();
 
 if (tg){
   tg.ready();

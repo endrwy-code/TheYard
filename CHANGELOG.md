@@ -1386,3 +1386,40 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   anyone (`.env`, the database, the Paperform export and the receipts are
   not — `.gitignore` keeps them out).
 - **Next step:** repo → Settings → Danger Zone → Change visibility → Private.
+
+## 2026-09-23 — The victim's phone: the dock is on the screen again
+
+- **Changed:** the phone's home screen was one scrolling flex column holding
+  the widgets, the app grid, the Search pill and the dock. On any viewport
+  shorter than that column the column scrolled and the last thing in it went
+  under the fold — and the last thing in it is the dock, which is where Phone,
+  Messages and Photos live. Inside Telegram's in-app browser that is every
+  phone. It is now built the way a home screen actually is: a scrolling middle
+  holding the widgets and the app grid, and a footer that does not scroll
+  holding the Search pill and the dock. The two weather/calendar widgets take
+  `min(132px, 17vh)` so a short screen gives their height to the apps instead.
+- **How the phone was edited:** `private/phone/the-phone.html` is a generated
+  `.dc.html` bundle whose JavaScript is gzipped base64 on one line, but whose
+  markup is ordinary HTML inside a JSON string in
+  `<script type="__bundler/template">`, read at load. New helper
+  `scripts/phone_template.py` decodes that string, hands over the markup and
+  encodes it back — refusing to proceed unless re-encoding the untouched
+  string reproduces the file byte for byte, because the bundler writes
+  `</script>` as `</script>` and a plain search-and-replace would destroy
+  the file.
+- **Also:** `fitPhoneFrame()` in `templates/index.html` now takes the *smaller*
+  of Telegram's `viewportStableHeight` and `window.visualViewport.height`, and
+  re-runs on `visualViewport` resize and scroll. Telegram's is the only figure
+  that knows about its own chrome; `visualViewport` is the only one that
+  exists outside Telegram, and the only one that shrinks for a keyboard. It no
+  longer returns early when there is no Telegram, so the one-time browser link
+  (`/p/<token>/`) gets a correctly sized frame too.
+- **Current state:** 536 tests pass, unchanged. Both pages pass
+  `node scripts/check_pages.mjs`.
+- **Left unfinished on purpose:** no automated test covers this. The layout is
+  inside a generated bundle and the bug only appears at a real device height,
+  so there is nothing a pytest could assert that would have caught it.
+- **Next step:** the organiser opens the phone on a real handset inside
+  Telegram and confirms all four dock icons are fully visible and tappable
+  with no page scroll, then repeats through "Phone not working? Open it in
+  your browser", which serves the same file as a whole page.
