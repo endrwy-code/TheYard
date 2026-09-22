@@ -282,14 +282,20 @@ def tma_user():
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return _no_store(Response(render_template("index.html"), mimetype="text/html"))
 
 
 @app.route("/admin")
 def admin():
     # §3 rule 4: the GM script lives in private/gm and is only sent to gm and
     # admin sign-ins (GET /admin/api/gm/state), never inside the page.
-    return render_template("admin.html")
+    #
+    # no-store because both screens are one file with their JavaScript inside
+    # them: a browser holding yesterday's copy draws yesterday's controls, and
+    # the first anyone knows is a save refused with "these can't be changed
+    # here" (24 Sep). There is no separate asset to version, and the page is
+    # small, so the honest fix is to never serve it from cache.
+    return _no_store(Response(render_template("admin.html"), mimetype="text/html"))
 
 
 @app.route("/healthz")
