@@ -2,6 +2,15 @@
 
 > **Spoilers. The whole solution is in here.** Keep it off attendee screens.
 >
+> **SUPERSEDED IN PART, 23 Sep 2026.** `CHANGES_FOR_CLAUDE_CODE.md` and
+> `EVIDENCE_BRIEF.md` are the source of truth for the story, and
+> `ESCAPE_ROOM_PLAN.md` for the build. §§1–4 below have been rewritten to
+> match them. **§§5–12 have not been rewritten end to end** — they still carry
+> the old staging in places. Where anything here disagrees with those three
+> files, **they win**. The three facts most often got wrong: the offset is
+> **20 minutes FAST** (never 15, never "behind"), the answer is **10:02 PM**,
+> and the lock code is **1002**.
+>
 > **Status (24 Sep 2026):** the cast below is live — the phone, the GM script
 > and the Mini App's premise all carry it. The phone now opens at the booked
 > time alone: no GM press, no check-in (§9 r21).
@@ -28,23 +37,29 @@ Four sources disagree. When they conflict, this order decides:
 | | |
 |---|---|
 | **Killer** | **Natalie**, Kai Chen's sister |
-| **Time** | **10:12 PM**: alone in the kitchen with both dessert plates |
+| **Time** | **10:02 PM**: the last person alone in the kitchen with both cakes |
 | **Motive** | At **9 AM tomorrow** Kai Chen was signing a new will that cut her out, because she'd been taking his money for four months. If he died tonight, the old will stood. |
-| **Method** | She swapped his nut-free dessert for the one with nuts, and took his EpiPen out of its case. |
-| **Lock code** | **1012** |
-| **The trap** | **Jasmine.** She lied about when she left, and the uncorrected camera puts her in the kitchen at 10:15. |
-| **The key** | The home cameras' clock runs **15 minutes fast**. |
+| **Method** | She swapped his nut-free cake for an identical walnut one from the same bakery, and took his EpiPen and binned it. |
+| **Lock code** | **1002** |
+| **The trap** | **Jasmine.** She lied about when she left, and the uncorrected camera puts her leaving at 10:16, inside the eating window. |
+| **The key** | The home cameras' clock runs **20 minutes fast**. Kai set it by hand after a power trip on Sunday and got it wrong. |
 
 **How players get there:**
 
 ```
-Still 4: wall clock 10:12 vs stamp 22:27 ─► every camera stamp is 15 min fast
-Allergy card (10–20 min) + missed calls 10:31/10:32 + SOS 10:33 ─► he ate it 10:10–10:20
-Corrected stamps × that window ─► only Natalie was with the food (10:12)
+Still 5: oven clock 10:02 vs stamp 22:22 ─► every camera stamp is 20 min fast
+Fridge card (10–20 min) + missed calls 10:31/10:32 + SOS 10:33 ─► he ate it 10:10–10:20
+Corrected stamps × that window ─► the flat is empty from 10:04, so it was LEFT for him
+Last person alone with the cakes ─► Natalie, 10:02
 Will + solicitor's letter + notebook + Natalie/Ethan messages ─► motive: 9 AM tomorrow
-Receipt + plates at the wrong seats + empty EpiPen case ─► method
-        ─► box opens on 1012 ─► warrant ─► the finder reads it to the dispatcher ─► out
+Two cakes, one bakery, one dot sticker + binned box + capped EpiPen ─► method
+        ─► box opens on 1002 ─► warrant ─► the finder reads it to the dispatcher ─► out
 ```
+
+> **The aha is not "who was in the room".** Corrected, *nobody* was — every
+> guest is out of the flat before the eating window opens. The question the
+> room actually asks is **who was last alone with the food**, and only Natalie
+> was.
 
 ---
 
@@ -52,30 +67,42 @@ Receipt + plates at the wrong seats + empty EpiPen case ─► method
 
 Kai Chen is dead. It's a murder warrant. The Mini App's "he collapsed" works as the teaser.
 
+Chat times and call-log times come from the network and are **correct**. Camera
+stamps are **20 minutes ahead**. Nothing else in the room shows a time.
+
 | Real time | What happened | Where players can see it |
 |---|---|---|
-| 7:42 PM | Kai Chen checks everyone is still coming | Group chat |
-| ~8:00–8:19 | Ethan, Natalie, Darren (8:04), Jasmine (8:19) arrive | Group chat |
-| 8:32 | Darren buys two desserts on Kandahar Street, one marked nut-free for Kai Chen | Receipt (flat); group chat 8:41 |
-| 9:45 | Jasmine says goodnight in the group chat, but only pretends to leave | Group chat; Jasmine's messages |
-| 10:00 | Jasmine is back upstairs, in the kitchen with Kai Chen, collecting her things | Kitchen cam, stamped 22:15 |
-| 10:04–10:05 | Darren leaves | Group chat 10:04; hallway cam 22:20 |
-| 10:05 | Ethan "steps out for work". Really he goes to ring Kai Chen privately about Natalie | Group chat |
-| 10:06–10:24 | Ethan and Kai Chen argue on the phone for 18 minutes. Kai Chen is away from the table | Call log: Ethan, incoming, 10:06, 18m 14s |
-| 10:08 | Jasmine leaves | Hallway cam 22:23 |
-| **10:12** | **Natalie alone in the kitchen with both plates. She swaps them.** (She took the EpiPen earlier in the evening.) | Kitchen cam 22:27, wall clock reads 10:12 |
-| ~10:15 | Natalie leaves. Kai Chen eats the wrong dessert | The plates (flat) |
-| 10:19 | Natalie: "night kai. think about what i said" | Group chat |
-| 10:24 | Ethan: not coming back up (after the edit in §11-A1) | Ethan's messages |
-| ~10:30 | Kai Chen collapses | **Mum**'s calls at 10:31 and 10:32 go unanswered |
-| 10:33 | Kai Chen triggers Emergency SOS himself. The call runs 4m 12s | Call log |
-| 10:37 | the finder arrives as the SOS call ends, finds him, takes over. **He leaves no trace on the phone** — he exists in the room only (24 Sep) | Actor's opening |
-| 10:41 | the finder pulls the camera stills onto Kai Chen's phone | Photo info panel: "Today 10:41 PM" |
+| 6:42 PM | Walnut coffee cake bought, Kandahar St bakery, cash | Receipt in bin photo B |
+| 6:47 PM | Natalie → Kai: "passed your bakery. couldnt resist" | Natalie's thread |
+| 7:40 PM | Kai: "8pm. all of you" | Group chat |
+| 8:00 / 8:05 / 8:10 / 8:20 | Ethan, Natalie, Darren, Jasmine arrive | Group chat |
+| 8:32 | Darren buys the nut-free cake, same bakery | Darren's receipt (paper, kitchen counter) |
+| 8:41 | Darren: "got the nut free one for you kai. green sticker" | Group chat |
+| 8:42 | Natalie: "i brought one too. great minds" | Group chat |
+| 9:20 | Kai: "leave the cake. im too full. ill have mine later" | Group chat |
+| 9:44 | Darren leaves | Still 1 (stamp 22:04); group chat 9:43 |
+| 9:48 | Jasmine and Kai in the kitchen, two identical boxes closed on the counter | Still 2 (stamp 22:08) |
+| 9:50 | Ethan goes downstairs, tells the group it's work | Still 3 (stamp 22:10); group chat 9:49 |
+| 9:52–10:08 | **Ethan calls Kai. 16m 12s.** They argue about Natalie's transfers. Kai is away from the kitchen for all of it | Call log |
+| 9:56 | Jasmine leaves | Still 4 (stamp 22:16); her thread, 9:56 |
+| **10:02** | **Natalie alone in the kitchen.** Plates a slice of the walnut cake, bins the nut-free cake unopened, takes the EpiPen, ties the bag | Still 5 (stamp 22:22), oven clock in frame reads 10:02 |
+| 10:04 | Natalie leaves, bag still by the door | Still 6 (stamp 22:24) |
+| ~10:12 | Kai comes off the phone and eats | Inferred only |
+| 10:15 | Natalie → Kai: "was it good? x" | Natalie's thread |
+| ~10:30 | He collapses | **Mum**'s calls at 10:31 and 10:32 go unanswered |
+| 10:33 | Kai triggers Emergency SOS himself. The call runs 4m 12s | Call log |
+| 10:37 | The finder arrives as the SOS call ends. **He is in the group chat** — "leaving now. home in 15" at 10:22 — but leaves no other trace on the phone | Still 7 (stamp 22:57); group chat |
+| 10:41 | The finder opens the tied bag by the door, photographs it, ties it again | Bin photos A and B (paper, no timestamp) |
 | **10:45** | **The game starts.** Police are fifteen minutes out | The phone's clock starts at 10:45 PM |
 | 11:00 | Police arrive: game over | |
 
-**The window:** collapse at about 10:30, and a reaction starts 10–20 minutes after
-eating, so he ate it between **10:10 and 10:20**. Only Natalie was with him then.
+**The window:** collapse at about 10:30, and a reaction starts 10–20 minutes
+after eating, so he ate it between **10:10 and 10:20**.
+
+> **Structural rule, do not break it:** the window is derived from the call log
+> and the fridge card only. If any part of it ever comes off a camera stamp,
+> correcting the clock moves the window by the same 20 minutes and the puzzle
+> cancels itself out. `tests/test_clock_invariants.py` holds this.
 
 ---
 
@@ -84,42 +111,55 @@ eating, so he ate it between **10:10 and 10:20**. Only Natalie was with him then
 | Person | Who | What they give players | Why they look guilty | What settles it |
 |---|---|---|---|---|
 | **Kai Chen** | Victim, host. A real person lies in the flat (the deck's "living sacrifice") | — | — | — |
-| **the finder** | Wasn't at the party. **Found him. Played by the actor.** Nowhere on the phone — the room only | Opens the game, relays the hints, takes the warrant | — | At work until 10:22 |
-| **Ethan** | Best friend | Why the new will exists: he saw Natalie's transfers and told Kai Chen (bank screenshot in his messages) | Lied to the group about a "work call"; argued with Kai Chen that night | Call log: on the phone with Kai Chen from downstairs 10:06–10:24, which covers the whole window |
-| **Darren** | Business partner | The dessert and the receipt: proof that a safe plate existed | Kai Chen wanted him out ("the restructure"); he brought the dessert | Left at 10:05 (chat 10:04, hallway cam 22:20), before the window |
-| **Jasmine** | Ex-girlfriend | The lie. She is what a guilty person looks like | Says 9:45; camera says kitchen at 10:15, out at 10:23, inside the window | Fix the clock: really 10:00–10:08. Her messages say why she hid it (she came back for her things) |
-| **Natalie** | Sister | Motive and opportunity | The will, the money, the kitchen photo | Nothing clears her: alone with both plates at 10:12 |
+| **the finder** | Wasn't at the party. **Found him. Played by the actor.** On the phone only as the last line of the group chat, 10:22 | Opens the game, relays the hints, takes the warrant | — | At work until 10:22; Still 7 stamps him in at 22:57 |
+| **Ethan** | Best friend | Why the new will exists: he saw Natalie's transfers and told Kai Chen (bank screenshot in his messages) | Lied to the group about a "work call"; argued with Kai Chen that night; he pushed for the new will | Call log: on the phone with Kai Chen from downstairs 9:52–10:08 — Kai alive and not eating. Corrected, Ethan is outside from 9:50 |
+| **Darren** | Business partner | The nut-free cake and the receipt: proof that a safe cake existed and reached the flat | Kai Chen wanted him out ("the restructure"); he brought a cake | His receipt is for the **nut-free** one, and bin photo A shows that exact box thrown away unopened. He left first, 9:44 |
+| **Jasmine** | Ex-girlfriend | The lie. She is what a guilty person looks like | Raw stamp puts her out at 10:16, inside the window. She told the group 9:30 and told the finder 9:30 | Fix the clock: really out at 9:56. Her thread says why she stayed back — she came for her key and didn't want Natalie knowing |
+| **Natalie** | Sister | Motive and opportunity | Nothing, until the clock is fixed | Nothing clears her. Alone with both cakes at 10:02, and her statement says he was already eating when she left, which cannot be true |
 
-All four knew about the allergy ("got you the nut free one kai", 8:41), so
-knowing it clears nobody. Only the clock does.
+Everyone knew about the allergy — it is in the group chat at 8:41 — so knowing
+clears nobody. Only the clock sorts them.
 
 ---
 
-## 4. The one mechanic: the camera clock is 15 minutes fast
+## 4. The one mechanic: the camera clock is 20 minutes fast
 
-| Still | File (`private/phone/assets/`) | Stamp | Real | Shows |
+Seven frames, one hub, one offset. **Printed paper at the desk** — an A4 contact
+sheet with the stamp under each frame, plus a single large print of Still 5.
+They are not on the phone; the Photos app was removed on 23 Sep.
+
+| Still | Cam | Stamp | Real | Shows |
 |---|---|---|---|---|
-| 1 | `cam-01-kitchen-2215.jpg` | 22:15 | 10:00 | Jasmine in the kitchen with Kai Chen |
-| 2 | `cam-02-hallway-2220.jpg` | 22:20 | 10:05 | Darren leaving |
-| 3 | `cam-03-hallway-2223.jpg` | 22:23 | 10:08 | Jasmine leaving, with a bag |
-| 4 | `cam-04-kitchen-2227.jpg` (shown large) | 22:27 | 10:12 | Natalie alone with both plates; the wall clock reads 10:12 |
+| 1 | HALLWAY | 22:04 | 9:44 | Darren leaving, jacket on |
+| 2 | KITCHEN | 22:08 | 9:48 | Jasmine and Kai talking. **Two identical white boxes, closed, on the counter** |
+| 3 | HALLWAY | 22:10 | 9:50 | Ethan leaving, phone already at his ear |
+| 4 | HALLWAY | 22:16 | 9:56 | Jasmine leaving with a bag |
+| 5 | KITCHEN | 22:22 | 10:02 | **Natalie alone.** Both boxes open, one plate in front of her. **The oven clock reads 10:02** |
+| 6 | HALLWAY | 22:24 | 10:04 | Natalie leaving. A tied bin bag sits by the door |
+| 7 | HALLWAY | 22:57 | 10:37 | The finder arriving |
 
-**Three ways to find the 15 minutes**, so no team depends on spotting just one:
+**Three independent routes to the 20 minutes**, so no team depends on spotting
+just one:
 
-1. **Still 4:** the wall clock in the picture says 10:12 and the stamp says 22:27.
-   The phone draws that clock itself, top-left of the full-screen view.
-2. **Darren:** "heading off too" in the group chat at 10:04; the hallway camera
-   shows him leaving at 22:20.
-3. **Natalie:** "night kai" at 10:19, yet the camera has her in the kitchen at
-   22:27.
+1. **Still 5:** the oven clock in the picture says 10:02 and the stamp says 22:22.
+2. **Darren:** "heading off too" in the group chat at 9:43; the hallway camera
+   stamps him out at 22:04.
+3. **The finder:** he says he got in as the 995 call ended — 10:37. Still 7
+   stamps him at 22:57.
 
-Chat and call-log times come from the network and are right. Only the camera
-stamps are wrong.
+**The flip.** Both readings use the same window, 10:10–10:20.
 
-**The trap.** Trust the stamps and Jasmine is in the kitchen at 10:15 and leaves at
-10:23, right in the middle of 10:10–10:20. She also lied about 9:45, so every
-team goes for her. Natalie at 10:27 looks like she came after the window.
-Subtract 15 and the picture flips.
+*Raw stamps (wrong):* Darren out 10:04. Jasmine in the kitchen with Kai 10:08,
+out **10:16 — inside the window**. Ethan out 10:10, exactly as it opens. Natalie
+in the kitchen 10:22, out 10:24 — **after he has already eaten.** Conclusion:
+arrest Jasmine, and Natalie reads as a woman tidying up after a party.
+
+*Corrected (−20):* Darren out 9:44. Ethan out 9:50. Jasmine out 9:56. Natalie
+alone in the kitchen 10:02, out 10:04. Conclusion: **the flat was empty from
+10:04**, and he did not eat before 10:10. Nobody did it in front of him. It was
+left for him, and the last person alone with the food was Natalie.
+
+**The same photograph changes meaning.** That is the whole room.
 
 ---
 
@@ -142,7 +182,7 @@ two spaces, but who stands where is decided at the door, by a person.
 | Messages → Darren | "the restructure", "i'll bring dessert" | Red herring |
 | Messages → Jasmine | Staying back for her things, "don't tell natalie" | Why Jasmine lied |
 | Phone → Recents | SOS 10:33 (4m 12s); **Mum** missed 10:31 and 10:32; Ethan 10:06 (18m 14s); Mum 8:47 PM; Tan & Associates 4:02 PM | Collapse time; Ethan's alibi; the solicitor |
-| Photos → Today | The four camera stills | The clock; who was where |
+| ~~Photos → Today~~ | ~~The four camera stills~~ **Gone 23 Sep.** The seven stills are printed paper at the desk | The clock; who was where |
 
 Everything else on the phone shows "Cannot Connect" on purpose. **Desk handset:** the
 same phone on a device in a stand at the desk, for anyone the bot can't reach.
@@ -168,7 +208,7 @@ The GM console marks those players "Can't reach — desk handset".
 | Four statements | the finder's notes from ringing each guest (text in §11-E) |
 | Timeline board | Four camera rows filled in; the "real time" column blank; markers |
 | Four suspect cards | Photo, name and relationship only (§12) |
-| Lock box, 4 digits, code **1012** | Holds the blank arrest warrant and a pen |
+| Lock box, 4 digits, code **1002** | Holds the blank arrest warrant and a pen |
 | Desk handset | In its stand, on charge |
 
 **Why the split still works:** the flat has how, why and the window, but no
@@ -194,9 +234,9 @@ as something the console enforces.*
 | 4:30 | Hint 1: the Jasmine plant | GM taps **Give it** when the room needs it |
 | 6:45 | Hint 2: the clock | Send, or skip if they already have it |
 | 7:30 | **Forced merge** at the desk | GM taps Merge; the actor says the line |
-| 7:30–10:30 | Window + corrected times: only Natalie, at 10:12 | |
+| 7:30–10:30 | Window + corrected times: the flat is empty from 10:04, so it was left for him — Natalie, 10:02 | |
 | 10:30 | Hint 3: all four boxes | Send |
-| ~11–13 | Box opens on **1012**: the warrant | |
+| ~11–13 | Box opens on **1002**: the warrant | |
 | ~13–15 | Fill it in and hand it to the finder, who reads it into the phone | Right: door opens, GM taps **End** |
 | 15:00 | Police arrive | Actor's time-up line; the GM gives a 30-second reveal at the door |
 
@@ -250,7 +290,7 @@ them off the screen as the dispatcher's words.
 | Box | Answer | Accept |
 |---|---|---|
 | Name | Natalie | Natalie only |
-| Time | 10:12 PM | 10:12 |
+| Time | 10:02 PM | 10:02 |
 | Motive | The new will, signed at 9 AM tomorrow, cut her out; the old one leaves her the money | Anything about the will, the inheritance, or the money about to come out |
 | Method | Swapped his nut-free dessert for the nut one; took his EpiPen | The dessert swap is required; the EpiPen is a bonus |
 
@@ -267,7 +307,7 @@ Print this table small as **the finder's answer card**.
 3. EpiPen case on the shelf, closed, empty.
 4. Wipe the "real time" column of the timeline board.
 5. Fresh blank warrant and pen in the box; close it; **scramble the lock**
-   (never leave it on 1012; the deck's "reset to 1012" gives the answer away).
+   (never leave it on 1002; a box left reading the code gives the answer away).
 6. Desk handset: hold the top strip of the screen (where the time is) for 3
    seconds and the phone returns to its home screen. Check it's charging.
 7. Kai Chen in place. Lights, music and smoke back to the start.
@@ -289,7 +329,7 @@ Print this table small as **the finder's answer card**.
 | 7 | Phone: Jasmine's messages | "come by at the end, after the others go" and "don't tell natalie i'm coming", but Jasmine arrived at 8:19 and said "here" in the group chat Natalie is in | Reword (§11-A3) |
 | 8 | Phone: Ethan's messages | "in april" vs Natalie's "four months" (April to September is five) | "in may" (optional, §11-A4) |
 | 9 | Phone: message list | Ethan's thread shows "Tuesday / I won't" but holds messages from 10:24 tonight | Fix time, preview and order (§11-A1) |
-| 10 | Deck | The clock is on "still #2" | On the phone it's still 4 (`cam-04`), shown large |
+| 10 | Deck | The clock is on "still #2" | It is **Still 5**, the large print at the desk — the oven clock reads 10:02 against a 22:22 stamp |
 | 11 | Deck slide 11 | A "free check" row: the collapse on camera at 22:45 | There's no such still on the phone. Use the Darren cross-check instead (§4) |
 | 12 | Deck, PDF | The actor is unnamed ("the man who found him"); "whoever found him called at 10:33" | **the finder**, the only other person in the group chat. Kai Chen pressed SOS himself; the finder arrived at 10:37 as the 4m 12s call ended (his "home in 15" was sent at 10:22). Settings → The finder's name = the finder |
 | 13 | Deck, floor plan | A real wall clock ("check it against your own watch") | Games run 3:30–9:30 PM, so a working clock shows the afternoon and breaks the fiction. Drop it (§12) |
@@ -381,17 +421,20 @@ says Kai Chen, 10:30, four guests, fifteen minutes, and his phone on Telegram.
      argued. Won't say what about. Went home after. Never went back up."
    - **Darren:** "Brought dessert, two from the place on Kandahar Street, one
      nut-free for Kai Chen. Left just after 10, early start. He was fine."
-   - **Jasmine:** "Left at 9:45. 'It's in the group chat.' Went straight home."
-   - **Natalie:** "Left just after 10, not long after Darren. Texted him goodnight
-     on the way home. He was fine when I left." *(The lie: she was there at 10:12.)*
+   - **Jasmine:** "Left at half nine. It's in the group chat. Went straight home."
+   - **Natalie:** "Left about twenty past ten, after everyone. I put his cake out
+     for him before I went. **He was eating it when I said goodnight.** He was
+     fine." *(The lie is the bold sentence, and nothing else — every time she
+     gives agrees with the raw stamps. See `EVIDENCE_BRIEF.md` §5.5, which is
+     the version to print.)*
 2. **Timeline board.** Columns: Event · Camera · Stamp · Real time. Rows, with
    everything but "Real time" filled in:
-   Jasmine in the kitchen with Kai Chen · kitchen · 22:15 /
-   Darren leaves · hallway · 22:20 /
-   Jasmine leaves · hallway · 22:23 /
-   Natalie alone with the dessert · kitchen · 22:27.
-   Footer: "He collapsed around 10:30. He ate it between ___ and ___. Who was
-   there? ___"
+   **Seven rows now, not four** — see `EVIDENCE_BRIEF.md` §5.6 for the version
+   to print: 22:04 / 22:08 / 22:10 / 22:16 / 22:22 / 22:24 / 22:57.
+   Footer: "He collapsed around 10:30 PM. He ate it between ___ and ___. Who was
+   still in the flat? ___ **Who was last alone with the cakes?** ___" — that
+   last line is what walks a team from "nobody was there" to "someone left it
+   for him".
 3. **Suspect cards:** photo, name, relationship.
 4. **Allergy card** for the fridge (text in §5).
 5. **Receipt** (§5).
@@ -414,15 +457,18 @@ These go in `private/phone/assets/` with the exact filenames from its `README.md
   four volunteers play Ethan, Darren, Natalie and Jasmine, and their suspect-card
   portraits and the stills are shot in the real set on the same day, in the
   same outfits.
-- `cam-01`: Jasmine with Kai Chen in the kitchen. `cam-02`: Darren in the hallway,
-  leaving. `cam-03`: Jasmine leaving with a bag. `cam-04`: Natalie alone at the
-  dessert table with both plates.
-- In `cam-04`, **leave the top-left of the frame clear**: the phone draws the
-  10:12 wall clock there on the full-screen view.
-- Portrait orientation, CCTV look (high angle, a little grain). **Don't burn in
-  a timestamp**, because the phone adds "KITCHEN CAM — 22:27" itself.
-- `ethan-bank-screenshot.jpg`: Natalie's banking app, showing monthly transfers from Si
-  Hong's account into hers since May.
+- **The shoot list is now ten images, and nine of them are printed, not served.**
+  `EVIDENCE_BRIEF.md` §7 is the list to work from: seven camera stills and two
+  bin photographs, which go to a print shop and belong in `private/props/`.
+- **Only one file goes in `private/phone/assets/`**: `ethan-bank-screenshot.jpg`,
+  Ethan's banking app showing one outgoing payment a month from Kai's account
+  since May. `python manage.py phone-images` checks for it.
+- In **Still 5**, the oven clock must read **10:02** and be legible at printed
+  size. Do not stage guilt into it — she is standing at a counter with two open
+  boxes and a plate, and a player reading the raw stamp should be able to say
+  "she's plating up after he ate" and feel satisfied.
+- Portrait, CCTV look (high angle, a little grain). **Never burn a stamp into
+  the image** — it is printed under the frame on the contact sheet.
 
 ### G. Record it
 
@@ -440,7 +486,7 @@ Each has a recommendation; the flow above assumes it.
 | 1 | Who found him, and who does the actor play? | **the finder** | The only other person in the group chat; his "home in 15" at 10:22 lands at 10:37, exactly when the SOS call ends |
 | 2 | Who was Ethan's 18-minute call with? | **Kai Chen** (the argument), and edit Ethan's 10:24 message | The alternative (delete the call and keep "boss is unhinged") leaves Ethan with no alibi and makes him the finder |
 | 3 | Where does the 10–20 minute window come from? | **An allergy card on the fridge** instead of the paramedic's note | No paramedic has been; he's still in the flat |
-| 4 | A real wall clock in the flat? | **No.** If you want one for the look, stop it at 10:45 | A working clock shows the afternoon |
+| 4 | A real wall clock in the flat? | **No — settled.** The only in-world clock is the oven clock in Still 5, and it is a photograph | A working clock shows the afternoon |
 | 5 | Where does the lock box sit? | **At the desk** | The desk's job is the minute; the flat has to bring the window over |
 | 6 | What goes on the suspect cards? | **Photo, name and relationship only** | The deck's lines ("being written out of the will", "the camera says otherwise") hand out what the flat is meant to find |
 | 7 | Kai Chen's and Natalie's surname (for the will and letter)? | Anything but Tan | Ethan and Tan & Associates already use it |

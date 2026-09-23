@@ -193,8 +193,8 @@ def test_a_picture_that_is_not_on_the_list_is_refused(night, roster):
 
 
 def test_a_missing_picture_is_a_grey_tile_not_a_broken_image(night, roster):
-    """The five photographs do not exist yet. The organiser still has to be
-    able to play the whole game through while waiting for them."""
+    """The bank screenshot does not exist yet. The organiser still has to be
+    able to play the whole game through while waiting for it."""
     body = game.phone_image(roster, pid(roster, GROUP[0]),
                             game.STORY_IMAGES[0], at(night, 2))
     assert body.startswith(b"\xff\xd8\xff")          # a real JPEG
@@ -204,10 +204,10 @@ def test_a_missing_picture_is_a_grey_tile_not_a_broken_image(night, roster):
 def test_the_picture_list_matches_the_real_phone_file():
     """The real phone, not the stub the other tests use.
 
-    `PHONE_IMAGES` is a list kept by hand, because the phone builds seventeen
-    of the names in JavaScript rather than writing them out. If the phone file
-    is ever rebuilt with different names, this is what says so — otherwise the
-    gallery would quietly go grey on the night with nothing to explain it.
+    `PHONE_IMAGES` is a list kept by hand. Since the 23 Sep rewrite the phone
+    asks for exactly one picture, Ethan's bank screenshot, and this is what
+    says so if the phone file is ever rebuilt naming something else — otherwise
+    the motive would quietly go grey on the night with nothing to explain it.
     """
     import re
     from pathlib import Path

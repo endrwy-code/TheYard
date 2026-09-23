@@ -279,37 +279,72 @@ def cmd_fetch_receipts(argv):
     return 0
 
 
+def _tracked_by_git(relative):
+    """Is this path committed? On Render the app is a git checkout, so a file
+    that is only on the laptop does not exist in the live game at all."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "ls-files", "--", relative],
+                             cwd=config.BASE_DIR, capture_output=True, text=True,
+                             timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None                      # no git here; cannot tell either way
+    if out.returncode != 0:
+        return None
+    return bool(out.stdout.strip())
+
+
 def cmd_phone_images(argv):
-    """Which of the phone's pictures are on this laptop, and which are not."""
+    """Which of the phone's pictures are here, and would they reach Render."""
     from services import game
     present = game.images_present()
-    story = [n for n in game.STORY_IMAGES]
-    filler = [n for n in game.FILLER_IMAGES]
     folder = config.PHONE_DIR / "assets"
     _say(f"Looking in {folder}")
     _say("")
-    _say("The five that carry the story:")
-    missing_story = []
-    for n in story:
-        _say(f"  [{'x' if present[n] else ' '}] {n}")
+    missing, untracked = [], []
+    for n in game.STORY_IMAGES:
+        rel = f"private/phone/assets/{n}"
+        tracked = _tracked_by_git(rel) if present[n] else None
+        note = ""
+        if present[n] and tracked is False:
+            note = "   <- on this laptop only, NOT committed"
+        _say(f"  [{'x' if present[n] else ' '}] {n}{note}")
         if not present[n]:
-            missing_story.append(n)
-    have_filler = sum(1 for n in filler if present[n])
+            missing.append(n)
+        elif tracked is False:
+            untracked.append(rel)
     _say("")
-    _say(f"Ordinary camera-roll photos: {have_filler} of {len(filler)} "
-         "(filler-01.jpg .. filler-17.jpg, all optional)")
-    _say("")
-    if missing_story:
-        _say(f"STILL NEEDED: {len(missing_story)} of the 5 story pictures.")
-        for n in missing_story:
+    if missing:
+        _say("STILL NEEDED. Until it is here the phone has no motive on it:")
+        for n in missing:
             _say(f"  {n}")
-        _say("Until they are here the game has no evidence to find. Anything")
-        _say("missing shows as a plain grey tile, so you can still test.")
+        _say("A missing picture shows as a plain grey tile, so the game is")
+        _say("still playable while you wait for it.")
+        _say("")
+        _say(f"Put the file in {folder} with exactly that name,")
+        _say("lower case. The live server runs Linux, where ethan-Bank.JPG and")
+        _say("ethan-bank.jpg are two different files — on Windows they are not,")
+        _say("so a wrong name works here and fails there.")
+    elif untracked:
+        _say("HERE BUT NOT LIVE. The file is on this laptop and has never been")
+        _say("committed, so Render has never seen it and the live phone still")
+        _say("shows a grey tile. Commit and push it:")
+        _say("")
+        for rel in untracked:
+            _say(f"  git add {rel}")
+        _say('  git commit -m "the bank screenshot"')
+        _say("  git push")
+        _say("")
+        _say("Then deploy on Render. See ESCAPE_ROOM_PLAN.md section 6.")
     else:
-        _say("All five story pictures are here. The game has its evidence.")
+        _say("The phone has its picture, and it is committed — so the copy")
+        _say("Render builds from has it too.")
     _say("")
-    _say(f"Drop files into {folder} with exactly those names. Nothing needs")
-    _say("rebuilding — add the file, reload the phone, it is there.")
+    _say("This is the only picture the phone loads (EVIDENCE_BRIEF.md 5.9).")
+    _say("The seven camera stills and the two bin photographs are generated")
+    _say("as files too, but they are PRINTED, never served: they belong in")
+    _say("private/props/, which is deliberately not committed. Nothing in the")
+    _say("app reads them. See EVIDENCE_BRIEF.md section 7 for the shoot list.")
     return 0
 
 

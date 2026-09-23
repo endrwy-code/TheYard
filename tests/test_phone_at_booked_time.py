@@ -214,7 +214,7 @@ def test_the_page_itself_refuses_with_the_reason_not_a_catch_all(conn, minutes, 
         game.phone_file(conn, me, at(starts, minutes))
     assert exc.value.code == want
     with pytest.raises(ClaimError) as exc:
-        game.phone_image(conn, me, "cam-01-kitchen-2215.jpg", at(starts, minutes))
+        game.phone_image(conn, me, game.STORY_IMAGES[0], at(starts, minutes))
     assert exc.value.code == want
 
 

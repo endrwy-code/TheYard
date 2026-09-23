@@ -277,8 +277,12 @@ def test_state_follows_the_next_game_and_hides_nothing_from_the_gm(night, roster
     assert s["slot_id"] == night["id"] and s["game_number"] == 1 and s["games_total"] == 21
     assert s["booked"] == 4 and s["checked_in"] == 4
     assert len(s["people"]) == 4
-    assert [h["key"] for h in s["hints"]] == ["hint1", "hint2", "hint3", "motive", "method"]
-    assert [h["optional"] for h in s["hints"]] == [False, False, False, True, True]
+    # `merge` joined the list on 23 Sep (ESCAPE_ROOM_PLAN.md §4a). It is a
+    # stage direction rather than a hint — "everyone, to the desk" — so it sits
+    # with the optional two under "If they are still stuck".
+    assert [h["key"] for h in s["hints"]] == ["hint1", "hint2", "hint3",
+                                              "motive", "method", "merge"]
+    assert [h["optional"] for h in s["hints"]] == [False, False, False, True, True, True]
     assert "at" not in s["hints"][0] and s["reset"]
     assert s["state"] == "upcoming" and not s["started"] and s["remaining_seconds"] == 15 * 60
 
@@ -340,7 +344,7 @@ def test_a_hint_goes_to_the_actor_once(night, roster):
     msgs = roster.execute("SELECT * FROM direct_messages").fetchall()
     assert len(msgs) == 2 and msgs[0]["chat_id"] == 5550
     given = [h["given"] for h in game.state(roster, at(night, 9), night["id"])["hints"]]
-    assert given == [True, False, True, False, False]
+    assert given == [True, False, True, False, False, False]
 
     sent = []
     counts = notify.deliver_direct(roster, lambda chat, text, go, button=True: sent.append((chat, button)))

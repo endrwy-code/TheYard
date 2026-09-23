@@ -25,6 +25,7 @@ never costs a group their phone.
 """
 
 import json
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -226,7 +227,7 @@ PHONE_MESSAGES = {
     # PHONE_OFF now means one thing only, and it is a fault: the phone's file
     # is not on this laptop. It used to double as an admin switch, which is
     # what sent players to a desk that could not help them (23 Sep).
-    "PHONE_OFF": "Kai Chen's phone isn't on this laptop. Tell the front desk.",
+    "PHONE_OFF": "Kai Chen's phone is missing from the server. Tell the front desk.",
     "PHONE_LOCKED": "The game master has locked Kai Chen's phone for this game.",
 }
 
@@ -353,24 +354,50 @@ def _phone_msg(status, person):
     return "unreachable"            # never opened The Yard, blocked us, or bot.py was off
 
 
-def _phone_html():
+# The man who found him is in the group chat, and his last message — "leaving
+# now. home in 15" at 10:22 PM — is one of the three independent routes to the
+# camera offset (EVIDENCE_BRIEF.md §2.1). His name is a Settings row, and the
+# phone is a static file with no templating step, so the markup carries a token
+# and this is where it becomes a name.
+#
+# Nobody has to fill the row in. Left empty he is an unsaved number, which is
+# what an unnamed contact looks like on a real phone, so the thread reads
+# correctly either way and Settings can be filled in on the night.
+FINDER_TOKEN = "__FINDER__"
+FINDER_UNSAVED = "+65 8712 3390"
+
+
+def _finder_name(conn):
+    """The finder as the phone should show him. Quotes and angle brackets are
+    stripped because this lands inside a JavaScript string in the markup."""
+    try:
+        name = (db.get_setting(conn, "finder_name") or "").strip()
+    except Exception:
+        name = ""
+    name = re.sub(r"[\"'\\<>]", "", name)[:24].strip()
+    return name or FINDER_UNSAVED
+
+
+def _phone_html(conn=None):
     path = config.PHONE_DIR / "the-phone.html"
     try:
-        return path.read_text(encoding="utf-8")
+        html = path.read_text(encoding="utf-8")
     except OSError:
-        raise ClaimError("PHONE_OFF", "The phone file isn't on this laptop. Use the desk devices.")
+        raise ClaimError("PHONE_OFF", "The phone file isn't deployed. Use the desk devices.")
+    return html.replace(FINDER_TOKEN, _finder_name(conn) if conn is not None else FINDER_UNSAVED)
 
 
-# The pictures the phone asks for by name. Four camera stills and Ryan's bank
-# screenshot carry the story; filler-01..17 are the ordinary camera-roll shots
-# that make the gallery look like a real phone rather than a folder of clues.
-# The phone builds the filler names in JavaScript, so the list is rebuilt here
-# rather than read out of the file.
-STORY_IMAGES = ("cam-01-kitchen-2215.jpg", "cam-02-hallway-2220.jpg",
-                "cam-03-hallway-2223.jpg", "cam-04-kitchen-2227.jpg",
-                "ethan-bank-screenshot.jpg")
-FILLER_IMAGES = tuple(f"filler-{n:02d}.jpg" for n in range(1, 18))
-PHONE_IMAGES = STORY_IMAGES + FILLER_IMAGES
+# The pictures the phone asks for by name. Since the 23 Sep rewrite
+# (ESCAPE_ROOM_PLAN.md Tier B) there is exactly one: Ethan's bank screenshot,
+# which carries the motive and sits inside the Messages thread with him.
+#
+# The four camera stills and the seventeen filler camera-roll shots are gone.
+# The Photos app was removed from the phone, and the seven stills and two bin
+# photographs are now printed paper at the desk, so no code knows about them.
+# Keep this list in step with the phone file: tests/test_phone_links.py reads
+# the real markup and fails if the two ever drift apart.
+STORY_IMAGES = ("ethan-bank-screenshot.jpg",)
+PHONE_IMAGES = STORY_IMAGES
 
 # A flat grey tile, so a picture nobody has supplied yet leaves a gap in the
 # gallery instead of a browser's broken-image icon. 1x1 JPEG, scaled by CSS.
@@ -426,7 +453,7 @@ def phone_file(conn, attendee_id, now):
     code = access["code"]
     if code:
         raise ClaimError(code, PHONE_MESSAGES.get(code, ""))
-    return _phone_html()
+    return _phone_html(conn)
 
 
 # ---------------------------------------------------------------------------
@@ -500,7 +527,7 @@ def redeem_phone_ticket(conn, token, now):
         # link. One rule, one vocabulary (23 Sep).
         raise ClaimError(access["code"], PHONE_MESSAGES.get(access["code"], ""))
     db.audit(conn, "attendee", "Phone link used", entity="attendee", entity_id=row["attendee_id"])
-    return _phone_html()
+    return _phone_html(conn)
 
 
 # ---------------------------------------------------------------------------

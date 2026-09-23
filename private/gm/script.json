@@ -1,25 +1,27 @@
 {
-  "_read_me": "Spoilers. The GM console loads this for gm and admin sign-ins only. Edit the lines freely. It is a list, not a schedule: since 23 Sep the hints have no times against them and the game master gives one when the room needs one. Wording follows The Last Guest Guide (GM / Facilitator Flow Deck), which asks for the smallest nudge that moves players forward — never name Natalie before they have connected the evidence. Anything with \"optional\": true sits under 'If they are still stuck' at the bottom of the list.",
+  "_read_me": "Spoilers. The GM console loads this for gm and admin sign-ins only. Edit the lines freely. It is a list, not a schedule: since 23 Sep the hints have no times against them and the game master gives one when the room needs one. Rewritten 23 Sep for the 20-minutes-fast rewrite (CHANGES_FOR_CLAUDE_CODE.md §6.2, ESCAPE_ROOM_PLAN.md §4a): the first three lines are the new ones, `motive` and `method` stay as the optional two, and `merge` is a sixth, optional entry — it is a stage direction for the actor, not a hint. Never name Natalie before they have connected the evidence. Anything with \"optional\": true sits under 'If they are still stuck' at the bottom of the list.",
   "hints": [
-    {"key": "hint1", "title": "The clock",
-     "line": "Is there anything in the photo that gives you a second time?"},
-    {"key": "hint2", "title": "The window",
-     "line": "If the reaction takes 10 to 20 minutes, what time did Kai eat?"},
-    {"key": "hint3", "title": "Opportunity",
-     "line": "Who was alone with the desserts at a time inside that window?"},
+    {"key": "hint1", "title": "The trap",
+     "line": "They're saying Jasmine lied about when she left."},
+    {"key": "hint2", "title": "The clock",
+     "line": "They're asking whether the oven clock in that kitchen picture matches the camera's time."},
+    {"key": "hint3", "title": "The warrant",
+     "line": "They need four things on that warrant: who, the minute, why, and how."},
     {"key": "motive", "title": "Motive", "optional": true,
      "line": "Why would tonight matter more than tomorrow morning?"},
     {"key": "method", "title": "Method", "optional": true,
-     "line": "Why are there two desserts, and why is one labelled NUT FREE?"}
+     "line": "Why are there two cakes, and why is one labelled NUT FREE?"},
+    {"key": "merge", "title": "Bring them together", "optional": true,
+     "line": "Everyone, to the desk. They want one story, not two."}
   ],
   "reset": [
-    "Return Kai to the starting position.",
-    "Reset both dessert plates: the nut dessert at Kai's seat, the NUT FREE one back where it starts.",
-    "Replace the receipt, the allergy card, the notebook, the draft will, the solicitor letter and the empty EpiPen case.",
-    "Re-place the suspect cards and the suspect statements.",
-    "Reset the camera stills and the timeline materials.",
-    "Set the lock box back to 0000 — never leave it on 1012, it gives the answer away.",
-    "Both desk devices back to the phone's home screen — the file's own reset, top-left of its lock screen.",
-    "Check the off-limits areas are still marked and every prop players can reach is safe."
+    "Walnut cake on the table, one slice cut, that slice half-eaten on Kai's plate. Brown-dot allergen card beside the box.",
+    "Darren's receipt on the counter. Fridge card on the fridge.",
+    "EpiPen case open and empty on the kitchen shelf.",
+    "Notebook out; will and solicitor's letter back in the drawer.",
+    "Desk: four statements, contact sheet, large print of Still 5, bin photos A and B, four suspect cards. Wipe the Real time column of the board.",
+    "Fresh warrant and pen in the box. Close it and scramble the lock — never leave it reading 1002.",
+    "Kai in place. Lights, music, smoke.",
+    "Console: next game."
   ]
 }

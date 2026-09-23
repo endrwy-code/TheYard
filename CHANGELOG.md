@@ -1907,3 +1907,174 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Next step:** to let real people into the phone — Settings → **Who gets
   messages → Everyone**, and each of them opens @The_YardBot and taps Start
   once. Then Send it now.
+
+
+## 2026-09-23 — The escape room was rewritten, and the plan for building it
+
+- **Changed:** `CHANGES_FOR_CLAUDE_CODE.md` arrived, rewriting the room: the
+  camera offset goes from 15 minutes to **20** (and is FAST, never "behind"),
+  the murder is set up before anyone eats rather than committed in front of
+  Kai, the answer time becomes **10:02 PM** and the lock code **1002**, the
+  Photos app comes off the phone, and the seven camera stills and two bin
+  photographs become printed paper at the desk. Nothing of this is built yet.
+  `ESCAPE_ROOM_PLAN.md` was added to hold the build plan, and `README.md`'s
+  reading order now points at it before the two older escape-room files.
+- **Current state:** Plan only, no code changed. Three findings drove it.
+  First, the phone **can** be edited without a rebuild — its compiled
+  JavaScript contains none of the story text; every name, message, timestamp
+  and call-log row lives in the `__bundler/template` markup that
+  `scripts/phone_template.py` decodes and re-encodes safely. Second,
+  `EVIDENCE_BRIEF.md`, which the rewrite names as the verbatim source for all
+  phone text, **does not exist in the repository**, which blocks the phone work
+  entirely. Third, the rewrite's §6.2 instruction for `private/gm/script.json`
+  describes keys (`hint1`, `hint2`, `merge`, `hint3`) that are not in the file
+  and claims a test checks them; the file actually has `hint1`, `hint2`,
+  `hint3`, `motive`, `method`, and `tests/test_phone_and_gm.py` asserts exactly
+  that list with `optional` flags — so following §6.2 literally would break a
+  passing test and drop two hints.
+- **Left unfinished on purpose:** No code touched, because two of the three
+  findings are decisions for the organiser: whether `EVIDENCE_BRIEF.md` exists
+  elsewhere or should be drafted from rewrite §2, and whether to keep the
+  five-key hint shape (adding the merge line as a sixth, optional entry) or
+  follow §6.2 and change the console's shape. The finder still has no name
+  (`finder_name` is empty), which now matters more because the finder is Still
+  7 and one of the three routes to the offset. Also logged rather than fixed: a
+  possible wrinkle where Natalie's statement claims she left at 10:24 while her
+  text to Kai is timed 10:15.
+- **Next step:** `ESCAPE_ROOM_PLAN.md` §3a — the organiser answers the finder's
+  name, the brief, and the hint-shape question. Then Tier A, the phone's words.
+
+
+## 2026-09-23 — Tier B: the Photos app came off the escape-room phone
+
+- **Changed:** `ESCAPE_ROOM_PLAN.md` Tier B, done ahead of Tier A because it
+  does not depend on the brief the organiser is sending. Removed from the
+  phone markup, through `scripts\phone_template.py`: the whole Photos
+  screen, the photo tab bar, the full-screen viewer, the drawn wall-clock
+  overlay, the info panel, the `CAMS` and `FILLER_TITLES` arrays, the
+  `photoData()` builder, and the pinch-zoom handlers that only the viewer used.
+  The Photos **tile stays on the home screen** but is now a dead tile like
+  FaceTime and Calendar, so the home screen still looks like a real phone.
+  `services/game.py` now names one picture instead of twenty-two:
+  `STORY_IMAGES` is `("ethan-bank-screenshot.jpg",)` and `FILLER_IMAGES` is
+  gone. `manage.py phone-images` checks for that one file and points at the
+  plan's shoot list for the paper evidence.
+  `private\phone\assets\README.md` was rewritten.
+- **Current state:** The phone markup went from 55,190 to 44,193 characters.
+  No reference to `isPhotos`, `photoTab`, `CAMS`, `FILLER_TITLES`, `viewer` or
+  `cam-0` survives anywhere in it. The remaining component script passes
+  `node --check`, `phone_template.load()` re-encodes byte-identically, and all
+  **565 tests pass**. The camera stills and bin photographs are now printed
+  paper with no filenames, so no code knows about them.
+- **Left unfinished on purpose:** Not opened in a browser — the checks were the
+  test suite, a `node --check` of the component script, and the template
+  round-trip, not a render. Two consequences logged rather than acted on:
+  removing the viewer also removed pinch-zoom, so the bank screenshot (the
+  phone's only picture, and the one carrying the motive) is inline-only and
+  cannot be enlarged; and the contacts' initials still do not match their names
+  (Natalie shows C, Jasmine Z, Darren A, Ethan R), which is Tier A work. The
+  bank screenshot itself still does not exist.
+- **Next step:** `EVIDENCE_BRIEF.md` lands, then Tier A — the phone's words.
+  Tiers C to F are unblocked and can go before it if the brief is delayed.
+
+
+## 2026-09-23 — The brief arrived, and the build was re-aimed at Render
+
+- **Changed:** The organiser supplied `EVIDENCE_BRIEF.md` and confirmed the app
+  now runs on **Render, built from GitHub**, not on the laptop. Three kinds of
+  change followed.
+  **(1) The sources exist now.** `EVIDENCE_BRIEF.md` and
+  `CHANGES_FOR_CLAUDE_CODE.md` were saved into the project root. Neither had
+  ever been a file — both existed only in conversation — so every reference to
+  them in `ESCAPE_ROOM_PLAN.md` and in the comment in `services/game.py`
+  pointed at nothing, and a cold agent would have had no story at all.
+  **(2) Tier B was checked against the brief and corrected.** Brief section 2
+  wants Photos to answer "Cannot Connect": confirmed, the dead tile raises
+  exactly that alert. Brief section 5.9 wants the bank screenshot to be the
+  only served asset: confirmed. But brief section 7 gives the seven stills and
+  two bin photographs real filenames, so the claim in the assets README that
+  they "are not files" was wrong. They are generated files that are printed and
+  never served. They now have a home at `private/props/`, with a committed
+  README and the images themselves gitignored.
+  **(3) Render.** `manage.py phone-images` now checks whether the picture is
+  committed to git, not just present on disk, and prints the exact
+  `git add`/`commit`/`push` when it is not. The two `PHONE_OFF` messages no
+  longer say "on this laptop". `ESCAPE_ROOM_PLAN.md` section 6 was rewritten as
+  a push-and-deploy sequence.
+- **Current state:** 565 tests pass. The phone markup is unchanged since Tier B
+  (44,193 characters) and still round-trips byte-identically. `phone-images`
+  has three outcomes, all exercised by hand: `STILL NEEDED`,
+  `HERE BUT NOT LIVE`, and committed-and-done.
+- **Left unfinished on purpose:** Three things were found that only the
+  organiser can settle, and all are logged in `ESCAPE_ROOM_PLAN.md` sections 1e
+  and 1f. **`DEPLOY.md` says the repository is private and must stay that way;
+  `ESCAPE_ROOM_PROPOSAL.md` section 6b records an actual check finding it
+  answers anonymous requests with 200.** Both cannot be true and neither was
+  changed, because guessing would make one of them worse. **`render.yaml` says
+  `autoDeploy: false` while the organiser says Render auto-pulls** — a dashboard
+  setting overrides the blueprint, so the file may be stale; not corrected until
+  confirmed. **The finder now has a group-chat message in the brief, but the
+  phone is served as a static file with no templating**, so the `finder_name`
+  Setting cannot reach it; three options offered, none chosen. The brief and the
+  changes file were deliberately **not** gitignored, unlike
+  `ESCAPE_ROOM_PROPOSAL.md`: the repository already carries the phone file and
+  the GM script, so hiding two more documents would be theatre at the cost of
+  portability. Making the repository private is the real fix.
+- **Next step:** the finder's name and how it reaches the phone, then Tier A.
+
+---
+
+## 2026-09-23 — Tier A: the phone's words, and the clock got a test
+
+- **Changed:** The phone said one story and the printed evidence said another.
+  Tier B had removed the Photos app, but **every time on the phone was still
+  the old one** — written for a 15-minute offset, a 10:12 answer and an 18m 14s
+  call. All of it was rewritten to `EVIDENCE_BRIEF.md` sections 2 and 3,
+  through `scripts\phone_template.py` as the file requires.
+  **The group chat** is now the fifteen lines of brief section 2.1, including
+  the two that carry the room: Jasmine's **9:30 "night all x"**, which is her
+  lie in her own words, and Natalie's **8:42 "i brought one too. great minds"**,
+  which reads as a joke on the first pass and as premeditation on the second.
+  **Natalie's thread** gained **6:47 PM "passed your bakery. couldnt resist"** —
+  the only tie between her and the walnut cake, and worthless until someone
+  reads the 6:42 cash receipt in bin photo B — and **10:15 PM "was it good? x"**.
+  **The call log** is the seven rows of section 3. Ethan's call moved from
+  10:06/18m 14s to **9:52 PM, 16m 12s**, which is the row that does the most
+  work on the phone: it covers 9:52 to 10:08, so it is half the eating window
+  and the reason Kai was out of his own kitchen while Natalie was in it.
+  **The finder reached the phone.** His 10:22 group-chat line is one of the
+  three routes to the offset, and the phone is a static file with no
+  templating, so `services/game.py` now substitutes a `__FINDER__` token at
+  serve time from the `finder_name` Setting. Left empty he is an unsaved
+  number, which is what an unnamed contact looks like on a real phone — so the
+  thread reads correctly whether or not anyone fills the row in.
+  **Four contact initials were wrong** — Natalie showed C, Jasmine Z, Darren A,
+  Ethan R, left over from an earlier cast. On a phone pretending to be real,
+  that is the detail a player notices before they distrust everything else.
+  **The GM script** was rewritten: the three hint lines from
+  `CHANGES_FOR_CLAUDE_CODE.md` section 6.2, `motive` and `method` kept as the
+  optional two, and `merge` added as a sixth optional entry — it is a stage
+  direction for the actor, not a hint. The reset list is the eight steps of
+  section 6.4, and step 6 now scrambles the lock instead of naming **1002**.
+- **Current state:** **583 tests pass** (565 before, plus 18 new).
+  `tests/test_clock_invariants.py` is new and is the point of this entry: it
+  holds four of the ten rules in `CHANGES_FOR_CLAUDE_CODE.md` section 7 that
+  are each one careless edit away from silently destroying the room. It
+  asserts that **no camera stamp appears anywhere on the phone** — the failure
+  that would make correcting the clock move the eating window with it, so the
+  two shifts cancel and a team does the clock work correctly and learns
+  nothing — that the offset is uniform and **fast**, that no raw stamp falls
+  after the collapse, and that the shift never reorders anybody. It reads the
+  real phone file, not a stub. The phone markup round-trips byte-identically
+  and its JavaScript passes `node --check`.
+- **Left unfinished on purpose:** **The finder still has no name.** The
+  mechanism no longer waits for one — Settings → The finder's name is now live
+  and takes effect on the next phone open — but until it is filled in he shows
+  as `+65 8712 3390`. **`ESCAPE_ROOM_FLOW.md` sections 5 to 12 were not
+  rewritten end to end.** Sections 1 to 4 were, and a banner at the top says
+  the rest still carries old staging and that the three source files win;
+  rewriting the actor's script and the minute-by-minute is the organiser's
+  call, not an agent's. The two questions in `ESCAPE_ROOM_PLAN.md` section 1e
+  are still open and still only the organiser's to answer: **is the repository
+  public**, and **is Render's auto-deploy on**.
+- **Next step:** the photographs. Nine printed, one served.

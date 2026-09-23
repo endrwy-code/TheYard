@@ -12,6 +12,13 @@ is the Flask app, the Telegram bot and the database behind it.
    `STATE.md`, this file, `BUILD_SPEC.md`, `RUNBOOK.md` and
    `context/PROJECT_STATUS.md` in the same pass, so the project can be handed
    to a new agent cold.
+0a. **`ESCAPE_ROOM_PLAN.md`** — for the escape room only, and read it before
+   `ESCAPE_ROOM_FLOW.md` or `ESCAPE_ROOM_PROPOSAL.md`. The room was rewritten on
+   23 Sep (`CHANGES_FOR_CLAUDE_CODE.md`): the camera offset is now 20 minutes,
+   the answer is 10:02 and the lock code is 1002. None of that is built yet, and
+   the two older escape-room files still describe the 15-minute version. The
+   plan says what changes in the repo, what the organiser has to shoot and
+   print, and the two places where the rewrite and the code disagree.
 1. **`BUILD_SPEC.md`** — the whole specification. Architecture, data model,
    integrity rules, API contract, build priorities and acceptance tests. Section
    numbers (§2, §3, §7–§12) match the organiser's original brief, so a reference
@@ -176,6 +183,8 @@ scripts/start_event.ps1    opens the three event-day windows
 prototypes/                the approved front-end: Mini App, and the console
                            (overview, people, booth mode, GM console)
 prototypes/assets/         the logo and the demo QR the prototypes reference
+ESCAPE_ROOM_PLAN.md        the escape room's current plan — read before the
+                           other two escape-room files
 private/phone/the-phone.html   the escape-room phone file
 context/                   reference material, not instructions:
                            The_Yard_Claude_Design_Prompt_v2.md  the original brief
@@ -227,9 +236,11 @@ entries for each change.
 - The roster import must be **re-done**: the preview stored on 17 Sep was
   worked out under the bug fixed on 18 Sep, so it will be refused by name.
   Upload the file again and commit the fresh preview.
-- The phone file still needs its five images embedded: four camera stills and
-  Ryan's bank screenshot. The organiser is supplying them. Everything else about
-  the phone is finished.
+- The phone needs **one** picture: `ethan-bank-screenshot.jpg`. The organiser
+  is supplying it. The four camera stills and the seventeen filler shots are
+  gone — the Photos app was removed on 23 Sep and the seven stills and two bin
+  photographs are printed paper at the desk now. Everything else about the
+  phone is finished.
 - A few Settings values are still placeholders — GM and actor handles, the
   finder's name, and pastry/photo-strip/vinyl stock (0 = not counted). They're rows in the
   Settings screen, so build against the defaults in `config.py` and let the

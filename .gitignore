@@ -26,6 +26,15 @@ design/index.html.bak
 # which is an argument for making the repository private, not for adding to it.
 ESCAPE_ROOM_PROPOSAL.md
 
+# The generated camera stills and bin photographs (EVIDENCE_BRIEF.md section 7).
+# These are printed at the desk and are never served, so Render has no use for
+# them, and they are the clearest possible spoiler: still-5 shows the killer and
+# the oven clock that breaks the case. Large files, too. The folder's README is
+# committed so a new agent knows what belongs there; the images are not.
+# See private/props/README.md.
+private/props/*
+!private/props/README.md
+
 # Python and tooling.
 venv/
 .venv/

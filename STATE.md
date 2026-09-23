@@ -206,8 +206,9 @@ private/receipts/   our own copies of the Paperform screenshots. Random
 requirements.txt    pinned with pip freeze
 ```
 
-`private/phone/the-phone.html` is finished except for five images the
-organiser is supplying.
+`private/phone/the-phone.html` is finished except for one image the organiser
+is supplying, `ethan-bank-screenshot.jpg`. Its words were rewritten on 23 Sep
+to the 20-minutes-fast timeline; see decision 151.
 
 ---
 
@@ -1584,6 +1585,46 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        outcome the caller wanted rather than the one that happened. `sent` was
        set before anything had been sent, and everything downstream repeated it.
 
+151. **The escape room was rewritten, and the phone was rewritten to match.**
+     23 Sep, from the organiser's `CHANGES_FOR_CLAUDE_CODE.md` and
+     `EVIDENCE_BRIEF.md`, both now in the project root. Planned in
+     `ESCAPE_ROOM_PLAN.md`.
+     - **The camera clock is 20 minutes FAST, not 15**, and it has a cause: a
+       power trip on Sunday reset the hub and Kai set it by hand. Direction is
+       *fast* — the stamp reads later than the truth — and it must never be
+       written as "behind" anywhere.
+     - **The answer is 10:02 PM and the lock code is 1002**, replacing 10:12
+       and 1012 everywhere in the project.
+     - **The murder is no longer done in front of him.** Corrected, every guest
+       is out of the flat before the eating window opens, so the question stops
+       being "who was in the room when he ate" and becomes "who was last alone
+       with the food". Only Natalie was. This is the new aha and it is why the
+       answer time is the swap, not the death.
+     - **The Photos app came off the phone** (Tier B). The seven camera stills
+       and two bin photographs are printed paper at the desk. `STORY_IMAGES` is
+       one file now, `ethan-bank-screenshot.jpg`; the four `cam-NN` stills and
+       seventeen `filler-NN` shots are gone. The printed nine live in
+       `private/props/`, gitignored, read by no code.
+     - **Every time on the phone was rewritten** (Tier A) to `EVIDENCE_BRIEF.md`
+       sections 2 and 3. Chat and call-log times are network-true; nothing on
+       the phone may ever be 20 minutes out. Ethan's call moved to **9:52 PM,
+       16m 12s**, which with the fridge card is the whole eating window.
+     - **The eating window must never touch a camera.** If any part of it came
+       off a stamp, correcting the clock would move the window by the same 20
+       minutes, the two shifts would cancel, and a team would do the clock work
+       correctly and learn nothing. `tests/test_clock_invariants.py` holds this
+       and three other rules from the rewrite's section 7.
+     - **The finder reaches the phone through a token.** He has a group-chat
+       line at 10:22 and the phone is a static file, so `_phone_html()`
+       substitutes `__FINDER__` from the `finder_name` Setting at serve time.
+       Empty, he is an unsaved number — correct in-world, so nothing blocks on
+       the name being chosen.
+     - **The GM script keeps its five keys and gains a sixth.** `merge` is a
+       stage direction for the actor, not a hint, so it sits with `motive` and
+       `method` under "If they are still stuck". Following the rewrite's
+       section 6.2 literally would have dropped two hints and broken a passing
+       test; `ESCAPE_ROOM_PLAN.md` section 4a records the choice.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1722,11 +1763,12 @@ These block nothing, but they need answers before the day.
    them later, and asked for the mechanism to be built first (decision 95).
    It is. They go in `private\phone\assets\` under the exact names the phone
    asks for, listed in the README there and by `python manage.py
-   phone-images`. **Five are required** — `cam-01-kitchen-2215.jpg`,
-   `cam-02-hallway-2220.jpg`, `cam-03-hallway-2223.jpg`,
-   `cam-04-kitchen-2227.jpg`, `ryan-bank-screenshot.jpg` — and seventeen
-   `filler-NN.jpg` camera-roll shots are optional. Anything missing serves a
-   grey tile, so the whole game can be rehearsed before the photographs exist.
+   phone-images`. Since 23 Sep (decision 151) **exactly one is required** —
+   `ethan-bank-screenshot.jpg`. The four `cam-NN` stills and the seventeen
+   `filler-NN.jpg` camera-roll shots are gone with the Photos app; the seven
+   camera stills and two bin photographs are printed paper at the desk and no
+   code knows about them. Anything missing serves a grey tile, so the whole
+   game can be rehearsed before the photograph exists.
 5. ~~**"Call matcha".**~~ Built 17 Sep, removed 18 Sep (decision 60).
 9. ~~**Halves and friends.**~~ **Answered 18 Sep: "NO, as much as possible try
    to group them together."** The organiser did not want friends who booked

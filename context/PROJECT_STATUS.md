@@ -22,10 +22,11 @@ specification; `RUNBOOK.md` is the operating guide.
 - **OS**: Windows 11, PowerShell. Not Bash — use `;` not `&&`, and
   `venv\Scripts\activate` not `source venv/bin/activate`.
 - **Editor**: VS Code.
-- **Project folder**: `C:\Users\endrw\my-mini-app`. **Git is not installed on
-  this laptop yet** (checked 22 Sep). It is being put into a private GitHub
-  repository so a friend can host it — `.gitignore` and `DEPLOY.md` are
-  written and waiting for `winget install --id Git.Git -e` and the first push.
+- **Project folder**: `C:\Users\endrw\my-mini-app`. **Git is installed and in
+  use** (2.55, checked 23 Sep) — the earlier note that it was not is out of
+  date. The project is a GitHub repository and the app is deployed from it;
+  `.gitignore` keeps `.env`, the database, the Paperform exports, the saved
+  receipts and the printed escape-room props out of it.
 - **Python**: virtual environment at `venv\`, activated per window.
 - **Every new PowerShell window opens in `C:\Users\endrw`.** On 17 Sep
   `bot.py` and `manage.py notify-test` were run from there with the system
@@ -174,10 +175,15 @@ now out of date, and acting on them would waste time:
   longer true.** Free accounts get one fixed dev domain and endpoints no longer
   time out, so the URL should survive restarts. This is also noted in
   `BUILD_SPEC.md` §7.4.
-- It named **Render** as the permanent hosting plan. **Rejected.** Render's free
-  tier wipes the filesystem on restart, redeploy or spin-down, which would erase
-  the database and every uploaded receipt. Everything runs on the organiser's
-  laptop behind a tunnel instead, so the data stays on their own disk.
+- It named **Render** as the permanent hosting plan. **This was rejected on
+  22 Sep and then reversed — the app runs on Render now** (23 Sep), built from
+  GitHub. The reason for the original rejection has not gone away and is worth
+  keeping in view: Render's free tier wipes the filesystem on restart, redeploy
+  or spin-down, which erases the database and every uploaded receipt unless a
+  persistent disk is attached. **Check that before the event, not after.**
+  `render.yaml` and `DEPLOY.md` are the files that say how it is set up, and
+  `ESCAPE_ROOM_PLAN.md` section 1e lists two things about the live setup that
+  only the organiser can confirm.
 - It described `/api/save` and a planned `database.py` with `save_response()`.
   **Gone.** That was scaffolding from the first prototype. The real schema is
   `BUILD_SPEC.md` §8, implemented in `db.py`; `database.py` is an empty leftover
