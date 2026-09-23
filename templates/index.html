@@ -295,6 +295,14 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
   color:#D6D2CA; font-family:inherit; font-size:12.5px; line-height:1.4;
   text-decoration:underline; text-underline-offset:3px; text-align:left;
 }
+/* How many people, said once and said large (23 Sep). The first version
+   of this was a `.fine` paragraph, which is where the app puts things
+   nobody has to read — and "you can only book six of the twelve seats" is
+   the one fact that changes what somebody does next. */
+.esc-who{ background:var(--night-2); border-radius:18px; padding:18px 20px; color:#F2EFE8 }
+.esc-who .label{ color:var(--bone) }
+.esc-who-n{ font-family:var(--display); font-size:34px; line-height:1.05; margin-top:4px }
+.esc-who-b{ font-size:14px; line-height:1.5; color:#D6D2CA; margin-top:8px }
 .bar{ display:flex; justify-content:space-between; align-items:baseline; padding-bottom:10px; border-bottom:2px solid #F2EFE8 }
 .games{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px }
 .game{
@@ -1421,7 +1429,11 @@ VIEWS.esc = function(){
            actually open to them, so it can never be a button that refuses. -->
       ${S.phone && !S.phone.code ? `
       <button class="btn btn-bone" data-go="phone" style="margin-bottom:18px">Open Kai Chen’s phone ${ARROW}</button>` : ''}
-      <p class="fine" style="margin-top:0;margin-bottom:18px">Come as a group of six. One of you books a time and adds the other five — the flat and the desk each hold half of what you need, so a full group is how the room is meant to be played.</p>
+      <div class="esc-who">
+        <div class="label">How many of you</div>
+        <div class="esc-who-n">Twelve play.<br>You book six.</div>
+        <div class="esc-who-b">Each game takes <strong>twelve people</strong>, and one booking holds <strong>up to six</strong> — so you and five friends book together, and another group takes the other six seats. One of you picks a time and adds the rest by their Telegram username; everybody gets their own ticket.</div>
+      </div>
       <div class="bar label"><span>Tonight</span><span>${first ? esc(span(at(first.starts_at), at(last.starts_at))) : ''}</span></div>
       <div class="games">${cells}</div>
     </div>
@@ -2705,7 +2717,7 @@ async function openThePhone(){
    in ninety seconds, then hand it to Telegram to open outside the app. The
    link is fetched at the moment of tapping and never stored: a link sitting
    in a variable would be a spare key, and the point of this one is that it
-   cannot be passed to the half of the room that isn't meant to have it. */
+   works once, for the person who asked for it. */
 async function openPhoneInBrowser(){
   const r = await api('POST','/api/escape/phone/link');
   if (!r.ok){

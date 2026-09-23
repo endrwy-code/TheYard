@@ -141,7 +141,7 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .personcard .tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
 .tag{ font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 10px; border-radius:999px }
 .tag-dark{ background:#101010; color:#F2EFE8 }
-.tag-half{ background:#1C2024; color:#C8CFC7 }
+.tag-room{ background:#1C2024; color:#C8CFC7 }
 .tag-line{ box-shadow:inset 0 0 0 1px #10101038; color:#3C4654 }
 .handbox{ display:flex; flex-direction:column; gap:10px; animation:rise .36s .08s var(--ease) both }
 .handover{
@@ -531,11 +531,11 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 .trow.head{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654; background:#FBFAF7 }
 .trow.blocked{ background:#FCF4F3 }
 .trow .time{ font-family:var(--num); font-stretch:112%; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums }
-.trow .halves{ font-family:var(--num); font-stretch:112%; font-size:13px; color:#3C4654 }
+.trow .party{ font-family:var(--num); font-stretch:112%; font-size:13px; color:#3C4654 }
 .trow .acts{ display:flex; gap:8px; justify-content:flex-end }
 @media (max-width:900px){
   .trow{ grid-template-columns:90px 1fr auto; row-gap:6px }
-  .trow .halves, .trow.head{ display:none }
+  .trow .party, .trow.head{ display:none }
   .trow .acts{ grid-column:1 / -1; justify-content:flex-start }
 }
 .seatbar{ height:10px; border-radius:999px; background:#10101018; overflow:hidden; max-width:220px }
@@ -1159,7 +1159,7 @@ SCREENS.booth = function(){
           ${sc.person.checked_in_at
             ? `<span class="tag tag-dark">Checked in ${esc(fmtIso(sc.person.checked_in_at))}</span>`
             : `<span class="tag tag-line">Not checked in</span>`}
-          ${sc.person.escape ? `<span class="tag tag-half">The Last Guest · ${esc(short(sc.person.escape.starts_at))}</span>` : ''}
+          ${sc.person.escape ? `<span class="tag tag-room">The Last Guest · ${esc(short(sc.person.escape.starts_at))}</span>` : ''}
         </div>
       </div>` : ''}
       ${sc && sc.hand ? handBox(l) : ''}
@@ -1457,7 +1457,7 @@ SCREENS.person = function(){
           </div>
           <div class="panel">
             <div class="h">Bookings</div>
-            ${escB ? `<div class="kv"><span>${esc(escB.ref)} · ${esc(fmtIso(escB.starts_at))}${escB.booked_by ? ' · added by ' + esc(escB.booked_by) : ''}</span><span class="tag tag-half">Half ${esc(escB.zone || '?')}</span></div>` : ''}
+            ${escB ? `<div class="kv"><span>${esc(escB.ref)} · ${esc(fmtIso(escB.starts_at))}${escB.booked_by ? ' · added by ' + esc(escB.booked_by) : ''}</span><span class="tag tag-room">The Last Guest</span></div>` : ''}
             ${jams.map(j => `<div class="kv"><span>${esc(j.ref)} · ${esc(fmtIso(j.starts_at))}</span><span class="tag" style="background:#3B32C4;color:#F2EFE8">Jam</span></div>`).join('')}
             ${!escB && !jams.length ? `<div class="kv"><span style="color:#3C4654">No bookings</span></div>` : ''}
             ${escB && isAdmin ? `<button class="smallbtn" id="moveesc">Move to another game</button>` : ''}
@@ -1792,7 +1792,7 @@ SCREENS.schedules = function(){
       <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
       <!-- The booker first, then who they brought: staff at the door look for
            the name on the booking, then count heads against the party. -->
-      <span class="halves" title="${esc((s.party || []).join(', '))}">${
+      <span class="party" title="${esc((s.party || []).join(', '))}">${
         s.who ? esc(s.who) + (s.booked > 1 ? ' +' + esc(s.booked - 1) : '') : '—'}</span>
       <span class="acts">
         <button class="smallbtn ${s.blocked ? '' : 'danger'}" data-block="${s.id}" data-blocked="${s.blocked ? 1 : 0}">${s.blocked ? 'Unblock' : 'Block'}</button>
@@ -1812,7 +1812,7 @@ SCREENS.schedules = function(){
         <div class="lead">Every 20 minutes from ${esc(esc_.length ? short(esc_[0].starts_at) : '—')} to ${esc(esc_.length ? short(esc_[esc_.length - 1].starts_at) : '—')} PM, ${esc(esc_.length ? esc_[0].capacity : 12)} a game. Blocking a game hides it from the attendee board straight away. People already booked stay booked — move them first.</div>
       </div>
       <div class="table">
-        <div class="trow head"><span>Start</span><span>Seats</span><span>State</span><span>Halves</span><span></span></div>
+        <div class="trow head"><span>Start</span><span>Seats</span><span>State</span><span>Who</span><span></span></div>
         ${esc_.map(gameRow).join('')}
       </div>
       <div>
@@ -2583,7 +2583,7 @@ async function doMove(){
   const r = await api('POST /admin/api/escape/move', { path:'/admin/api/escape/move',
     json:{ attendee_id:S.selectedPerson, slot_id:g.id, reason:'moved from the People screen' } });
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
-  toast('Moved to ' + fmtIso(r.data.moved_to) + ', half ' + r.data.zone + '. They get a message.', 'good');
+  toast('Moved to ' + fmtIso(r.data.moved_to) + '. They get a message.', 'good');
   load();
 }
 

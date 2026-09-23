@@ -1543,6 +1543,26 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        over as one, so the key is removed rather than retired. This supersedes
        decision 146, taken the same morning, which kept all four buttons.
 
+149. **Twelve play, you book six — and the last of the halves.** 23 Sep.
+     - The escape screen says the numbers plainly, in a card of its own:
+       **"Twelve play. You book six."** Each game takes twelve (`capacity`),
+       one booking holds up to six (`max_party`), so a group books together and
+       another group takes the other six seats. It was a `.fine` paragraph
+       until now — the class the app uses for what nobody has to read, and this
+       is the one fact that changes what somebody does next.
+     - **The halves wording went with it, and two leftovers were live bugs.**
+       The person page printed **"Half ?"** on every escape booking, because
+       `zone` has not been served by anything since decision 140 and the
+       fallback won every time. Moving somebody between games toasted **"half
+       undefined"**, because the move returns `{moved_to}` alone. Also the
+       Schedules column header (**Halves** → **Who**), the `.tag-half` and
+       `.trow .halves` class names, and a comment justifying the one-time phone
+       link by "the half of the room that isn't meant to have it".
+     - **The lesson, for next time a feature is removed:** the code went in one
+       commit and the words took three. Grepping for the feature's *name* found
+       the functions; it did not find "half", "zone", a column header, a CSS
+       class or a toast built from a field that had stopped existing.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.

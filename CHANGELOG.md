@@ -1833,3 +1833,33 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   pass `node scripts/check_pages.mjs`.
 - **Next step:** nothing for the wording. The brownie is the only one of these
   with a physical consequence — whoever stocks the pastry counter needs telling.
+
+## 2026-09-23 — Twelve play, you book six — and the last of the halves
+
+- **Changed:** the escape room screen now says how many people the room takes,
+  in a dark card of its own rather than the fine print the first version used
+  this morning. **"Twelve play. You book six."** — each game takes twelve, one
+  booking holds up to six (`capacity` 12, `max_party` 6), so you and five
+  friends book together and another group takes the other six seats. New
+  `.esc-who` block, styled the way `.phone` is. It was `.fine` before, which is
+  where the app puts what nobody has to read, and "you can only book six of the
+  twelve seats" is the one fact that changes what somebody does next.
+- **The halves language is gone from both pages.** The split went this morning
+  (`STATE.md` 140) but its wording had not, and two of the leftovers were live
+  bugs, not just stale copy:
+  - **The person page printed "Half ?"** on every escape booking. `zone` has not
+    been served by anything since the split went, so `escB.zone || '?'` resolved
+    to the fallback every time. It reads **The Last Guest** now.
+  - **Moving somebody between games toasted "half undefined."**
+    `admin.save`'s move returns `{moved_to}` and nothing else, so
+    `r.data.zone` was undefined. The toast just names the new time.
+  - The Schedules timetable column header said **Halves**; it says **Who**,
+    which is what the column holds.
+  - `.tag-half` → `.tag-room` and `.trow .halves` → `.trow .party`, since
+    neither had anything to do with halves any more.
+  - A comment on the one-time phone link still justified itself by "the half of
+    the room that isn't meant to have it". It works once, for whoever asked.
+- **Current state:** **564 tests pass.** 23 console states render; both pages
+  pass `node scripts/check_pages.mjs`.
+- **Next step:** the organiser reads the new card on a phone and checks that
+  "you book six of twelve" is understood without asking anyone.
