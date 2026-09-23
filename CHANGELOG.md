@@ -2178,3 +2178,40 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   dashboard action and the organiser's to take; Render deploys from private
   repositories with no change to anything here.
 - **Next step:** the photographs — nine printed, one served.
+
+---
+
+## 2026-09-23 — No picture inside the phone had ever loaded in Telegram
+
+- **Changed:** The four contact photos were added earlier today and did not
+  appear. The cause is older than they are and affected every picture the
+  phone has ever had. **In the Mini App the phone is mounted in an iframe from
+  a Blob URL**, and a blob has no path, so a relative `assets/face-natalie.jpg`
+  inside it resolves against nothing. The picture never loads, silently, with
+  no error in any log. It only ever worked down the `/p/{token}/` browser
+  route — which is exactly why that route documents needing its trailing
+  slash, the clue that was sitting in `STATE.md` the whole time.
+  **This is also why the bank screenshot was a grey box with its own filename
+  printed inside it.** That was not a placeholder for an image nobody had
+  supplied; it was the original author drawing the gap because the image could
+  not load. Turning it into an `<img>` earlier today fixed the markup and
+  changed nothing on screen.
+  `_inline_assets()` now replaces every `assets/<name>` with a `data:` URI as
+  the page is served. A data URI needs no base, no second request and no
+  `initData` on the image itself, so it works down both routes. A picture that
+  is not on the machine becomes `MISSING_TILE`, the same grey tile the asset
+  endpoint already serves, rather than a broken-image icon. The four faces were
+  also re-cropped from the originals, biased up the frame because a centre crop
+  took the chin off.
+- **Current state:** 586 tests pass, three of them new and all three about this
+  bug: a relative reference must not survive into the served page, a missing
+  file must become the grey tile, and the real phone file must carry every face
+  it names. The served page is 228 KB against a 158 KB file, which is the
+  pictures now being in it. The bundle still parses: the template block is
+  valid JSON after substitution, and base64 is only `A–Z a–z 0–9 + / =`, so
+  none of it can disturb the JSON string the markup lives in.
+- **Left unfinished on purpose:** `GET /api/escape/assets/{name}` and
+  `GET /p/{token}/assets/{name}` are both still there and still gated. Nothing
+  reaches them from the phone now, but they cost nothing and the browser route
+  is the fallback for the night the Mini App will not open.
+- **Next step:** the photographs — nine printed, one served.

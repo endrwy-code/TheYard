@@ -232,3 +232,56 @@ def test_issuing_and_using_are_both_logged(night, roster):
         "SELECT action FROM audit_log WHERE action LIKE 'Phone link%' ORDER BY id")]
     assert actions == ["Phone link issued", "Phone link used"]
 
+
+
+# ---------------------------------------------------------------------------
+# The pictures have to be *in* the page, not pointed at (23 Sep)
+# ---------------------------------------------------------------------------
+
+def test_a_relative_picture_is_replaced_by_the_picture_itself():
+    """The bug this catches cost an evening, and it is invisible from the code.
+
+    In the Mini App the phone is mounted in an iframe from a **Blob URL**. A
+    blob has no path, so `assets/face-natalie.jpg` inside it resolves against
+    nothing and the picture never loads -- silently, with no error anywhere. It
+    only ever worked down the `/p/{token}/` browser route, which is why that
+    one needs its trailing slash.
+
+    So no relative `assets/` reference may survive into the served page.
+    """
+    name = game.PHONE_IMAGES[0]
+    out = game._inline_assets(f'<img src="assets/{name}">')
+    assert "assets/" not in out
+    assert out.startswith('<img src="data:image/jpeg;base64,')
+
+
+def test_a_picture_that_is_not_on_this_machine_becomes_the_grey_tile():
+    """A missing picture must still be something the browser can draw, not a
+    broken-image icon in the middle of the evidence."""
+    import base64
+    from pathlib import Path
+    import config
+    missing = [n for n in game.PHONE_IMAGES
+               if not (Path(config.PHONE_DIR) / "assets" / n).exists()]
+    if not missing:
+        pytest.skip("every picture is on this machine")
+    out = game._inline_assets(f'<img src="assets/{missing[0]}">')
+    assert base64.b64encode(game.MISSING_TILE).decode("ascii") in out
+
+
+def test_the_real_phone_carries_its_pictures_and_points_at_none():
+    """End to end, on the real file rather than the stub the others use."""
+    import base64
+    import re
+    from pathlib import Path
+    import config
+    real = Path(config.PHONE_DIR) / "the-phone.html"
+    if not real.exists():
+        pytest.skip("the real phone file is not in this checkout")
+    html = game._inline_assets(real.read_text(encoding="utf-8"))
+    left = re.findall(r"assets/[\w\-.]+", html)
+    assert not left, f"{left} would never load inside the Blob-URL iframe"
+    for name in game.FACE_IMAGES:
+        f = Path(config.PHONE_DIR) / "assets" / name
+        if f.exists():
+            assert base64.b64encode(f.read_bytes()).decode("ascii") in html, name

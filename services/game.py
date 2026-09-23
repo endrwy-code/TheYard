@@ -378,13 +378,48 @@ def _finder_name(conn):
     return name or FINDER_UNSAVED
 
 
+def _inline_assets(html):
+    """Put the pictures inside the page instead of pointing at them.
+
+    In the Mini App the phone is mounted in an iframe from a **Blob URL**, and
+    a blob has no path for `assets/face-natalie.jpg` to resolve against — so a
+    relative picture inside the phone has never loaded in Telegram. It only
+    worked down the `/p/{token}/` browser route, which is why that route needs
+    its trailing slash. This is also why the bank screenshot used to be drawn
+    as a grey box with its own filename printed in it: the author knew the
+    image could not load and drew the gap instead of the picture.
+
+    A `data:` URI depends on no base and no second request, so it works down
+    both routes and needs no `initData` on the image itself. A picture that is
+    not on this machine becomes the grey tile rather than a broken-image icon,
+    which is what `phone_image` already serves through the other route.
+
+    Base64 is only A–Z a–z 0–9 + / =, so none of it can disturb the JSON
+    string the markup lives in, and `</` never appears.
+    """
+    import base64
+    folder = config.PHONE_DIR / "assets"
+    for name in PHONE_IMAGES:
+        ref = f"assets/{name}"
+        if ref not in html:
+            continue
+        try:
+            blob = (folder / name).read_bytes()
+        except OSError:
+            blob = MISSING_TILE
+        html = html.replace(ref, "data:image/jpeg;base64," +
+                            base64.b64encode(blob).decode("ascii"))
+    return html
+
+
 def _phone_html(conn=None):
     path = config.PHONE_DIR / "the-phone.html"
     try:
         html = path.read_text(encoding="utf-8")
     except OSError:
         raise ClaimError("PHONE_OFF", "The phone file isn't deployed. Use the desk devices.")
-    return html.replace(FINDER_TOKEN, _finder_name(conn) if conn is not None else FINDER_UNSAVED)
+    html = html.replace(FINDER_TOKEN, _finder_name(conn) if conn is not None else FINDER_UNSAVED)
+    return _inline_assets(html)
 
 
 # The pictures the phone asks for by name. Since the 23 Sep rewrite
