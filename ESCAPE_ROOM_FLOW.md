@@ -394,7 +394,20 @@ before: \"and don't tell natalie i'm coming, she'll make it a thing\"
 after:  \"and don't tell natalie, she'll make it a thing\"
 ```
 
-**A4 (optional):** `her banking app in april.` → `her banking app in may.`
+**A4:** ~~`her banking app in april.` → `her banking app in may.`~~ **Done
+23 Sep**, a different way: `her banking app last week`. April was impossible
+against "every month since may" — he would have seen nothing — and May would
+have shown him exactly one transfer. Last week shows him the whole run at once,
+which is what a person actually notices.
+
+**A5 — whose account is in the screenshot. Settled 23 Sep: Natalie's app,
+showing the money arriving.** `EVIDENCE_BRIEF.md` §5.9 says "one outgoing
+payment a month from Kai's account" and §11-F here said Natalie's app; both are
+true of the same picture, because every incoming row names Kai as the sender.
+Her app is also the only version that explains how a friend found it. Four
+rows, May to August, matching the notebook (§5.8) amount for amount — if those
+two disagree a sharp team will notice, and the notebook is the one in Kai's
+handwriting.
 
 ### B. `private/gm/script.json`
 

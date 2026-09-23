@@ -368,6 +368,14 @@ Solicitor Fri 9am. New will.
 A banking app, a transfer list, one outgoing payment a month from Kai's account
 since May. This is the only asset the phone still loads.
 
+> **Settled 23 Sep: it is Natalie's app, showing the money arriving.** The line
+> above and `ESCAPE_ROOM_FLOW.md` §11-F described it from opposite sides; both
+> are true of the same picture, because every incoming row names Kai as the
+> sender. Hers is also the only version that explains how Ethan found it — he
+> was helping her with her phone. **Four rows, May to August**, because Kai
+> says "four months nat" and the notebook (§5.8) holds four. The two must agree
+> amount for amount.
+
 ### 5.10 Suspect cards
 
 Photo, name, relationship. Nothing else. Any line of characterisation hands the

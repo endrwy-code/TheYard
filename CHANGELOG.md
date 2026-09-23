@@ -2215,3 +2215,32 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   reaches them from the phone now, but they cost nothing and the browser route
   is the fallback for the night the Mini App will not open.
 - **Next step:** the photographs — nine printed, one served.
+
+---
+
+## 2026-09-23 — Whose bank account is in the screenshot, and a date that could not happen
+
+- **Changed:** Two things about the one asset the phone still has to be given.
+  **(1) Ethan looked at the wrong month.** His thread said he was shown the
+  banking app *"in april"*, while he also says the transfers run *"every month
+  since may"* — in April there would have been nothing to see. The
+  inconsistency predates today (`ESCAPE_ROOM_FLOW.md` §11-A4 had flagged it and
+  suggested april → may) and was carried through unchanged in this morning's
+  rewrite. May would have shown him exactly one transfer, so it is **"last
+  week"** instead: he sees the whole run at once, which is what a person
+  actually notices.
+  **(2) The screenshot is Natalie's app, not Kai's.** `EVIDENCE_BRIEF.md` §5.9
+  said "one outgoing payment a month from Kai's account"; `ESCAPE_ROOM_FLOW.md`
+  §11-F said Natalie's banking app. Both describe the same picture from
+  opposite sides, because every incoming row names Kai as the sender — and
+  hers is the only version that explains how a friend stumbled onto it. Written
+  into both files so the next person does not have to work it out again.
+- **Current state:** 586 tests pass. **Four rows, May to August**, because Kai
+  says "four months nat" and the notebook holds four months of dated amounts.
+  The screenshot and the notebook have to agree amount for amount; the notebook
+  is the one in Kai's handwriting, so it wins.
+- **Left unfinished on purpose:** No amounts are fixed anywhere yet. They want
+  choosing once and writing into both props at the same time, and nothing in
+  the room depends on the figures — only on there being four of them, monthly,
+  and large enough that "i can put it back. all of it" is a real offer.
+- **Next step:** the photographs, and this screenshot.
