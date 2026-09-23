@@ -1677,3 +1677,33 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   `node scripts/check_pages.mjs`.
 - **Next step:** the organiser runs `TESTPLAN.md` Part A end to end. §A5 is
   the part that changed most and is worth reading before starting.
+
+## 2026-09-23 — A review of the escape room, kept off GitHub
+
+- **Changed:** new file **`ESCAPE_ROOM_PROPOSAL.md`**, and a `.gitignore` rule
+  that keeps it on the laptop. It is the opinion layer next to
+  `ESCAPE_ROOM_FLOW.md`'s operational flow: what the room is for, what to cut,
+  where the design is fragile, and — §1 — a table of exactly which sources were
+  read and which were not.
+- **Why it is ignored:** the organiser's decision. It names the killer, the
+  code and every hint, and the repository is still public. (`ESCAPE_ROOM_FLOW.md`
+  is already up there in more detail, which is an argument for making the
+  repository private rather than for adding to it.)
+- **What it found, and neither is a code problem:**
+  - **None of the five story photographs exist.** `manage.py phone-images`
+    reports 5 of 5 still needed and `private/phone/assets/` holds only its
+    README, so the evidence chain — the clock still, the corrected times, the
+    bank screenshot — is not there. A player opening Photos sees grey tiles.
+    The phone re-reads the folder on every open, so they can be dropped in on
+    the night with no restart.
+  - **`finder_name` is empty**, so the actor's character is unnamed; no actor
+    is registered (`actor_chat_id` 0), so every hint is read aloud; and
+    `phone_always_handles` is empty, so nobody can open the phone to test it
+    outside a booked slot.
+- **Also recorded:** `The Last Guest Guide.pdf`, which `ESCAPE_ROOM_FLOW.md`
+  cites as the source that settles the cast and the puzzle chain, **is not in
+  the repository**. Nothing here can be checked against it.
+- **Current state:** 539 tests pass, unchanged — no code was touched.
+- **Next step:** shoot `cam-04-kitchen-2227.jpg` first (the wall clock at 10:12
+  against the 22:27 stamp); it is the one image the room cannot be played
+  without.

@@ -20,6 +20,12 @@ design/answers.json
 design/the-yard-design.html
 design/index.html.bak
 
+# Stays on the laptop, by the organiser's decision (23 Sep). It is a review of
+# the escape room that names the killer, the code and every hint, and the
+# repository is public. ESCAPE_ROOM_FLOW.md is already up there and is worse,
+# which is an argument for making the repository private, not for adding to it.
+ESCAPE_ROOM_PROPOSAL.md
+
 # Python and tooling.
 venv/
 .venv/
