@@ -378,12 +378,27 @@ def withdraw(conn, dedupe_key):
 # Delivery (bot.py calls this every few seconds)
 # ---------------------------------------------------------------------------
 
-def _allowed(mode, person):
+def _allowed(mode, person, testers=frozenset()):
+    """Whether `notify_mode` lets a message to this person out.
+
+    "owner" is testing, and the escape room's test group is who testing is
+    for, so its handles get their messages too. Until 23 Sep they did not: a
+    tester added in Settings was suppressed unless the organiser switched
+    messages on for all 170 people, the one thing testing mode exists to stop.
+    """
     if mode == "on":
         return True
     if mode == "owner":
-        return bool(person["is_test"]) or (person["handle"] or "") in config.ALWAYS_ALLOW_HANDLES
+        handle = person["handle"] or ""
+        return bool(person["is_test"]) or handle in config.ALWAYS_ALLOW_HANDLES or handle in testers
     return False
+
+
+def _test_group(conn):
+    # Imported here because game imports this module.
+    from services import game
+    return game.always_handles(
+        {"phone_always_handles": db.get_setting(conn, "phone_always_handles", "")})
 
 
 def _finish(conn, nid, status, error=None, now=None):
@@ -397,6 +412,7 @@ def deliver(conn, send, now=None, limit=20):
     Returns a dict of counts by outcome."""
     now = now or utc_now()
     mode = db.get_setting(conn, "notify_mode", "owner")
+    testers = _test_group(conn)
     counts = {}
     # A sender that died mid-send leaves 'sending' rows; try them again later.
     conn.execute("UPDATE notifications SET status='queued' WHERE status='sending' AND send_after < ?",
@@ -409,7 +425,7 @@ def deliver(conn, send, now=None, limit=20):
     for n in due:
         if n["expires_at"] and n["expires_at"] <= _iso(now):
             outcome = "expired"
-        elif not _allowed(mode, n):
+        elif not _allowed(mode, n, testers):
             outcome = "suppressed"
         elif not n["tg_user_id"]:
             outcome = "skipped"          # never opened The Yard: no chat to send to
@@ -483,11 +499,11 @@ def reachable(row):
 def mode_allows(conn, row):
     """Whether `notify_mode` lets a message to this person out of the outbox.
 
-    Public because a caller that says "sent" needs to know this first: on
-    "owner" everything to anybody else is suppressed, and a queued message
-    that will be suppressed has not been sent and never will be.
+    Public because a caller that says "sent" needs to know this first: a
+    queued message that will be suppressed has not been sent and never will
+    be.
     """
-    return _allowed(db.get_setting(conn, "notify_mode", "owner"), row)
+    return _allowed(db.get_setting(conn, "notify_mode", "owner"), row, _test_group(conn))
 
 
 # ---------------------------------------------------------------------------

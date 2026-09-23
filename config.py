@@ -243,7 +243,7 @@ DEFAULT_SETTINGS = {
     "lookup_rate_limit": 30,
     "backup_minutes": 10,
     "backup_keep": 36,
-    "notify_mode": "owner",          # owner (test accounts only) | on | off
+    "notify_mode": "owner",          # owner (test accounts + test group) | on | off
     "max_party": 6,                  # a booker plus the friends they add
     "reminder_minutes": 10,          # before an escape game or jam slot
     "doors_message": True,           # "The Yard is on today", 24 Sep, real time only

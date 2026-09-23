@@ -1386,7 +1386,7 @@ SCREENS.overview = function(){
             <span class="w">${esc(q.what)}</span>
             <span class="needpill" style="background:${q.tone}">${esc(q.count)}</span>
           </button>`).join('')}
-          <div class="foot">Messages to attendees: ${d.notify_mode === 'on' ? 'on for everyone' : d.notify_mode === 'off' ? 'off' : 'test mode (only you) — switch on in Settings'}.</div>
+          <div class="foot">Messages to attendees: ${d.notify_mode === 'on' ? 'on for everyone' : d.notify_mode === 'off' ? 'off' : 'test mode (only you and the test group) — switch on in Settings'}.</div>
         </div>
       </div>
     </div>
@@ -2185,7 +2185,7 @@ const SETTINGS_SCHEMA = [
   { group:'Food orders', fields:'order_items' },
   { group:'Bot messages', fields:[
     { key:'notify_mode', label:'Who gets messages', type:'seg',
-      options:vals => [['owner', 'Only ' + handlesOf(vals.always_allow) + ' (testing)', 'warn'], ['on','Everyone','go'], ['off','Nobody']],
+      options:vals => [['owner', 'Only ' + handlesOf(vals.always_allow) + ' and the test group (testing)', 'warn'], ['on','Everyone','go'], ['off','Nobody']],
       help:'Switch to Everyone before the night — the escape-room phone reaches players only as a message.' },
     { key:'reminder_minutes', label:'Reminder before a game or jam slot (minutes)', type:'number', min:1, max:60 },
     { key:'doors_message', label:'"The Yard is on today" message', type:'pair',
@@ -2691,8 +2691,8 @@ function phoneTestLine(t){
   const bits = [];
   if (t.sent && t.sent.length) bits.push('Sent Kai Chen’s phone to ' + at(t.sent) + '.');
   if (t.held && t.held.length){
-    bits.push('NOT sent to ' + at(t.held) + ': Who gets messages is on testing, so the bot only writes to '
-      + 'the owner. Settings → Who gets messages → Everyone, then Send it now.');
+    bits.push('NOT sent to ' + at(t.held) + ': Who gets messages is on Nobody. '
+      + 'Settings → Who gets messages → testing, then Send it now.');
   }
   if (t.unreachable && t.unreachable.length){
     bits.push('NOT sent to ' + at(t.unreachable) + ': '

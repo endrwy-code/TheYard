@@ -247,7 +247,7 @@ async def post_init(application: Application):
     finally:
         conn.close()
     log.info("Messages: %s", {
-        "owner": "TEST MODE — only always-allowed accounts get messages "
+        "owner": "TEST MODE — only always-allowed accounts and the test group get messages "
                  "(python manage.py notify on to switch everyone on)",
         "on": "on for everyone",
         "off": "OFF — nothing is sent",
