@@ -725,6 +725,8 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 #toast.show{ display:block; animation:rise .24s var(--ease) both }
 #toast.bad{ background:#A8231B }
 #toast.good{ background:#1F7A4C }
+/* Something went and something did not — the test group’s usual answer. */
+#toast.warn{ background:#AE7338; color:#101010 }
 
 /* full-screen booth confirmation (§17.4 — "one full-screen green, one full-screen red") */
 #flash{
@@ -897,7 +899,10 @@ function toast(msg, kind){
   t.textContent = msg;
   t.className = 'show' + (kind ? ' ' + kind : '');
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => { t.className = ''; }, 3600);
+  // Long enough to read. 3.6s suits “Saved” and is nowhere near enough for a
+  // toast that explains why a message did not arrive and what to do about it.
+  const ms = Math.min(16000, Math.max(3600, msg.length * 55));
+  toast._t = setTimeout(() => { t.className = ''; }, ms);
 }
 
 function bigFlash(bg, mark, title, body){
@@ -2676,15 +2681,25 @@ async function saveSettings(){
 /* Adding somebody to the test group is a request to let them in, and the
    only way in is the bot's message. Say who got it, and name anybody it
    could not reach — silence there looks like it worked. */
+/* All four outcomes, each with what to do about it. It used to say only
+   "Sent Kai Chen's phone to @them", which it said about somebody who had
+   never opened The Yard and about everybody at all while Who gets messages
+   was on testing — the two ordinary reasons nothing arrives (23 Sep). */
 function phoneTestLine(t){
   if (!t) return '';
+  const at = list => list.map(h => '@' + h).join(', ');
   const bits = [];
-  if (t.sent && t.sent.length) bits.push('Sent Kai Chen’s phone to ' + t.sent.map(h => '@' + h).join(', ') + '.');
-  if (t.missing && t.missing.length) bits.push('Not on the roster: ' + t.missing.map(h => '@' + h).join(', ') + '.');
-  if (t.unreachable && t.unreachable.length){
-    bits.push(t.unreachable.map(h => '@' + h).join(', ')
-      + (t.unreachable.length === 1 ? ' has' : ' have') + ' never written to the bot, so it cannot message them — they send it /start first.');
+  if (t.sent && t.sent.length) bits.push('Sent Kai Chen’s phone to ' + at(t.sent) + '.');
+  if (t.held && t.held.length){
+    bits.push('NOT sent to ' + at(t.held) + ': Who gets messages is on testing, so the bot only writes to '
+      + 'the owner. Settings → Who gets messages → Everyone, then Send it now.');
   }
+  if (t.unreachable && t.unreachable.length){
+    bits.push('NOT sent to ' + at(t.unreachable) + ': '
+      + (t.unreachable.length === 1 ? 'they have' : 'they have')
+      + ' never opened The Yard, so the bot has no chat to write to. They open @The_YardBot, tap Start, then Send it now.');
+  }
+  if (t.missing && t.missing.length) bits.push('Not on the roster at all: ' + at(t.missing) + '.');
   return bits.length ? ' ' + bits.join(' ') : '';
 }
 
@@ -2692,7 +2707,9 @@ async function sendPhoneTest(){
   const r = await api('POST /admin/api/gm/phone-test', { path:'/admin/api/gm/phone-test' });
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
   const line = phoneTestLine(r.data).trim();
-  toast(line || 'Nobody is in the test group yet.', r.data.sent && r.data.sent.length ? 'good' : 'bad');
+  const went = r.data.sent && r.data.sent.length;
+  const stuck = (r.data.held || []).length || (r.data.unreachable || []).length;
+  toast(line || 'Nobody is in the test group yet.', went && !stuck ? 'good' : went ? 'warn' : 'bad');
 }
 
 function doExport(kind){

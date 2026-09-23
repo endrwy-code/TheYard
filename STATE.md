@@ -1563,6 +1563,27 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        the functions; it did not find "half", "zone", a column header, a CSS
        class or a toast built from a field that had stopped existing.
 
+150. **The test group worked and then lied about it.** 23 Sep, from "why can't
+     I let people into the phone". The queueing was correct; delivery was
+     stopped by two things, and the console reported **"Sent Kai Chen's phone
+     to @them"** in both cases.
+     - **`notify_mode` is `"owner"`.** Only an `is_test` account or a handle in
+       `ALWAYS_ALLOW_HANDLES` gets a message; everybody else is suppressed
+       leaving the outbox. 32 such rows were already sitting in the database.
+     - **`can_message` proves nothing.** It starts at 1 for all 170 people and
+       only falls to 0 after Telegram refuses a send. The real test is
+       `tg_user_id`, set when somebody first opens The Yard — **6 of 170**.
+       `send_phone_to_testers` built `unreachable` from `can_message` alone,
+       so it reported nothing wrong about 164 unreachable people.
+     - **The fix is honesty, not a new mechanism.** `unreachable` uses
+       `notify.reachable()`, which the GM console already used; a new `held`
+       list names the people `notify_mode` will suppress; and `sent` now means
+       queued with nothing in its way. The console and `manage.py` print all
+       four outcomes with the remedy for each.
+     - **The general fault:** a function whose return value was named for the
+       outcome the caller wanted rather than the one that happened. `sent` was
+       set before anything had been sent, and everything downstream repeated it.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.

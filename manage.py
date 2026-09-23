@@ -474,8 +474,12 @@ def cmd_phone_test(argv):
     for h in out["missing"]:
         _say(f"  @{h} is in the list but not on the roster - nothing sent.")
     for h in out["unreachable"]:
-        _say(f"  @{h} has never written to the bot, so it cannot message them. "
-             "They must send it /start first.")
+        _say(f"  @{h} has never opened The Yard, so the bot has no chat to write to.")
+        _say("     They open @The_YardBot, tap Start, then run this again.")
+    if out["held"]:
+        _say(f"  Held for {', '.join('@' + h for h in out['held'])}: \"Who gets messages\" "
+             "is on testing, so the bot only writes to the owner.")
+        _say("     Settings -> Who gets messages -> Everyone, then run this again.")
     if not out["sent"]:
         _say("Nothing was sent.")
         return 1

@@ -289,6 +289,14 @@ def send_phone_to_testers(conn, settings=None, *, only=None, actor="system", act
     a key built from it would silently swallow a second run in the same
     second — and running this twice in a row is exactly what testing looks
     like.
+
+    The four lists it returns are the four things that can happen, and the
+    caller has to say all of them. Until 23 Sep it returned "sent" for anybody
+    on the roster, and `unreachable` was built from `can_message` alone — a
+    column that starts at 1 for all 170 people. So the console said *"Sent Kai
+    Chen's phone to @them"* about somebody who had never opened The Yard, and
+    about everybody at all while **Who gets messages** was on testing. Both are
+    the ordinary case, and neither was visible anywhere.
     """
     settings = settings if settings is not None else db.get_settings(conn)
     wanted = always_handles(settings)
@@ -297,22 +305,38 @@ def send_phone_to_testers(conn, settings=None, *, only=None, actor="system", act
     if not wanted:
         return {"sent": [], "missing": [], "unreachable": []}
     rows = conn.execute(
-        f"SELECT id, name, handle, can_message FROM attendees WHERE handle IN "  # noqa: S608
-        f"({','.join('?' * len(wanted))})", tuple(sorted(wanted))).fetchall()
+        f"SELECT id, name, handle, tg_user_id, can_message, is_test FROM attendees "  # noqa: S608
+        f"WHERE handle IN ({','.join('?' * len(wanted))})",
+        tuple(sorted(wanted))).fetchall()
     found = {r["handle"] for r in rows}
     text = notify.text_phone_test()
+    # Queued for everybody found, including the ones below that will not go
+    # out: the outbox is the record of what happened, and "suppressed" or
+    # "skipped" against a name is worth more than no row at all.
     for r in rows:
         notify.queue(conn, r["id"], "phone_open", text, go=notify.GO_PHONE)
+
+    # Never opened The Yard, or Telegram has refused us: there is no chat.
+    unreachable = sorted(r["handle"] for r in rows if not notify.reachable(r))
+    # Reachable, but "Who gets messages" will suppress it on its way out.
+    held = sorted(r["handle"] for r in rows
+                  if notify.reachable(r) and not notify.mode_allows(conn, r))
+    going = sorted(found - set(unreachable) - set(held))
     db.audit(conn, "system", "Phone sent to the test group", actor_name=actor_name or actor,
-             details={"handles": sorted(found)})
+             details={"handles": sorted(found), "going": going,
+                      "held": held, "unreachable": unreachable})
     return {
-        "sent": sorted(found),
-        # On the list but not on the roster: nothing was sent, and nothing
-        # can be until somebody adds them.
+        # Queued and nothing is standing in its way.
+        "sent": going,
+        # On the list but not on the roster: nothing can be sent until
+        # somebody adds them.
         "missing": sorted(wanted - found),
-        # On the roster but they have never written to the bot, so Telegram
-        # will not let it message them. They must send it /start first.
-        "unreachable": sorted(r["handle"] for r in rows if not r["can_message"]),
+        # On the roster, but they have never opened The Yard, so Telegram will
+        # not let the bot message them. They must send it /start first.
+        "unreachable": unreachable,
+        # Reachable, but Who gets messages is on testing (or Nobody), so the
+        # outbox will suppress it. The one the console never mentioned.
+        "held": held,
     }
 
 

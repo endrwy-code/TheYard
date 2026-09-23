@@ -1863,3 +1863,47 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   pass `node scripts/check_pages.mjs`.
 - **Next step:** the organiser reads the new card on a phone and checks that
   "you book six of twelve" is understood without asking anyone.
+
+## 2026-09-23 — Why the test group "doesn't work": it did, and then lied about it
+
+- **Reported:** adding handles to the Test group and sending produced no
+  message, with nothing on screen to say why.
+- **Found:** the queueing worked all along. Two separate walls stopped delivery,
+  and the console reported neither — it said **"Sent Kai Chen's phone to
+  @them"** in both cases.
+  1. **`notify_mode` is `"owner"`** (Settings → Who gets messages → *testing*).
+     `notify._allowed` lets a message out only to an `is_test` account or a
+     handle in `ALWAYS_ALLOW_HANDLES` (`maxi_muslim`). Everyone else is
+     **suppressed** on the way out of the outbox. There are already 32
+     suppressed rows in this database.
+  2. **`can_message` proves nothing.** It starts at **1 for all 170 people** and
+     only drops to 0 after Telegram has refused a send. The real test is
+     `tg_user_id`, set the first time somebody opens The Yard — and only **6 of
+     170** have. `send_phone_to_testers` built its `unreachable` list from
+     `can_message` alone, so it reported nothing wrong about 164 people the bot
+     cannot reach at all.
+- **Fixed:**
+  - `unreachable` now uses `notify.reachable()` (a chat to send to **and** not
+    refused), which is what the GM console already used.
+  - New **`held`** list: reachable people whose message `notify_mode` will
+    suppress. This was the commonest cause and had no representation anywhere.
+  - `sent` now means *queued with nothing standing in its way* — it excludes
+    both of the above instead of counting them.
+  - New public `notify.mode_allows(conn, row)`, because a caller that says
+    "sent" has to be able to ask.
+  - The console toast and `manage.py phone-test` print all four outcomes, each
+    with the fix: *Settings → Who gets messages → Everyone*, or *they open
+    @The_YardBot and tap Start*.
+  - The toast grew a **`warn`** tone (amber) for "some went, some didn't", and
+    its dwell time now scales with the message — 3.6s suits "Saved" and is
+    nowhere near enough to read why a message did not arrive.
+- **Not changed:** `notify_mode` itself. Testing mode exists so a rehearsal
+  cannot message 170 people, and switching it is the organiser's call.
+- **Current state:** **565 tests pass** (one new: the save says when *Who gets
+  messages* will hold it). `test_the_save_names_anybody_it_could_not_reach` now
+  covers both reasons apart. The `_tester` helper gives its testers a
+  `tg_user_id`, because one without it was never reachable and the old tests
+  called that "sent".
+- **Next step:** to let real people into the phone — Settings → **Who gets
+  messages → Everyone**, and each of them opens @The_YardBot and taps Start
+  once. Then Send it now.

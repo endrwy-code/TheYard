@@ -469,8 +469,25 @@ def deliver_direct(conn, send, now=None, limit=20):
 
 
 def reachable(row):
-    """Whether a message to this person can arrive at all."""
+    """Whether a message to this person can arrive at all.
+
+    Both halves matter and only one of them is obvious. `can_message` starts
+    at 1 for everybody on the roster and only drops to 0 after Telegram has
+    refused a send, so on its own it means "nothing has gone wrong yet",
+    never "this will work". `tg_user_id` is the real test: it is set the first
+    time somebody opens The Yard, and without it there is no chat to send to.
+    """
     return bool(row["tg_user_id"]) and bool(row["can_message"])
+
+
+def mode_allows(conn, row):
+    """Whether `notify_mode` lets a message to this person out of the outbox.
+
+    Public because a caller that says "sent" needs to know this first: on
+    "owner" everything to anybody else is suppressed, and a queued message
+    that will be suppressed has not been sent and never will be.
+    """
+    return _allowed(db.get_setting(conn, "notify_mode", "owner"), row)
 
 
 # ---------------------------------------------------------------------------

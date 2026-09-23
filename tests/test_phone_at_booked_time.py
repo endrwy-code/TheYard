@@ -245,8 +245,9 @@ def test_phone_test_sends_to_the_group_and_nobody_else(conn):
     now = db.utcnow()
     tester = conn.execute(
         "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
-        "pass_code,created_at,updated_at) VALUES ('T','tester','@tester','walk_in','active',1,"
-        "'missing','TTTT-TTTT',?,?)", (now, now)).lastrowid
+        "pass_code,tg_user_id,can_message,created_at,updated_at) VALUES "
+        "('T','tester','@tester','walk_in','active',1,'missing','TTTT-TTTT',9909999,1,?,?)",
+        (now, now)).lastrowid
     db.set_setting(conn, "phone_always_handles", "@Tester, not_on_the_roster", by="test")
     conn.commit()
 
@@ -299,12 +300,21 @@ _TESTER_N = [0]
 
 
 def _tester(conn, handle="tester"):
+    """A tester the bot can actually reach.
+
+    `tg_user_id` is the part that is easy to forget and impossible to work
+    around: it is set the first time somebody opens The Yard, and without it
+    there is no Telegram chat to send to. `is_test` is the other half — it is
+    what lets a message past `notify_mode` "owner".
+    """
     now = db.utcnow()
     _TESTER_N[0] += 1
     return conn.execute(
         "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
-        "pass_code,created_at,updated_at) VALUES ('T',?,?,'walk_in','active',1,"
-        "'missing',?,?,?)", (handle, "@" + handle, f"TST{_TESTER_N[0]}-TTTT", now, now)).lastrowid
+        "pass_code,tg_user_id,can_message,created_at,updated_at) VALUES ('T',?,?,'walk_in','active',1,"
+        "'missing',?,?,1,?,?)",
+        (handle, "@" + handle, f"TST{_TESTER_N[0]}-TTTT", 9_900_000 + _TESTER_N[0],
+         now, now)).lastrowid
 
 
 def test_adding_somebody_to_the_test_group_messages_them(conn):
@@ -342,12 +352,57 @@ def test_only_the_handles_just_added_are_messaged(conn):
 
 
 def test_the_save_names_anybody_it_could_not_reach(conn):
-    """Silence there looks like it worked, and it has not."""
+    """Silence there looks like it worked, and it has not.
+
+    23 Sep: `unreachable` used to be built from `can_message` alone, which
+    starts at 1 for everybody on the roster — so the save reported "sent"
+    about somebody who had never opened The Yard, which is 164 of the 170
+    people on this roster. It is `notify.reachable` now: a chat to send to,
+    and Telegram not having refused us.
+    """
     from services import admin
-    _tester(conn, "tester")
-    conn.execute("UPDATE attendees SET can_message=0 WHERE handle='tester'")
+    _tester(conn, "blocked_us")
+    conn.execute("UPDATE attendees SET can_message=0 WHERE handle='blocked_us'")
+    _tester(conn, "never_opened")
+    conn.execute("UPDATE attendees SET tg_user_id=NULL WHERE handle='never_opened'")
+    _tester(conn, "fine")
     conn.commit()
-    out = admin.save_settings(conn, {"phone_always_handles": "tester, ghost"}, "Maximus",
+    out = admin.save_settings(
+        conn, {"phone_always_handles": "blocked_us, never_opened, fine, ghost"},
+        "Maximus", datetime.now(timezone.utc))
+    assert out["phone_test"] == {
+        "sent": ["fine"],
+        "missing": ["ghost"],
+        "unreachable": ["blocked_us", "never_opened"],
+        "held": [],
+    }
+
+
+def test_the_save_says_when_who_gets_messages_will_hold_it(conn):
+    """The commonest reason nothing arrives, and the console never said it.
+
+    `notify_mode` "owner" suppresses everything to anybody who is not the
+    owner and not a test account. A message queued for somebody it will
+    suppress has not been sent and never will be, so it must not be reported
+    as sent (23 Sep).
+    """
+    from services import admin
+    _tester(conn, "ordinary")
+    # Not a test account, so "owner" mode will not let a message out to them.
+    conn.execute("UPDATE attendees SET is_test=0 WHERE handle='ordinary'")
+    conn.commit()
+    assert db.get_setting(conn, "notify_mode") == "owner"
+    out = admin.save_settings(conn, {"phone_always_handles": "ordinary"}, "Maximus",
                               datetime.now(timezone.utc))
-    assert out["phone_test"] == {"sent": ["tester"], "missing": ["ghost"],
-                                 "unreachable": ["tester"]}
+    assert out["phone_test"]["held"] == ["ordinary"]
+    assert out["phone_test"]["sent"] == []
+
+    # Switched on for everyone, the same person goes.
+    db.set_setting(conn, "notify_mode", "on", by="test")
+    out = admin.save_settings(conn, {"phone_always_handles": "ordinary, second"}, "Maximus",
+                              datetime.now(timezone.utc))
+    assert out["phone_test"] == {"sent": [], "missing": ["second"],
+                                "unreachable": [], "held": []}
+    from services import game
+    again = game.send_phone_to_testers(conn, only=["ordinary"])
+    assert again["sent"] == ["ordinary"] and again["held"] == []
