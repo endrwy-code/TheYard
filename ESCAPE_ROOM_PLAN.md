@@ -111,11 +111,21 @@ true.** One of those documents is lying to the next person who reads it, and if
 it is `DEPLOY.md` then the solution is public right now. Render deploys happily
 from a private repository, so making it private costs nothing.
 
-**Is auto-deploy on or off?** You said Render auto-pulls from GitHub.
-`render.yaml` says `autoDeploy: false`, deliberately, with the reasoning written
-next to it. A dashboard setting overrides the blueprint, so if it was switched
-on there the file is now stale and should be corrected. This matters because the
-two states need opposite habits — see §6b step 6.
+**Is auto-deploy on or off?** **Answered 23 Sep: it is ON**, and the
+organiser was right. Checked rather than asked — `8a06ebf` was pushed and then
+found live at `the-yard.onrender.com` with nobody touching the dashboard. So
+`render.yaml`'s `autoDeploy: false` is stale; a blueprint value only applies on
+first sync, so correcting the file changes nothing and it now carries a note
+saying so. **The habit this implies: a push is a deploy.** If the reasoning next
+to that setting still stands — that on event day a restart should be a decision
+and not a push — it has to be turned off in the dashboard, not in the file.
+
+**Is the repository public?** **Answered 23 Sep: it is public.**
+`github.com/endrwy-code/TheYard` answers unauthenticated requests with 200, and
+so does the raw URL for `private/gm/script.json` — the lock code, the hints and
+the reset list. `DEPLOY.md` has been claiming the opposite. Render deploys from
+private repositories with no change to anything, so the fix costs nothing and
+is the organiser's to make.
 
 ### 1f. The finder's name cannot reach the phone
 

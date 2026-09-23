@@ -20,6 +20,16 @@ services:
     branch: main
     autoDeploy: false          # a deploy restarts the bot and bounces the app;
                                # on event day that is a decision, not a push
+                               #
+                               # STALE, 23 Sep 2026: the dashboard overrides
+                               # this and auto-deploy is ON. Checked by pushing
+                               # 8a06ebf and finding it live on
+                               # the-yard.onrender.com without touching Render.
+                               # A blueprint value only applies on first sync,
+                               # so changing it here does nothing — turn it off
+                               # in the dashboard (Settings -> Build & Deploy)
+                               # before event day if you want the reasoning
+                               # above to hold.
     buildCommand: pip install -r requirements.txt
     startCommand: bash scripts/render_start.sh
     healthCheckPath: /healthz
