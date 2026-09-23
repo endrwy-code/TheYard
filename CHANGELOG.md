@@ -2244,3 +2244,37 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   the room depends on the figures — only on there being four of them, monthly,
   and large enough that "i can put it back. all of it" is a real offer.
 - **Next step:** the photographs, and this screenshot.
+
+---
+
+## 2026-09-23 — The bank screenshot exists, and it opens
+
+- **Changed:** The organiser generated the screenshot, so the last asset the
+  phone was waiting for is here. It arrived as a picture of a handset, bezel
+  and notch included, which would have read as a photograph of a phone inside a
+  phone. Cropped to the screen itself by measuring where the header colour
+  starts and stops rather than by eye, and taken from below the drawn notch so
+  it reads as a screenshot: 786 x 1341, `private/phone/assets/`.
+  **It also opens now.** The evidence is four dates and four amounts in a list,
+  and at 60% of a chat bubble nobody can read them — and the phone sets
+  `user-scalable=no`, so a player cannot pinch their way in either. Tapping the
+  bubble opens the picture full screen, and a second tap magnifies it to 260%
+  in a scrollable frame with Zoom in / Zoom out and Done along the bottom. The
+  bubble carries a small "Tap to open" tag, because nothing else on this phone
+  is tappable and nobody would think to try.
+  The bubble also stopped cropping the picture. It had `aspect-ratio:3/4` with
+  `object-fit:cover`, and the screenshot is far taller than that, so the top
+  and bottom rows were being cut off — including one of the four transfers.
+- **Current state:** 585 tests pass, 1 skipped. The skip is honest: the
+  missing-picture test only has something to say when a picture is missing, and
+  now none is. The served page is 419 KB against a 158 KB file — that is every
+  picture being carried inside it, which is what makes them work in the
+  Blob-URL iframe. The bundle still parses as JSON after substitution.
+  The screenshot shows **N. CHEN's** account with four incoming transfers from
+  **K CHEN** — May to August, 3,200 / 2,800 / 4,150 / 3,600, S$13,750 in all —
+  scattered among ordinary spending, and no clock anywhere in the frame.
+- **Left unfinished on purpose:** **The notebook prop does not have these
+  figures in it yet.** The screenshot and the notebook are the only two props
+  carrying the amounts, they have to agree, and the notebook is the one in
+  Kai's handwriting. Nothing in the app can check that.
+- **Next step:** the nine printed photographs.
