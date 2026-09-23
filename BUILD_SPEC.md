@@ -647,7 +647,8 @@ and in `STATE.md` §5.
 ### Shapes fixed at P0.2
 
 - **`GET /api/me`** → `profile`, `payment_status`, `payment_ok` (whether the
-  booth may hand over, after the `claim_requires` setting), `pass_qr` (a PNG
+  booth may hand over, after the `claim_requires` setting, which defaults to
+  **`none` since 23 Sep — a gate has to be asked for**), `pass_qr` (a PNG
   **data URI** encoding `YARD:<code without hyphen>`, never a separate request),
   `checked_in_at`, `items:[{key, label}]`, `claims.{pastry,photo}` (keys from `config.ITEMS`) (`{claimed:false}` or
   `{claimed:true, id, at, staff, station, variant}`), `escape_booking` (null

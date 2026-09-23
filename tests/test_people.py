@@ -6,6 +6,7 @@ Runs against the real Paperform export and a real WAL file (conftest).
 
 import pytest
 
+import db
 from conftest import import_real_export, sign
 from services import people
 from test_claims_concurrent import (  # noqa: F401 - fixtures are used by name
@@ -148,7 +149,9 @@ def test_a_screenshot_needs_no_verdict_at_all(roster, admin):
 
 
 def test_marking_someone_paid_needs_no_reference_and_no_reason(roster, admin):
-    """The person who turned up without a screenshot and paid at the desk."""
+    """The person who turned up without a screenshot and paid at the desk.
+    Needs the gate on, which since 23 Sep is not the default."""
+    db.set_setting(roster, "claim_requires", "submitted", by="test")
     h = roster.execute("SELECT handle FROM attendees WHERE payment_status='missing' "
                        "ORDER BY id LIMIT 1").fetchone()["handle"]
     i = pid(roster, h)
@@ -172,6 +175,7 @@ def test_the_same_screenshot_on_two_people_is_a_warning_not_a_refusal(roster, ad
 
 
 def test_reject_needs_a_reason_and_blocks_the_booth(roster, admin):
+    db.set_setting(roster, "claim_requires", "submitted", by="test")
     i = pid(roster, "heidily")
     assert err(pay(admin, i, verdict="rejected"))["code"] == "VALIDATION_FAILED"
     assert pay(admin, i, verdict="rejected", reason="Amount is $5").status_code == 200

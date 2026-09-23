@@ -138,15 +138,18 @@ def find_attendee(conn, code=None, attendee_id=None):
 def payment_ok(conn, row):
     """§9 rule 25 — a screenshot, or a verdict when the setting is stricter.
 
-    "submitted" is how the night runs (24 Sep): with 150 receipts unchecked
-    the day before, reading a reference off each one was never going to
-    happen, so a screenshot counts the moment it arrives and a rejection is
-    what takes the hand-over away again. "verified" is the old strict mode,
-    where every person needs a verdict first; "none" (23 Sep, STATE.md 138)
-    drops the gate altogether and hands over to anyone on the list. The
-    screenshots stay on the person page under all three.
+    "none" is how the night runs and is the default (23 Sep, STATE.md 138):
+    the gate is dropped altogether and anyone on the list collects. "submitted"
+    counts a screenshot the moment it arrives, so a rejection is what takes the
+    hand-over away again; "verified" is the strict mode where every person
+    needs a verdict first. The screenshots stay on the person page under all
+    three.
+
+    **The fallback is "none" on purpose.** Every payment gate in the app comes
+    through this function, so a missing row must not be able to switch payment
+    checking on by itself. A gate has to be asked for.
     """
-    requires = db.get_setting(conn, "claim_requires", "submitted")
+    requires = db.get_setting(conn, "claim_requires", "none")
     if requires == "none":
         return True
     allowed = {"verified"}

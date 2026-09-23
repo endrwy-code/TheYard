@@ -4,7 +4,8 @@ gate-denial list (§9 rules 14, 26, 30-33).
 Payment verdicts are admin-only (§9 r14), and since 24 Sep there is only one
 thing to decide. The transaction reference is gone: reading one off 150
 screenshots was the step that never got done, so a screenshot now counts on
-its own and `claim_requires` = "submitted" lets the booth hand over on it.
+its own. Since 23 Sep `claim_requires` defaults to "none", so the booth
+hands over to anyone on the list and the screenshot is only ever looked at.
 What is left for a person is the two cases a screenshot cannot settle —
 somebody who paid at the front desk without one, and one that is wrong.
 
@@ -216,7 +217,9 @@ def person(conn, attendee_id, role):
         # Whether anyone is meant to check payments at all (STATE.md 138).
         # With it off, the console shows the screenshot and drops the whole
         # verdict workflow — there is no step to do.
-        "payment_required": db.get_setting(conn, "claim_requires", "submitted") != "none",
+        # "none" is the default and the fallback (23 Sep): nothing switches
+        # payment checking on unless somebody asked for it.
+        "payment_required": db.get_setting(conn, "claim_requires", "none") != "none",
         "payment": last_verdict(conn, row["id"]),
         "checked_in_at": claims.local_iso(row["checked_in_at"]),
         "checked_in_by": row["checked_in_by"],
@@ -241,6 +244,7 @@ def set_payment(conn, attendee_id, *, verdict, reason=None, by):
 
     There is no transaction reference to check any more (24 Sep): a screenshot
     uploaded at sign-up counts on its own, and `claim_requires` = "submitted"
+    (no longer the default since 23 Sep)
     lets the booth hand over on it without anybody approving it first. So this
     screen is left with the two cases that genuinely need a person — somebody
     who paid at the front desk with no screenshot, and a screenshot that turns

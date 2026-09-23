@@ -1490,6 +1490,37 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        "GM · " with nothing after it, so they name the door instead —
        **Mobile** or **Laptop**.
 
+147. **Payment checking was still the default, and a default is a gate.**
+     23 Sep, answering the organiser's question "is there still a verification
+     for payment throughout the entire app". Yes, and not where either of us
+     was looking: not a stray screen, but `config.py`.
+     - Every payment gate comes through `claims.payment_ok`, which reads one
+       row: `claim_requires`. The laptop said **`none`** (decision 138). But
+       the **default** said `"submitted"`, and so did both `get_setting`
+       fallbacks — so **a database nobody had touched refused hand-overs.**
+       That is any fresh install, and it is Render on its first deploy, whose
+       disk starts empty. `db.seed_settings` only re-seeds `updated_by =
+       'system'` rows, so the organiser's edit could never have carried across
+       to a new database either.
+     - **What it would have done on the night:** the amber *"! Not verified —
+       you cannot hand over"* card at the booth, `PAYMENT_NOT_VERIFIED` from
+       `hand_over`, an admin-only override needing a typed reason, the bot's
+       `/pass` telling guests to *"pop by the front desk"*, a *"You haven't
+       seen my payment"* question in Help, a red **Payments to check** job on
+       Overview, and the last-call message silently **not sent** to anyone
+       unpaid. With 150 of 169 receipts unchecked, that is most of the room —
+       and it is the same failure as decision 140's `in_app_phone`: a refusal
+       the front desk could do nothing about.
+     - **The rule taken from it:** *a gate must be asked for.* The default and
+       both fallbacks are `none`, so a missing row cannot switch checking on by
+       itself. The three modes still work and are still one tap apart in
+       Settings; nothing was removed. `tests/test_payment_gate_is_off.py` (23
+       tests) pins the shape of a virgin database across all four payment
+       states, and pins the three modes too.
+     - **Not fixable from here:** the Render service has **its own database**,
+       seeded from the old default. If it has ever been deployed, its row says
+       `submitted` and only somebody opening that console can change it.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.

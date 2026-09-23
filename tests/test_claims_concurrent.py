@@ -274,8 +274,10 @@ def test_lookup_says_unpaid_and_offers_no_hand_over(roster):
 
 
 def test_a_screenshot_is_enough_without_anybody_approving_it(roster):
-    """The default since 24 Sep: the screenshot counts the moment it arrives,
-    and the only thing that takes a hand-over away is a rejection."""
+    """The `submitted` rule: the screenshot counts the moment it arrives, and
+    the only thing that takes a hand-over away is a rejection. No longer the
+    default — since 23 Sep that is "none" — so it is asked for here."""
+    db.set_setting(roster, "claim_requires", "submitted", by="test")
     p = person(roster, "bananabelles", "submitted")
     assert Console().lookup(p["pass_code"]).get_json()["data"]["can_hand_over"] is True
     assert Console().hand_over(p["pass_code"]).status_code == 200
@@ -340,6 +342,7 @@ def test_switching_the_check_off_does_not_hide_the_receipts(roster):
 
 
 def test_admin_override_needs_a_reason_and_is_logged(roster):
+    db.set_setting(roster, "claim_requires", "submitted", by="test")
     p = person(roster, "bananabelles", "missing")
     admin = Console("admin")
     assert admin.lookup(p["pass_code"]).get_json()["data"]["can_override"] is True

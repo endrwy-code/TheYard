@@ -227,7 +227,14 @@ DEFAULT_SETTINGS = {
     # an admin only steps in to reject a bad one or to mark somebody paid who
     # turned up without one. "verified" and "none" still work; this is the
     # middle setting, and the one the night runs on.
-    "claim_requires": "submitted",
+    # Not checked at all, which is how the event runs (23 Sep, STATE.md 138).
+    # This was "submitted" until 23 Sep, and that was a trap: every payment
+    # gate in the app reads this one row, so a database nobody has touched —
+    # a fresh install, or Render on its first deploy with an empty disk —
+    # came up refusing hand-overs, showing an amber "Not verified" card at
+    # the booth and telling guests by bot to go to a front desk that could do
+    # nothing about it. The strict modes are still one tap away in Settings.
+    "claim_requires": "none",
     # Paperform's webhook writes a sign-up straight into the roster as it is
     # submitted. It takes no secret (22 Sep), so this switch is how the
     # organiser closes it — from the Settings screen, with no deploy.

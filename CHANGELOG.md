@@ -1743,3 +1743,55 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   so it was worth a case.
 - **Next step:** the organiser signs in on a counter phone with the PIN alone
   and confirms the top of the booth reads **Mobile**.
+
+## 2026-09-23 — Payment checking was still the default, so a fresh database gated everything
+
+- **Found:** the organiser asked whether any payment gate was left anywhere in
+  the app, not just the People page. **Yes — and the dangerous part was not a
+  gate, it was a default.**
+  - Every payment gate in the app comes through `claims.payment_ok`, which
+    reads one settings row, `claim_requires`. The laptop's row said **`none`**
+    because the organiser set it on 22 Sep, so the laptop was fine.
+  - But `config.DEFAULT_SETTINGS["claim_requires"]` said **`"submitted"`**, and
+    so did *both* `get_setting` fallbacks (`claims.payment_ok`,
+    `people.person`). So **a database nobody has touched came up refusing
+    hand-overs** — any fresh install, and the Render service on its first
+    deploy, where the disk at `/var/yard` starts empty and `db.seed_settings`
+    writes the defaults. The laptop's `none` lives only in the laptop's
+    `data/app.db`; the server has its own.
+  - `db.seed_settings` only re-seeds rows whose `updated_by` is `'system'`, so
+    the organiser's edit would never have propagated to a new database either.
+- **What that would have looked like on the night:** a pass scans and the booth
+  shows the amber **! Not verified — Payment submitted, not checked — You
+  cannot hand over** card; `hand_over` answers `PAYMENT_NOT_VERIFIED`; only an
+  admin sees an override, and only with a typed reason; `/pass` in the bot adds
+  *"we haven't verified your payment yet, so nothing can be handed over. pop by
+  the front desk"*; Help grows a **"You haven't seen my payment"** question; the
+  Overview grows a red **Payments to check** job; and the last-call message is
+  silently **not sent** to anyone unpaid. With 150 of 169 receipts never
+  checked, that is most of the room.
+- **Fixed:** the default and both fallbacks are **`none`**. A gate now has to be
+  asked for — a missing row cannot switch checking on by itself. The three modes
+  (`verified`, `submitted`, `none`) all still work and are still one tap apart
+  in Settings → **Hand-over needs payment**; nothing was removed.
+- **Also:** the Settings help for **Entry fee** claimed it was "Shown to people
+  whose payment isn't verified". It is sent in the event payload and rendered
+  **nowhere** in the Mini App, so the help now says so.
+- **New `tests/test_payment_gate_is_off.py`, 23 tests** — the guard, asserting
+  the shape of a *virgin* database: the default, a deleted row, the booth
+  hand-over and its warning card, `/api/me`, the person page, the last-call
+  message and the Overview queue, each across all four payment states
+  (missing, submitted, rejected, verified). One test still checks all three
+  modes behave when asked for, so the feature is pinned as well as the default.
+- **Eight existing tests** leaned on the old default to exercise the gate. They
+  now set `claim_requires` explicitly, which is what they always meant.
+  `tests/test_payment_no_reference.py` says it once in an autouse fixture,
+  since the whole file is about the `submitted` rule.
+- **Current state:** **564 tests pass.** 23 console states render; both pages
+  pass `node scripts/check_pages.mjs`.
+- **Still to check by hand, and not fixable from here:** the **Render service
+  has its own database**. If it has ever been deployed, its `claim_requires` was
+  seeded from the old default and is **`submitted` right now**. Open the console
+  on the live URL → Settings → **Hand-over needs payment** → confirm it reads
+  **Not needed**. This commit fixes what a *new* database does; it cannot reach
+  a row an old one already wrote.

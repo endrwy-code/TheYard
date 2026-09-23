@@ -13,6 +13,15 @@ from services import claims, people
 from services.claims import ClaimError
 
 
+@pytest.fixture(autouse=True)
+def gate_on(conn):
+    """This file is about the `submitted` rule, and since 23 Sep that is no
+    longer the default — `claim_requires` defaults to "none", so nothing is
+    gated unless somebody asks for it. Ask for it here."""
+    db.set_setting(conn, "claim_requires", "submitted", by="test")
+    return conn
+
+
 def make(conn, handle, *, receipt="https://paperform.co/r/shot.png", status="submitted"):
     now = db.utcnow()
     code = db.new_code(conn, "attendees", "pass_code")

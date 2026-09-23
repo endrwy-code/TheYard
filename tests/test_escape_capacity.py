@@ -841,10 +841,11 @@ def test_the_app_gets_the_event_facts_from_settings(games, client):
     assert [c["key"] for c in d["items"][0]["choices"]] == ["tart", "brownie", "cookie", "shiopan"]
     assert d["escape_meet"] == "the escape room entrance" and d["jam_room"] == "Heaven 2"
     # Whether Help tells people to go and show their payment (STATE.md 138).
-    assert d["payment_required"] is True
-    db.set_setting(games, "claim_requires", "none", by="test")
+    # Off by default since 23 Sep, so this checks both ways round the other way.
+    assert d["payment_required"] is False
+    db.set_setting(games, "claim_requires", "submitted", by="test")
     d2 = client.get("/api/me", headers=tma(sign(2001, "heidily"))).get_json()["data"]["event"]
-    assert d2["payment_required"] is False
+    assert d2["payment_required"] is True
     assert d["prices"][0]["title"] == "Activities"
     assert {"name": "Mini Tart", "price": "$2.50"} in d["prices"][1]["rows"]
 
