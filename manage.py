@@ -313,6 +313,18 @@ def cmd_phone_images(argv):
             missing.append(n)
         elif tracked is False:
             untracked.append(rel)
+    # The four contact photos. Listed separately because they are not
+    # evidence: one missing is a coloured circle with a letter in it, which
+    # nobody has to fix before a game can run.
+    _say("")
+    _say("Contact photos (optional — a missing one is an initial instead):")
+    for n in game.FACE_IMAGES:
+        rel = f"private/phone/assets/{n}"
+        tracked = _tracked_by_git(rel) if present[n] else None
+        note = "   <- on this laptop only, NOT committed" if present[n] and tracked is False else ""
+        _say(f"  [{'x' if present[n] else ' '}] {n}{note}")
+        if present[n] and tracked is False:
+            untracked.append(rel)
     _say("")
     if missing:
         _say("STILL NEEDED. Until it is here the phone has no motive on it:")

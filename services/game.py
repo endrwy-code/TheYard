@@ -397,7 +397,17 @@ def _phone_html(conn=None):
 # Keep this list in step with the phone file: tests/test_phone_links.py reads
 # the real markup and fails if the two ever drift apart.
 STORY_IMAGES = ("ethan-bank-screenshot.jpg",)
-PHONE_IMAGES = STORY_IMAGES
+
+# The four suspects' contact photos, added 23 Sep. They are not evidence and
+# nothing in the puzzle turns on them — they are there because a phone whose
+# contacts are coloured circles with letters in them does not read as a real
+# person's phone, and the room is asking players to believe it is one. A
+# missing one falls back to the initial, so the phone is never broken by one
+# not being here; that is why they are separate from STORY_IMAGES, which have
+# no fallback and without which the game has no motive on it.
+FACE_IMAGES = ("face-natalie.jpg", "face-ethan.jpg",
+               "face-darren.jpg", "face-jasmine.jpg")
+PHONE_IMAGES = STORY_IMAGES + FACE_IMAGES
 
 # A flat grey tile, so a picture nobody has supplied yet leaves a gap in the
 # gallery instead of a browser's broken-image icon. 1x1 JPEG, scaled by CSS.

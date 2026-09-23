@@ -2105,3 +2105,51 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   that report no safe area and still lay a bar over the top inch, and guessing
   which client is which at runtime is worse than a bezel.
 - **Next step:** none. It is done.
+
+---
+
+## 2026-09-23 — Faces on the contacts, and threads that say what they are about
+
+- **Changed:** Two things the organiser asked for after seeing the phone.
+  **(1) The four suspects have contact photos.** They were coloured circles
+  with a letter in them, on a phone that is asking players to believe it
+  belonged to a real person. `face-natalie.jpg`, `face-ethan.jpg`,
+  `face-darren.jpg` and `face-jasmine.jpg` are square 256px crops in
+  `private/phone/assets/`, drawn in all three places an avatar appears — the
+  inbox row, the thread header and every message bubble. Each is gated on an
+  explicit boolean with the old initial circle as the other branch, so a
+  missing file is a plain circle and never a broken phone. They are in
+  `FACE_IMAGES`, deliberately **not** `STORY_IMAGES`, because nothing in the
+  puzzle turns on them and none of them is worth holding a game for.
+  **(2) The bank screenshot was never an image.** The one asset the phone
+  serves was rendered as a grey box with the filename printed inside it, so
+  the motive evidence has never actually displayed. It is an `<img>` now, and
+  a missing file falls back to the grey tile `game.MISSING_TILE` already
+  serves. **Nobody had noticed because the file has never existed** — the box
+  and the tile look much the same when the picture is absent.
+  **(3) The threads carry their own context.** They read as people who knew
+  what they were talking about but would not say it in front of each other,
+  which was the note: say a thing to one friend so a second one hears it. Two
+  lines or so per thread. Darren spells out that the two boxes are the same
+  box from the same place and to check the dot; Kai answers that one slice of
+  the wrong one puts him in an ambulance, so the allergy is severe in his own
+  voice rather than a card on a fridge. Natalie offers to put hers on the
+  counter next to his — hostess behaviour on the first read, the two-boxes
+  photograph on the second. Darren's "i built half of that thing" and Kai's
+  "youll still be in the room" give the red herring its teeth.
+- **Current state:** 583 tests pass; the markup round-trips byte-identically
+  and its JavaScript passes `node --check`. Checked by hand against the rules
+  in `CHANGES_FOR_CLAUDE_CODE.md` §7 after the rewrite: no camera stamp on the
+  phone, no time that is not already in the brief, no new time at all, and
+  none of "walnut", "EpiPen" or "swap" anywhere on it. Natalie's 6:47 PM and
+  10:15 PM are untouched, because 6:47 is the only tie between her and the
+  walnut cake and it has to read as a sister being nice until the cash receipt
+  in bin photo B is found. `manage.py phone-images` lists the faces in a
+  section of their own, marked optional.
+- **Left unfinished on purpose:** **Nothing was added to Natalie's own voice
+  that makes her read as knowing.** The temptation was a line about which dot
+  was whose, and it would have broken the room: the trap is that every team
+  goes for Jasmine first, and a Natalie who sounds careful about cake on the
+  first pass is a Natalie somebody suspects in minute two. Her thread gained
+  one line about the money and nothing about the kitchen.
+- **Next step:** the photographs — nine printed, one served.
