@@ -943,9 +943,8 @@ function chromeView(){
     return `<button data-screen="${k}" class="${cls}"
              ${ok ? '' : 'title="Not for a ' + esc(role) + ' sign-in"'}>${esc(l)}</button>`;
   }).join('');
-  const who = S.session.station
-    ? S.session.name + ' · ' + S.session.station
-    : S.session.name + ' · ' + (role === 'admin' ? 'Laptop' : 'Mobile');
+  const door = role === 'admin' ? 'Laptop' : 'Mobile';
+  const who = [S.session.name, S.session.station || door].filter(Boolean).join(' · ');
   return `
   <div class="tb-1">
     <div class="tb-brand">
@@ -991,16 +990,12 @@ function signinView(){
     ` : `
       <div class="field"><label for="pin">Phone PIN</label>
         <input id="pin" type="password" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><label for="nm">Your name</label>
-        <input id="nm" type="text" autocomplete="off" placeholder="Aisha"></div>
-      <div class="field"><label for="stn">Where you are</label>
-        <input id="stn" type="text" autocomplete="off" placeholder="Booth 1, Loft or Escape room"></div>
     `}
     ${S.signinErr ? `<div class="err">${esc(S.signinErr)}</div>` : ''}
     <button class="go" id="signin">Sign in</button>
     <div class="p">${r === 'admin'
       ? 'Payments, receipts, settings, the roster and the audit log are only here.'
-      : 'Your name and where you are go on every hand-over and every call, so the log says who did what.'}</div>
+      : 'The PIN is all you need (23 Sep). Every hand-over and every call is still logged with its time.'}</div>
   </div>`;
 }
 
@@ -1019,13 +1014,7 @@ async function doSignin(){
   const role = S.signinRole;
   const body = { role };
   if (role === 'admin') body.password = (document.getElementById('pw') || {}).value || '';
-  else {
-    body.pin = (document.getElementById('pin') || {}).value || '';
-    body.name = (document.getElementById('nm') || {}).value || '';
-    body.station = (document.getElementById('stn') || {}).value || '';
-    if (!body.name.trim()){ S.signinErr = 'Your name is required — it goes on every hand-over.'; render(); return; }
-    if (!body.station.trim()){ S.signinErr = 'Say where you are — for example Booth 1, Loft or Escape room.'; render(); return; }
-  }
+  else body.pin = (document.getElementById('pin') || {}).value || '';
   const r = await api('POST /admin/api/login', { path:'/admin/api/login', json:body });
   if (!r.ok){
     S.signinErr = r.error.code === 'RATE_LIMITED' ? 'Too many tries. Wait a minute.'
@@ -1119,9 +1108,10 @@ function goScreen(s){
 const SCREENS = {};
 
 SCREENS.booth = function(){
-  const station = S.session.station
-    ? S.session.station + ' · ' + S.session.name
-    : (S.session.role === 'admin' ? 'Admin · ' : 'GM · ') + S.session.name;
+  // A Mobile sign-in has no name and no station since 23 Sep, so this says
+  // which door the device came in by rather than "GM · " with nothing after it.
+  const station = [S.session.station, S.session.name].filter(Boolean).join(' · ')
+    || (S.session.role === 'admin' ? 'Laptop' : 'Mobile');
   const l = S.lookup;
   const sc = l ? resultFor(l) : null;
   /* One thing at a time (23 Sep). The viewfinder, the code box, the verdict,

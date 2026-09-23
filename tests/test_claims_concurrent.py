@@ -553,9 +553,26 @@ def test_a_session_from_before_the_change_signs_in_as_mobile(roster):
     assert c.get("/admin/api/session").get_json()["data"]["role"] == "mobile"
 
 
-def test_staff_need_a_name_and_a_station(roster):
-    assert err(login(new_client(), name=" "))["code"] == "VALIDATION_FAILED"
-    assert err(login(new_client(), station=""))["code"] == "VALIDATION_FAILED"
+def test_the_phone_pin_is_the_whole_sign_in(roster):
+    """23 Sep, the organiser: a Mobile sign-in is the PIN and nothing else.
+    Two boxes to fill on a counter phone, every shift, was the friction."""
+    r = login(new_client(), name="", station="")
+    assert r.status_code == 200
+    d = r.get_json()["data"]
+    assert (d["role"], d["name"], d["station"]) == ("mobile", "", "")
+
+
+def test_a_name_and_a_station_are_still_taken_if_sent(roster):
+    """Nothing asks for them now, but a station that wants its name on its
+    hand-overs can still have it."""
+    d = login(new_client(), name="Wei", station="Booth 1").get_json()["data"]
+    assert (d["name"], d["station"]) == ("Wei", "Booth 1")
+
+
+def test_a_wrong_pin_is_still_refused_with_no_name_to_blame(roster):
+    assert err(login(new_client(), name="", station="", secret="nope"))["code"] == "FORBIDDEN"
+    row = roster.execute("SELECT * FROM audit_log WHERE action='Console sign-in refused'").fetchone()
+    assert row is not None and row["actor_type"] == "mobile"
 
 
 def test_missing_hash_says_which_command_to_run(roster, monkeypatch):

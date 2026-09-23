@@ -694,11 +694,12 @@ def admin_login():
     if role == "admin":
         name = name or "Organiser"
         station = ""
-    else:
-        if not name:
-            return fail("VALIDATION_FAILED", "Your name is required — it goes on every hand-over.", 400)
-        if not station:
-            return fail("VALIDATION_FAILED", "Say where you are — for example Booth 1, Loft or Escape room.", 400)
+    # A phone PIN is the whole sign-in since 23 Sep, at the organiser's
+    # instruction: two boxes to fill on a counter phone, every game, was the
+    # friction. Both are still accepted if a caller sends them, so a station
+    # that wants its name on its hand-overs can still have it. What the log
+    # loses is the volunteer's name; it keeps the role, the time and the
+    # station when there is one.
 
     who = client_key()
     if not auth.signin_allowed(role, who):

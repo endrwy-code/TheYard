@@ -1707,3 +1707,39 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Next step:** shoot `cam-04-kitchen-2227.jpg` first (the wall clock at 10:12
   against the 22:27 stamp); it is the one image the room cannot be played
   without.
+
+## 2026-09-23 — The organiser's last four changes
+
+- **The cookie is $4.** `Mini Cookie: $2.50` → `Mini Cookie: $4` in
+  `config.PRICE_LIST`. The live row was still `updated_by = 'system'`, so
+  `db.seed_settings` picked it up; checked against the database, not just the
+  default.
+- **The pass says "Tart or cookie".** `ITEM_NOTES["pastry"]` was
+  "Mini tart, brownie, cookie or shiopan". **Wording only, at the organiser's
+  decision** — `ITEM_CHOICES` is untouched, so the counter keeps all four
+  buttons and a guest who asks for a brownie still gets one. The pass simply
+  stops advertising four kinds.
+- **The Prices screen says "Redeemables"**, not "Already yours". (The Help
+  page's own "Included with entry" heading is a different block and is
+  unchanged.)
+- **A Mobile sign-in is the phone PIN and nothing else.** The **Your name** and
+  **Where you are** boxes are gone from the form, from `doSignin`, and from the
+  server's validation in `admin_login`. Filling two boxes on a counter phone,
+  every shift, was the friction.
+  - **Both are still accepted** if a caller sends them, so a station that wants
+    its name on its hand-overs can still have it. Nothing asks.
+  - **What the log loses** is the volunteer's name. It keeps the role, the
+    time, and the station when there is one. Every `claims` and `audit_log`
+    reader already joined those with `filter(Boolean)`, so an empty name
+    degrades to a shorter line rather than a dangling separator.
+  - **Two headers had to change.** The toolbar and the booth built theirs as
+    `name · something` and would have read "GM · " with nothing after it. They
+    name the door instead: **Mobile** or **Laptop**.
+- **Current state:** **541 tests pass** (two new, replacing the one that
+  asserted a name and a station were required). 22 console states render, up
+  from 18: the sign-in screen is now covered on both doors and in its refused
+  state, and the booth is rendered with the nameless session that is now the
+  normal one. A broken sign-in screen locks every volunteer out of the console,
+  so it was worth a case.
+- **Next step:** the organiser signs in on a counter phone with the PIN alone
+  and confirms the top of the booth reads **Mobile**.

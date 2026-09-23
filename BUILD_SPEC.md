@@ -607,7 +607,7 @@ The UI maps error codes to copy.
 
 | Method and path | Purpose |
 |---|---|
-| POST /admin/api/login, /admin/api/logout | Laptop: admin password. Mobile: phone PIN (staff or GM) + name + where you are |
+| POST /admin/api/login, /admin/api/logout | Laptop: admin password. Mobile: phone PIN (staff or GM) alone *(23 Sep: name and station are no longer asked for, and no longer required; both are still accepted if a caller sends them)* |
 | GET /admin/api/overview | Dashboard numbers |
 | GET /admin/api/people, GET /admin/api/people/{id} | Search and person page |
 | POST /admin/api/people, PATCH /admin/api/people/{id} | Walk-in; edits (reason required) |

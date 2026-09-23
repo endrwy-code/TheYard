@@ -102,8 +102,8 @@ you are", the bot token and the app disagree — Phase 18.
 
 7. Home → **The Yard Pass**.
 
-**You should see** your QR, and three items — **Pastry** (with "Mini tart,
-brownie, cookie or shiopan" under it), **Photo Strip** ("Your first strip") and
+**You should see** your QR, and three items — **Pastry** (with "Tart or
+cookie" under it since 23 Sep), **Photo Strip** ("Your first strip") and
 **Vinyl Crafting** — none collected, and **no circle** before any of them
 (22 Sep, `STATE.md` 132). Headings and buttons across the app are in
 normal capitals now ("Evening, …", "The Jamming Studio"); only the small spaced
@@ -181,7 +181,8 @@ check-in shows as "1 before that, not counted" and leaves **At the event** at
 
 10b. On a **second phone** (or the same one, in its normal browser), open your
      ngrok address + `/admin`. It opens on **Mobile**. Enter the phone PIN (the
-     staff PIN or the GM PIN — either works), your name, and `Loft` → **Sign in**.
+     staff PIN or the GM PIN — either works) → **Sign in**. Since 23 Sep that is
+     the whole sign-in: there is no name box and no "where you are" box.
 
 **You should see** four tabs only: **Booth, Orders, Game, People**.
 

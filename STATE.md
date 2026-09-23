@@ -1471,6 +1471,25 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        something that has not happened, which reads as a fault when it is the
        design. The count appears only once something has been sent.
 
+146. **The organiser's last four, 23 Sep.** Wording and friction, no mechanics.
+     - **The cookie is $4**, not $2.50. One line of `config.PRICE_LIST`; the
+       live row was still `updated_by = 'system'`, so it followed.
+     - **The pass says "Tart or cookie"** where it listed four kinds.
+       **Wording only, by the organiser's decision** — `ITEM_CHOICES` keeps all
+       four, so the counter still has a Mini Brownie and a Shiopan button and a
+       guest who asks for one gets one. The pass just stops advertising them.
+     - **The Prices screen says "Redeemables"**, not "Already yours".
+     - **A Mobile sign-in is the phone PIN alone.** The name and
+       "where you are" boxes are gone from the form and from `admin_login`'s
+       validation. Two boxes on a counter phone, every shift, was the friction.
+       Both are still *accepted* if sent, so a station that wants its name on
+       its hand-overs can have it; nothing asks. **The trade is real and the
+       organiser chose it:** the log keeps the role, the time and the station
+       when there is one, but no longer a volunteer's name. The toolbar and the
+       booth header used to read `name · something` and would have shown
+       "GM · " with nothing after it, so they name the door instead —
+       **Mobile** or **Laptop**.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.

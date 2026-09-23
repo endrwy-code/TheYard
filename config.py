@@ -92,7 +92,7 @@ ITEM_CHOICES = {
 }
 # One line under an item on the pass, when the name alone doesn't say it.
 ITEM_NOTES = {
-    "pastry": "Mini tart, brownie, cookie or shiopan",
+    "pastry": "Tart or cookie",
     "photo": "Your first strip",
 }
 
@@ -136,7 +136,7 @@ Studding: $0.50 to $3 an item
 Pastries:
 Mini Tart: $2.50
 Mini Brownie: $3.20
-Mini Cookie: $2.50
+Mini Cookie: $4
 
 Shiopan and Panini:
 Shiopan: $2.20

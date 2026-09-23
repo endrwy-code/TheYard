@@ -42,7 +42,8 @@ vm.createContext(sandbox);
 // `S` and `SCREENS` are const inside the page script, so they never land on
 // the sandbox's global object. Hand them out explicitly, the way
 // scripts/render_views.mjs does.
-vm.runInContext(code + ";\nglobalThis.__S = S; globalThis.__SCREENS = SCREENS;",
+vm.runInContext(code + ";\nglobalThis.__S = S; globalThis.__SCREENS = SCREENS;"
+                     + "\nglobalThis.__SCREENS.__signin = signinView;",
                 sandbox, { filename: "admin.html", timeout: 5000 });
 
 const S = sandbox.__S;
@@ -100,6 +101,8 @@ const gm = (over = {}) => ({
 
 const cases = [
   ["booth (scanning)", "booth", { lookup: null }],
+  ["booth (signed in with the PIN alone)", "booth",
+   { lookup: null, session: { role: "mobile", name: "", station: "", csrf_token: "x" } }],
   ["booth (nothing collected yet)", "booth", { lookup: { data: { person, payment_ok: true, claims: claims([]),
       can_hand_over: true, stock: null } } }],
   ["booth (pastry already gone)", "booth", { lookup: { data: { person, payment_ok: true, claims: claims(["pastry"]),
@@ -112,6 +115,10 @@ const cases = [
       claims: claims([]), can_hand_over: false, can_override: true, stock: null } } }],
   ["booth (not a Yard code)", "booth", { lookup: { error: "NOT_A_YARD_CODE" } }],
   ["booth (unknown code)", "booth", { lookup: { error: "UNKNOWN_CODE" } }],
+
+  ["signin (mobile)", "__signin", { signinRole: "mobile", signinErr: "" }],
+  ["signin (laptop)", "__signin", { signinRole: "admin", signinErr: "" }],
+  ["signin (refused)", "__signin", { signinRole: "mobile", signinErr: "That did not match." }],
 
   ["gm (no game yet)", "gm", { gmState: null, gmError: "No games are scheduled." }],
   ["gm (before the start)", "gm", { gmState: gm({ state: "upcoming", started: false,
@@ -135,6 +142,7 @@ const cases = [
 const MUST = {
   "booth (scanning)": ['id="cam"', 'id="vfhint"', 'id="viewfinder"', 'id="codebox"', 'id="lookup"',
                        'id="checkin"', 'id="scannext"', "booth-body scanning"],
+  "booth (signed in with the PIN alone)": ['id="cam"', 'id="scannext"', "Mobile"],
   "booth (nothing collected yet)": ['id="cam"', 'id="codebox"', 'id="scannext"', "booth-body showing",
                                     'data-hand="photo"', 'data-hand="vinyl"', 'data-variant="tart"',
                                     "Heidi Lim", "Not checked in", "The Last Guest"],
@@ -146,6 +154,10 @@ const MUST = {
   "booth (unknown code)": ['id="scannext"'],
 };
 Object.assign(MUST, {
+  // 23 Sep: the phone PIN is the whole Mobile sign-in.
+  "signin (mobile)": ['id="pin"', 'id="signin"', "Phone PIN", "Mobile", "Laptop"],
+  "signin (laptop)": ['id="pw"', 'id="signin"', "Admin password"],
+  "signin (refused)": ["That did not match.", 'id="pin"'],
   "gm (no game yet)": ["No game yet", "No games are scheduled."],
   "gm (before the start)": ['id="gmtimer"', "Upcoming", "phone opens at 7:05", "Starts 7:05",
                             'data-hint="drawer"'],
@@ -165,7 +177,12 @@ Object.assign(MUST, {
 // The scanning state must never carry a hand-over button, and a result must
 // never claim a half: the split went on 23 Sep.
 const NOT = {
+  // Neither door asks for a name or a station any more.
+  "signin (mobile)": ['id="nm"', 'id="stn"', "Your name", "Where you are"],
+  "signin (laptop)": ['id="nm"', 'id="stn"', 'id="pin"'],
   "booth (scanning)": ["data-hand=", "handbox"],
+  // No dangling separator where a name used to be.
+  "booth (signed in with the PIN alone)": ["GM \u00b7 <", " \u00b7 </span>", "Wei"],
   "booth (nothing collected yet)": ["half ", "— desk", "— flat"],
   "booth (pastry already gone)": ["blocked-item"],
   // Nothing has gone out yet, so the console must not say it has.

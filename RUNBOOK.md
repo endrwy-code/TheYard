@@ -517,7 +517,7 @@ whole window.
 
 **You should see** a real QR code (no longer the demo picture), your pass code
 under it (like `7K3M-Q9XT`), and three things marked **Ready**: **Pastry**
-(with "Mini tart, brownie, cookie or shiopan" under it), **Photo Strip** and
+(with "Tart or cookie" under it since 23 Sep), **Photo Strip** and
 **Vinyl Crafting**.
 
 **If you see** "Payment not verified yet" — payment checking has been switched
@@ -539,17 +539,20 @@ It is the last column on the `@maxi_muslim` row.
    go to your ngrok address followed by `/admin`, for example
    `https://your-name.ngrok-free.app/admin`. Click through ngrok's warning page
    if it appears.
-7. Tap **Mobile** (a phone opens on it already). Enter the phone PIN, name
-   `Wei`, where you are `Booth 1`, then **Sign in**.
+7. Tap **Mobile** (a phone opens on it already). Enter the phone PIN, then
+   **Sign in**. Since 23 Sep that is the whole sign-in — the name and
+   "where you are" boxes are gone, because filling two boxes on a counter
+   phone every shift was the friction.
 
-**You should see** Booth mode, with "Booth 1 · Wei" at the top, and only four
+**You should see** Booth mode, with **Mobile** at the top, and only four
 tabs: **Booth, Orders, Game, People**.
 
-**If you see** "Say where you are" — fill in the Where you are box.
 **If you see** "That did not match" — the PIN is wrong. After 5 wrong tries it
 makes you wait 5 minutes.
 
-8. On **phone B**, do the same with name `Aisha`, station `Booth 2`.
+8. On **phone B**, do the same. Nothing distinguishes the two phones now, which
+   is the trade: hand-overs are logged with their time and the role, but no
+   longer with a volunteer's name.
 9. On both phones, type your pass code into the box and tap **Look up**.
    (Or point the camera at the QR on your own phone. If the viewfinder says
    "Type the code below" or "Scanning failed", use the box below instead — it
@@ -929,7 +932,7 @@ It asks which tunnel to use.
 **Two hours before**
 - Three windows up via `start_event.ps1`.
 - Open the public URL on your own phone on mobile data.
-- Staff and the GM signed in on their own phones, each with their name and station.
+- Staff and the GM signed in on their own phones — the phone PIN and nothing else.
 - Test one hand-over on yourself and void it
   (`python manage.py void-claim maxi_muslim photo "pre-event test"`).
 
@@ -979,10 +982,10 @@ It asks which tunnel to use.
 | Still "not set yet" after you ran the command and restarted — or changes don't show up at all | **An old `app.py` is still running** in another window or in the background. Windows lets two copies share port 5000 without an error, and the old copy never re-reads `.env` | Run `netstat -ano \| Select-String ":5000"`. More than one `LISTENING` line means an old copy is running. Close every PowerShell window running `app.py`, run `Get-Process python \| Stop-Process`, then start `python app.py` once, in one window |
 | "That did not match" at console sign-in | Wrong password or PIN, or you picked the wrong tab (Staff vs GM) | Check the tab. After 5 wrong tries from one phone, it makes you wait 5 minutes |
 | "Too many tries. Wait a few minutes." | The sign-in limit (5 wrong tries per phone per 5 minutes) | Wait 5 minutes. Restarting `app.py` also clears it |
-| "Your sign-in has ended. Sign in again." | The console sign-in is 12 hours old, or someone pressed Sign out | Sign in again with your name and station |
+| "Your sign-in has ended. Sign in again." | The console sign-in is 12 hours old, or someone pressed Sign out | Sign in again with the phone PIN |
 | "Slow down — too many lookups" | More than 30 lookups in a minute from one sign-in | Wait a minute. The limit is the `lookup_rate_limit` setting |
 | Both booths went green for the same item | The once-only rule failed | **Stop.** Screenshot both phones and send them |
-| The console asks you to sign in again after you reload the page | Normal — a reload forgets the sign-in in that tab | Sign in again with your name and station |
+| The console asks you to sign in again after you reload the page | Normal — a reload forgets the sign-in in that tab | Sign in again with the phone PIN |
 | Booth camera won't open | Cameras need HTTPS and permission | Use the public HTTPS URL, not `localhost`. Then allow the camera when asked. The typed code box always works as a fallback |
 | BotFather still points at an old URL | You changed tunnels and skipped a step | The four steps in order: run the tunnel, update `PUBLIC_URL`, restart `bot.py`, update BotFather |
 | ngrok monthly limit reached | 20,000 requests or 1 GB out, testing included | Switch to Tailscale Funnel (Phase 14) |
