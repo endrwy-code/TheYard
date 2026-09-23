@@ -18,7 +18,7 @@ import pytest
 import config
 import db
 import manage
-from services import game
+from services import game, notify
 from services.claims import ClaimError
 
 
@@ -304,14 +304,15 @@ def _tester(conn, handle="tester"):
 
     `tg_user_id` is the part that is easy to forget and impossible to work
     around: it is set the first time somebody opens The Yard, and without it
-    there is no Telegram chat to send to. `is_test` is the other half — it is
-    what lets a message past `notify_mode` "owner".
+    there is no Telegram chat to send to. Not `is_test`: somebody added to the
+    test group in Settings is an ordinary attendee, and until 23 Sep a helper
+    that marked them a test account hid that testing mode suppressed them.
     """
     now = db.utcnow()
     _TESTER_N[0] += 1
     return conn.execute(
         "INSERT INTO attendees (name,handle,handle_raw,source,status,is_test,payment_status,"
-        "pass_code,tg_user_id,can_message,created_at,updated_at) VALUES ('T',?,?,'walk_in','active',1,"
+        "pass_code,tg_user_id,can_message,created_at,updated_at) VALUES ('T',?,?,'walk_in','active',0,"
         "'missing',?,?,1,?,?)",
         (handle, "@" + handle, f"TST{_TESTER_N[0]}-TTTT", 9_900_000 + _TESTER_N[0],
          now, now)).lastrowid
@@ -378,31 +379,31 @@ def test_the_save_names_anybody_it_could_not_reach(conn):
     }
 
 
-def test_the_save_says_when_who_gets_messages_will_hold_it(conn):
-    """The commonest reason nothing arrives, and the console never said it.
+def test_testing_mode_lets_the_test_group_through(conn):
+    """The test group is who testing mode is for.
 
-    `notify_mode` "owner" suppresses everything to anybody who is not the
-    owner and not a test account. A message queued for somebody it will
-    suppress has not been sent and never will be, so it must not be reported
-    as sent (23 Sep).
+    Until 23 Sep "owner" let out only the owner and `is_test` accounts, and
+    nobody added in Settings is either. So the save said "held", and the only
+    remedy on offer was switching messages on for all 170 people. Only
+    Nobody holds a tester's message now.
     """
     from services import admin
     _tester(conn, "ordinary")
-    # Not a test account, so "owner" mode will not let a message out to them.
-    conn.execute("UPDATE attendees SET is_test=0 WHERE handle='ordinary'")
     conn.commit()
     assert db.get_setting(conn, "notify_mode") == "owner"
     out = admin.save_settings(conn, {"phone_always_handles": "ordinary"}, "Maximus",
                               datetime.now(timezone.utc))
-    assert out["phone_test"]["held"] == ["ordinary"]
-    assert out["phone_test"]["sent"] == []
-
-    # Switched on for everyone, the same person goes.
-    db.set_setting(conn, "notify_mode", "on", by="test")
-    out = admin.save_settings(conn, {"phone_always_handles": "ordinary, second"}, "Maximus",
-                              datetime.now(timezone.utc))
-    assert out["phone_test"] == {"sent": [], "missing": ["second"],
+    assert out["phone_test"] == {"sent": ["ordinary"], "missing": [],
                                 "unreachable": [], "held": []}
-    from services import game
+
+    # And the outbox agrees: it goes, while everybody else is still held back.
+    notify.queue(conn, _tester(conn, "not_in_the_group"), "x", "to a real attendee")
+    sent = []
+    assert notify.deliver(conn, lambda chat, text, go: sent.append(text)) == {
+        "sent": 1, "suppressed": 1}
+    assert sent == [notify.text_phone_test()]
+
+    # Nobody means nobody, test group included, and the save says so.
+    db.set_setting(conn, "notify_mode", "off", by="test")
     again = game.send_phone_to_testers(conn, only=["ordinary"])
-    assert again["sent"] == ["ordinary"] and again["held"] == []
+    assert again["held"] == ["ordinary"] and again["sent"] == []

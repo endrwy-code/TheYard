@@ -1907,3 +1907,24 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
 - **Next step:** to let real people into the phone — Settings → **Who gets
   messages → Everyone**, and each of them opens @The_YardBot and taps Start
   once. Then Send it now.
+
+## 2026-09-23 — Testing mode now lets the test group through
+
+- **Changed:** `notify_mode` "owner" (Settings → Who gets messages →
+  *testing*) now delivers to the escape room's **Test group** as well as the
+  owner and `is_test` accounts. `notify._allowed` reads `phone_always_handles`
+  at delivery time.
+- **Why:** the entry above made the console say *"NOT sent … Who gets
+  messages is on testing"* and told the organiser to switch to **Everyone**.
+  But the test group only exists before the night, and testing mode is how
+  the app runs before the night, so the two could never work together. The
+  suggested fix would have switched reminders and phone messages on for all
+  170 people in the middle of a rehearsal. Nobody added in Settings is an
+  `is_test` account, and the tests only passed because their `_tester` helper
+  made one.
+- **Current state:** `held` now only happens on **Nobody**, and the console
+  and `manage.py phone-test` say so. The `_tester` helper creates an ordinary
+  attendee. New test `test_testing_mode_lets_the_test_group_through` fails on
+  the old rule.
+- **Still true:** a tester who has never opened The Yard is `unreachable`,
+  and no setting can change that. They open @The_YardBot and tap Start.

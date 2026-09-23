@@ -478,8 +478,8 @@ def cmd_phone_test(argv):
         _say("     They open @The_YardBot, tap Start, then run this again.")
     if out["held"]:
         _say(f"  Held for {', '.join('@' + h for h in out['held'])}: \"Who gets messages\" "
-             "is on testing, so the bot only writes to the owner.")
-        _say("     Settings -> Who gets messages -> Everyone, then run this again.")
+             "is on Nobody.")
+        _say("     python manage.py notify owner, then run this again.")
     if not out["sent"]:
         _say("Nothing was sent.")
         return 1
@@ -527,7 +527,7 @@ def cmd_set_public_url(argv):
 
 
 def cmd_notify(argv):
-    """Who the bot may message: owner (test accounts only), on, or off."""
+    """Who the bot may message: owner (test accounts and the test group), on, or off."""
     from services import notify
     db.init_db()
     conn = db.connect()
@@ -535,7 +535,7 @@ def cmd_notify(argv):
         if not argv:
             mode = db.get_setting(conn, "notify_mode", "owner")
             _say(f"Messages are: {mode}")
-            _say("  python manage.py notify owner   only always-allowed test accounts (safe for testing)")
+            _say("  python manage.py notify owner   only always-allowed accounts and the test group (safe for testing)")
             _say("  python manage.py notify on      everyone on the list")
             _say("  python manage.py notify off     nobody")
             return 0

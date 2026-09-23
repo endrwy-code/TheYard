@@ -296,14 +296,15 @@ def send_phone_to_testers(conn, settings=None, *, only=None, actor="system", act
     column that starts at 1 for all 170 people. So the console said *"Sent Kai
     Chen's phone to @them"* about somebody who had never opened The Yard, and
     about everybody at all while **Who gets messages** was on testing. Both are
-    the ordinary case, and neither was visible anywhere.
+    the ordinary case, and neither was visible anywhere. Testing now lets the
+    test group through (`notify._allowed`), so only Nobody holds it.
     """
     settings = settings if settings is not None else db.get_settings(conn)
     wanted = always_handles(settings)
     if only is not None:
         wanted &= {h.strip().lstrip("@").lower() for h in only if str(h).strip()}
     if not wanted:
-        return {"sent": [], "missing": [], "unreachable": []}
+        return {"sent": [], "missing": [], "unreachable": [], "held": []}
     rows = conn.execute(
         f"SELECT id, name, handle, tg_user_id, can_message, is_test FROM attendees "  # noqa: S608
         f"WHERE handle IN ({','.join('?' * len(wanted))})",
@@ -334,8 +335,8 @@ def send_phone_to_testers(conn, settings=None, *, only=None, actor="system", act
         # On the roster, but they have never opened The Yard, so Telegram will
         # not let the bot message them. They must send it /start first.
         "unreachable": unreachable,
-        # Reachable, but Who gets messages is on testing (or Nobody), so the
-        # outbox will suppress it. The one the console never mentioned.
+        # Reachable, but Who gets messages is on Nobody, so the outbox will
+        # suppress it. Testing lets the test group through.
         "held": held,
     }
 
