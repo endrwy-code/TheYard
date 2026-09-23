@@ -2078,3 +2078,30 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   are still open and still only the organiser's to answer: **is the repository
   public**, and **is Render's auto-deploy on**.
 - **Next step:** the photographs. Nine printed, one served.
+
+---
+
+## 2026-09-23 — The app showed through the gap above the phone
+
+- **Changed:** With the phone open, a strip of the Mini App was visible above
+  it — paper-coloured background and half a Yard screen sitting over the top of
+  a phone that is meant to be the only thing in the room. The cause was not a
+  layout bug: `#phoneframe` is **deliberately** inset from the top and bottom by
+  `--phone-top` and `--phone-bottom`, so the phone's own status bar and dock
+  clear the device's status bar and gesture bar. Nothing was ever painted behind
+  that inset, so the app underneath showed through it. A new
+  `body.phoneopen::before` fills the viewport at `z-index:59` — under the
+  frame's 60, over every screen — in `#0E0E10`, the same ground `setChrome()`
+  already gives Telegram's header and bottom bar on this screen, so the inset
+  runs into the chrome with no seam instead of becoming a second, slightly
+  different dark band.
+- **Current state:** The phone reads as the only thing on the glass. The inset
+  keeps doing its job on devices that need it. Nothing is hidden or unmounted,
+  so closing the phone restores the app exactly as it was, scroll position and
+  all. 583 tests pass; both page scripts pass `node --check`.
+- **Left unfinished on purpose:** The inset itself was not reduced. On a client
+  with no status bar to clear — Telegram Desktop, in the screenshot this came
+  from — the 18px floor is doing nothing, but it is there for the Android builds
+  that report no safe area and still lay a bar over the top inch, and guessing
+  which client is which at runtime is worse than a bezel.
+- **Next step:** none. It is done.

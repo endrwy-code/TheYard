@@ -648,6 +648,21 @@ body.dark .mainbtn{ background:var(--bone); color:var(--night) }
 }
 body.phoneopen #phoneframe{ display:block }
 body.phoneopen::after{ display:none }
+/* Black out everything behind the phone while it is open.
+   The frame above is deliberately inset from the top and bottom so the
+   phone's own status bar and dock clear the device's bars. Without this the
+   app shows through that inset — a strip of paper and half a Yard screen
+   sitting above a phone that is meant to be the only thing in the room, which
+   is the one place the illusion is doing the work. Black, so the inset reads
+   as the bezel it is pretending to be. Below the frame's z-index:60 and above
+   every screen, so nothing needs hiding and closing the phone restores the
+   app exactly as it was. `#0E0E10` is the same ground `setChrome()` gives
+   Telegram's header and bottom bar on this screen, so the inset runs into the
+   chrome with no seam instead of becoming a second, slightly different band. */
+body.phoneopen::before{
+  content:''; position:fixed; inset:0; z-index:59;
+  background:#0E0E10; pointer-events:none;
+}
 
 /* ---- screen transitions ---------------------------------------------
    A short nudge: the arriving screen starts 18px to the side and settles.
