@@ -1795,3 +1795,41 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   on the live URL → Settings → **Hand-over needs payment** → confirm it reads
   **Not needed**. This commit fixes what a *new* database does; it cannot reach
   a row an old one already wrote.
+
+## 2026-09-23 — The organiser's last eight: copy, two prices, and no brownie
+
+- **The escape room asks for a group of six.** A line under the premise: one of
+  you books a time and adds the other five, because the flat and the desk each
+  hold half of what the group needs. It says **six** rather than "a group"
+  because `max_party` is 6 — a booker plus five.
+- **"Are you musical?" is gone** from the Home row for the jamming studio. It
+  asked a question the row could not answer, and half the people who read it
+  say no to a room they would have liked. It reads **"Half an hour with a full
+  kit — give our jamming room a try"**.
+- **"Invite your friends to come hear you play" is gone** from the jam page.
+  Nobody comes to watch, and the next sentence already says what the room is
+  for: **"Pick a time and claim an instrument. Whoever takes the rest is your
+  band for the night."**
+- **"Paid at the front desk" → "Pay at the booth itself"** on the Prices screen.
+  It no longer interpolates the `meeting_point` Setting, because the answer is
+  no longer the front desk.
+- **Mini Cookie: `$4` → `$2.50-4`.** **Leather Journal Making: `$25` →
+  `$25-35`.** Both live rows were still `updated_by = 'system'`, so
+  `db.seed_settings` carried them; checked against the database.
+- **"How do I open Kai Chen's phone?" is gone from Help.** Anybody who needs it
+  is already in a game and has the bot's message, and the button is on The Last
+  Guest screen; Help was the one place describing a way in to people who had no
+  way in.
+- **The brownie is gone everywhere.** Out of `config.ITEM_CHOICES`, so the booth
+  has three buttons — **Mini Tart, Mini Cookie, Shiopan** — and out of the price
+  list, where it was $3.20. No claim in the database had ever been handed over
+  as one, so the key is removed rather than retired.
+  - Two tests handed over a brownie or asserted four kinds; both now use the
+    three that exist. `RUNBOOK.md`'s booth step said four buttons, `README.md`
+    and `BUILD_SPEC.md` listed four kinds, and this morning's `STATE.md`
+    decision 146 said the counter would keep its Mini Brownie button — all
+    four corrected, with 146 marked superseded the same day.
+- **Current state:** **564 tests pass.** 23 console states render; both pages
+  pass `node scripts/check_pages.mjs`.
+- **Next step:** nothing for the wording. The brownie is the only one of these
+  with a physical consequence — whoever stocks the pastry counter needs telling.

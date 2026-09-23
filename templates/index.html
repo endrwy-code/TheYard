@@ -1321,7 +1321,7 @@ VIEWS.home = function(){
       ${progRow('01', 'The Yard Pass', 'Scan it to claim your ' + itemsSentence(), 'food',
                 !canCollect(me) ? '' : openItems(me) ? '' : `<span class="pill pill-line">Done</span>`)}
       ${progRow('02', 'The Last Guest', 'You have fifteen minutes to solve this escape room. Can you do it in time?', 'esc')}
-      ${progRow('03', 'The Jamming Studio', 'Are you musical? Give our jamming room a try', 'jam')}
+      ${progRow('03', 'The Jamming Studio', 'Half an hour with a full kit — give our jamming room a try', 'jam')}
       ${progRow('04', 'Prices', 'What everything costs, and what your entry already covers', 'prices')}
       ${progRow('05', 'Floorplan', 'Where everything is at The Yard', 'floorplan')}
       ${progRow('06', 'Help', 'Lost, stuck, or something looks odd? Click here', 'help')}
@@ -1421,6 +1421,7 @@ VIEWS.esc = function(){
            actually open to them, so it can never be a button that refuses. -->
       ${S.phone && !S.phone.code ? `
       <button class="btn btn-bone" data-go="phone" style="margin-bottom:18px">Open Kai Chen’s phone ${ARROW}</button>` : ''}
+      <p class="fine" style="margin-top:0;margin-bottom:18px">Come as a group of six. One of you books a time and adds the other five — the flat and the desk each hold half of what you need, so a full group is how the room is meant to be played.</p>
       <div class="bar label"><span>Tonight</span><span>${first ? esc(span(at(first.starts_at), at(last.starts_at))) : ''}</span></div>
       <div class="games">${cells}</div>
     </div>
@@ -1802,7 +1803,7 @@ VIEWS.jam = function(){
     <header class="jam-hero">
       <div class="label">Half an hour, the room is yours</div>
       <h1 class="display big jam-head">The Jamming<br>Studio</h1>
-      <p class="fine" style="margin-top:12px">Pick a time, claim an instrument, and invite your friends to come hear you play! Whoever takes the rest is your band for the night.</p>
+      <p class="fine" style="margin-top:12px">Pick a time and claim an instrument. Whoever takes the rest is your band for the night.</p>
     </header>
     <div class="kitlist">
       ${(d.instruments || []).map(i => `<span class="kit">${esc(i.label)}</span>`).join('')}
@@ -1958,9 +1959,6 @@ VIEWS.help = function(){
     // sends people to queue at the desk over something nobody is looking at.
     e.payment_required === false ? null : ['You haven’t seen my payment.',
      'Show it at ' + desk + ' and you’re good to go.'],
-    ['How do I open Kai Chen’s phone?',
-     'At your booked time the bot messages everyone in your game with a button that opens it — and the same button appears on The Last Guest screen. Nothing to press, nobody to ask. It stays open for '
-     + (e.phone_minutes || 25) + ' minutes. If it won’t load, there’s a link under it to open it in your browser instead.']
   ];
   // The street address alone: a Singapore postcode finds the building.
   const maps = e.address ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.address) : '';
@@ -2035,7 +2033,7 @@ VIEWS.prices = function(){
     ${photo('prices', 'Two Goose · MUTED. Gelato · Shiopan Paninis')}
     <header>
       <h1 class="display big">Prices</h1>
-      <p class="fine" style="margin-top:8px">Paid at ${esc(ev().meeting_point || 'the front desk')}, not in the app.</p>
+      <p class="fine" style="margin-top:8px">Pay at the booth itself, not in the app.</p>
     </header>
     ${list ? `<div class="pricepage">${list.html}</div>`
            : `<p class="help-p">The price list isn’t up yet. Ask at ${esc(ev().meeting_point || 'the front desk')}.</p>`}

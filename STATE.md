@@ -1476,8 +1476,10 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        live row was still `updated_by = 'system'`, so it followed.
      - **The pass says "Tart or cookie"** where it listed four kinds.
        **Wording only, by the organiser's decision** — `ITEM_CHOICES` keeps all
-       four, so the counter still has a Mini Brownie and a Shiopan button and a
-       guest who asks for one gets one. The pass just stops advertising them.
+       four, so the counter kept its buttons and a guest who asked for one got
+       one. The pass just stopped advertising them. **Superseded the same day
+       by decision 148:** the brownie went altogether, so the counter has
+       three — Mini Tart, Mini Cookie, Shiopan.
      - **The Prices screen says "Redeemables"**, not "Already yours".
      - **A Mobile sign-in is the phone PIN alone.** The name and
        "where you are" boxes are gone from the form and from `admin_login`'s
@@ -1520,6 +1522,26 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
      - **Not fixable from here:** the Render service has **its own database**,
        seeded from the old default. If it has ever been deployed, its row says
        `submitted` and only somebody opening that console can change it.
+
+148. **The organiser's last eight, 23 Sep.** Copy, two prices, and one item off
+     the pass.
+     - **The escape room asks for a group of six**, in a line under the
+       premise. It says six rather than "a group" because `max_party` is 6.
+     - **"Are you musical?"** is gone from the jamming row: it asked a question
+       the row could not answer, and half of them say no to a room they would
+       have liked. **"Invite your friends to come hear you play"** is gone from
+       the jam page — nobody comes to watch, and the band line already says
+       what the room is for.
+     - **"Pay at the booth itself"**, not "Paid at the front desk". It no
+       longer interpolates `meeting_point`, because that is not the answer.
+     - **Mini Cookie $2.50-4; Leather Journal Making $25-35.**
+     - **"How do I open Kai Chen's phone?" leaves Help.** Anybody who needs it
+       is in a game and has the bot's message. Help was the one place
+       describing a way in to people who had no way in.
+     - **The brownie goes everywhere**: out of `ITEM_CHOICES`, so the counter
+       has three buttons, and off the price list. Nothing had ever been handed
+       over as one, so the key is removed rather than retired. This supersedes
+       decision 146, taken the same morning, which kept all four buttons.
 
 ### Endpoints added beyond §12
 

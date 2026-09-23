@@ -222,7 +222,7 @@ def test_the_registrations_export_keeps_paperforms_columns(world):
     from services import claims
     wei = {"role": "staff", "name": "Wei", "station": "Booth 1"}
     claims.check_in(world, actor=wei, attendee_id=h)
-    claims.claim(world, item="pastry", actor=wei, attendee_id=h, variant="brownie")
+    claims.claim(world, item="pastry", actor=wei, attendee_id=h, variant="cookie")
     r = Console("admin").get("/admin/api/export/registrations")
     assert r.status_code == 200 and "attachment" in r.headers["Content-Disposition"]
     ws = openpyxl.load_workbook(io.BytesIO(r.data))["Registrations"]
@@ -230,7 +230,7 @@ def test_the_registrations_export_keeps_paperforms_columns(world):
     assert list(rows[0]) == COLUMNS
     assert len(rows) == 18                                   # header + 17, no test account
     heidi = next(x for x in rows if x[3] and "heidily" in x[3].lower())
-    assert heidi[6] == "Yes" and heidi[8] == "Pastry (Mini Brownie)" and heidi[9]
+    assert heidi[6] == "Yes" and heidi[8] == "Pastry (Mini Cookie)" and heidi[9]
 
 
 @pytest.mark.parametrize("kind", ["bookings", "claims", "fallback"])

@@ -87,8 +87,8 @@ ITEM_LABELS = dict(ITEMS)
 # taps which one went, so the claim records it (claims.variant) and the
 # console can show what is running out.
 ITEM_CHOICES = {
-    "pastry": (("tart", "Mini Tart"), ("brownie", "Mini Brownie"),
-               ("cookie", "Mini Cookie"), ("shiopan", "Shiopan")),
+    "pastry": (("tart", "Mini Tart"), ("cookie", "Mini Cookie"),
+               ("shiopan", "Shiopan")),
 }
 # One line under an item on the pass, when the name alone doesn't say it.
 ITEM_NOTES = {
@@ -129,14 +129,13 @@ INSTRUMENT_LABELS = dict(INSTRUMENTS)
 PRICE_LIST = """\
 Activities:
 Extra Photo Strip: $2 each
-Leather Journal Making: $25
+Leather Journal Making: $25-35
 Silk Printing: $5 a print
 Studding: $0.50 to $3 an item
 
 Pastries:
 Mini Tart: $2.50
-Mini Brownie: $3.20
-Mini Cookie: $4
+Mini Cookie: $2.50-4
 
 Shiopan and Panini:
 Shiopan: $2.20

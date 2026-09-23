@@ -835,10 +835,11 @@ def test_the_app_gets_the_event_facts_from_settings(games, client):
     assert d["venue"] == "Hafary Gallery L5" and d["opens"] == "3:00 PM" and d["closes"] == "10:00 PM"
     assert d["address"] == "105 Eunos Ave 3, Singapore 409836"
     assert d["last_game"] == "9:45 PM" and d["entry_fee"].startswith("$12")
-    # The pass: one pastry (of four kinds), the first photo strip, vinyl
-    # making (22 Sep, STATE.md 132). Places and prices come from Settings too.
+    # The pass: one pastry (of three kinds since 23 Sep — the brownie went),
+    # the first photo strip, vinyl crafting. Places and prices come from
+    # Settings too.
     assert [i["key"] for i in d["items"]] == ["pastry", "photo", "vinyl"]
-    assert [c["key"] for c in d["items"][0]["choices"]] == ["tart", "brownie", "cookie", "shiopan"]
+    assert [c["key"] for c in d["items"][0]["choices"]] == ["tart", "cookie", "shiopan"]
     assert d["escape_meet"] == "the escape room entrance" and d["jam_room"] == "Heaven 2"
     # Whether Help tells people to go and show their payment (STATE.md 138).
     # Off by default since 23 Sep, so this checks both ways round the other way.

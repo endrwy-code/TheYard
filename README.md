@@ -239,8 +239,8 @@ entries for each change.
   is free; the app takes no money. Where BUILD_SPEC disagrees, STATE wins.
 - **The organiser's list of 22 Sep is the source of truth for what's included
   and what it costs** (`STATE.md` decision 132): the pass covers a pastry (Mini
-  Tart, Brownie, Cookie or Shiopan — the booth records which), the first photo
-  strip and vinyl crafting; everything with a price is the `price_list` Setting,
+  Tart, Mini Cookie or Shiopan — the booth records which; the brownie went
+  23 Sep), the first photo strip and vinyl crafting; everything with a price is the `price_list` Setting,
   shown on Help. Escape games run 3:05–9:45 PM (decision 133).
 - **Hosting.** The code goes to a *private* GitHub repository and
   `DEPLOY.md` is the guide for moving it from the laptop + tunnel to a real

@@ -558,10 +558,10 @@ makes you wait 5 minutes.
    "Type the code below" or "Scanning failed", use the box below instead — it
    always works, and a scan fills that same box anyway.)
 
-**You should see** on both: a green **Valid** card, your name, four buttons
-under "Hand over a pastry" — **Mini Tart, Mini Brownie, Mini Cookie,
-Shiopan** — and a big **Hand over photo strip** and **Hand over vinyl
-making** button. Tapping a pastry kind hands the pastry over and records
+**You should see** on both: a green **Valid** card, your name, three buttons
+under "Hand over a pastry" — **Mini Tart, Mini Cookie, Shiopan** (the brownie
+went on 23 Sep) — and a big **Hand over photo strip** and **Hand over vinyl
+crafting** button. Tapping a pastry kind hands the pastry over and records
 which one. The
 camera stops after one read, and it stays off
 until you tap **Scan next** or tap the full-screen result.

@@ -29,7 +29,7 @@ After any major decision, update `STATE.md`, `README.md`, this file,
 | Cadence | A new group every 20 minutes |
 | First game | 5:30 PM |
 | Venue | @ Hub @ L5 Hafary |
-| Included in entry | *Since 22 Sep (`STATE.md` 132): a pastry — Mini Tart, Mini Brownie, Mini Cookie or Shiopan, the kind recorded — the first photo strip, and vinyl crafting (once each, tracked; **Vinyl Crafting** since 23 Sep, `STATE.md` 142), plus the escape room, the jamming studio and board games. Everything else has a price: the `price_list` Setting, shown on Help. The canned drink left the pass 19 Sep* |
+| Included in entry | *Since 22 Sep (`STATE.md` 132): a pastry — Mini Tart, Mini Cookie or Shiopan, the kind recorded (the brownie went 23 Sep) — the first photo strip, and vinyl crafting (once each, tracked; **Vinyl Crafting** since 23 Sep, `STATE.md` 142), plus the escape room, the jamming studio and board games. Everything else has a price: the `price_list` Setting, shown on Help. The canned drink left the pass 19 Sep* |
 | Last game | 9:30 PM. *Since 22 Sep, decision 133: games 3:05–9:45 PM, 21 games, 252 seats, so the last one ends with the doors at 10 PM. It was 3:30–9:30 (19 games, 228 seats), and 5:30 PM (13 games, 156 seats) before that* |
 | Capacity | **12 players**, 6 per half |
 | Phone unlock mode | `gm_start` |
