@@ -300,7 +300,19 @@ def admin():
 
 @app.route("/healthz")
 def healthz():
-    return ok({"status": "up"})
+    """Liveness, and which commit is answering.
+
+    `version` is here because "I pushed it and the app still shows the old
+    text" is not answerable from outside otherwise: everything that changes in
+    this project is either behind the gate or inside the phone, so there is
+    nothing public to read a version off. Render sets RENDER_GIT_COMMIT on
+    every build, so this says what is actually running rather than what was
+    last pushed, and a failed deploy shows up as an old sha instead of
+    silently serving the previous build. "unknown" off Render, where nothing
+    sets it.
+    """
+    sha = os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or ""
+    return ok({"status": "up", "version": sha[:7] if sha else "unknown"})
 
 
 # ---------------------------------------------------------------------------
