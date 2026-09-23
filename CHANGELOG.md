@@ -2153,3 +2153,28 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   first pass is a Natalie somebody suspects in minute two. Her thread gained
   one line about the money and nothing about the kitchen.
 - **Next step:** the photographs — nine printed, one served.
+
+---
+
+## 2026-09-23 — /healthz says which commit is answering
+
+- **Changed:** "I pushed it and the app still shows the old text" could not be
+  answered from outside. Everything that changes in this project is either
+  behind the gate or inside the phone, so there was nothing public to read a
+  version off — and a deploy that failed looks exactly like a deploy that
+  worked, because Render keeps serving the last good build either way.
+  `/healthz` now carries the short sha from `RENDER_GIT_COMMIT`, which Render
+  sets on every build. It reports what is **running**, not what was last
+  pushed.
+- **Current state:** `curl https://the-yard.onrender.com/healthz` answers
+  `{"status":"up","version":"<sha>"}`. Off Render nothing sets the variable and
+  it reads `unknown`. 583 tests pass. Two live-setup questions that had been
+  open in `ESCAPE_ROOM_PLAN.md` §1e are now answered by checking rather than
+  asking: **auto-deploy is ON** (`render.yaml` says otherwise and is stale — a
+  blueprint value only applies on first sync, so it has to be changed in the
+  dashboard), and **the repository is public** (`private/gm/script.json`, the
+  lock code and every hint, answers unauthenticated requests).
+- **Left unfinished on purpose:** The repository was not made private. It is a
+  dashboard action and the organiser's to take; Render deploys from private
+  repositories with no change to anything here.
+- **Next step:** the photographs — nine printed, one served.
