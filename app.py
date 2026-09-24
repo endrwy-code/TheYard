@@ -474,6 +474,40 @@ def api_me():
     })
 
 
+@app.route("/api/me/pass")
+def api_me_pass():
+    """What the pass says about itself, and nothing else.
+
+    The booth hands something over on its own device, so the pass in
+    somebody's hand has no way of knowing — until 24 Sep it went on saying
+    "Scan to claim" until they left the screen and came back, which at the
+    booth reads as the hand-over not having worked.
+
+    This is the small answer the open pass asks for repeatedly: the claims,
+    the payment gate and the check-in, with none of /api/me's weight. The QR
+    is a base64 PNG and the bookings are three more queries; sending those
+    every couple of seconds to everybody standing at the booth is how you
+    take the site down at the one moment it has to work.
+
+    Not server-sent events, on purpose. The console's live stream holds a
+    thread per console and there are a handful of those; there are a few
+    hundred passes. Twenty-four waitress threads (render.yaml) do not
+    survive that, and a pass that cannot load is worse than one that is two
+    seconds behind.
+    """
+    row, error = attendee_or_fail()
+    if error:
+        return error
+    conn = g.db
+    row = conn.execute("SELECT * FROM attendees WHERE id=?", (row["id"],)).fetchone()
+    return ok({
+        "claims": claims.claims_for(conn, row["id"]),
+        "payment_status": row["payment_status"],
+        "payment_ok": claims.payment_ok(conn, row),
+        "checked_in_at": claims.local_iso(row["checked_in_at"]),
+    })
+
+
 @app.route("/api/me/messages", methods=["POST"])
 def api_allow_messages():
     """The Mini App asked Telegram for write access and the person said yes.

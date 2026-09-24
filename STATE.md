@@ -1664,6 +1664,104 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        only people who were *scanned*, so it under-reports against Overview.
        The export was not touched.
 
+### 24 Sep (afternoon) — the console stopped blinking, and the pass keeps up
+
+153. **A screen is patched, not rebuilt.** 24 Sep, the organiser: *"every
+     single asset refreshes when lets say I type something into the inbuilt
+     search bar... It flashes and every single thing, button text on the
+     screen goes off and comes back in a split second."* Every screen in the
+     console is a template string and `render()` wrote the whole of it into
+     the page, so one character in the People search threw away every node on
+     screen and built it again — the logo re-decoded, the `vIn`/`rise`
+     entrances replayed on every card, and the box being typed in was a
+     different box by the time the next keystroke arrived. This is the same
+     fault the Mini App had on 21 Sep (§5, "the design round trip, and the
+     flash") and fixed there with `changed()` and a decoded-image cache; the
+     console never got the same treatment.
+     - **`morph()` parses the fresh markup off-screen and walks it against
+       the live tree**, writing only the differences. Nothing about how a
+       screen is written had to change — every `SCREENS.*` function still
+       returns one string. Position decides what matches what, with an `id`
+       as a promise that two nodes are the same thing, which holds because
+       every screen draws the same furniture from the same state.
+     - **`wire()` stays the only source of behaviour.** A node that keeps its
+       place but changes its job would otherwise keep the old job's handler,
+       so `morph` nulls `onclick` and its siblings on every node it keeps and
+       lets `wire()` hand them out again.
+     - **Moving between screens still rebuilds**, so a screen still arrives
+       with its entrance. `loading()` and `blockedView()` carry ids for that
+       reason — without them the real screen grows out of the placeholder at
+       the same position and the entrance never plays. The id is load-bearing.
+     - **What this buys beyond the flash:** the cursor stays where it is in a
+       half-typed search (the old `focusSearch` hack moved it to the end), the
+       camera `<video>` and its stream survive a redraw, scroll positions hold,
+       and the Audit search box — which had no focus hack at all and lost focus
+       outright after 300ms — works.
+     - **Left alone on purpose:** `refreshSoon()` still skips a live refresh
+       while any field has focus. With `morph` that guard is only needed for
+       the Settings draft, and the People list could stay live with the cursor
+       in the search box. Changing it is a behaviour change nobody asked for,
+       on the day.
+
+154. **The pass asks, because the booth cannot tell it.** The organiser:
+     *"when the admin at the booth scans the QR codes of the yard pass, the
+     yard pass doesnt automatically update. From claimed to collected at
+     timestamp."* The hand-over happens on the booth's device; the pass in
+     somebody's hand had no channel at all and went on saying "Scan to claim"
+     until they left the screen and came back — which, standing at the booth,
+     reads as the scan not having worked.
+     - **`GET /api/me/pass`** carries the claims, the payment gate and the
+       check-in, and nothing else. `/api/me` carries the QR as a base64 PNG
+       and three bookings queries besides; that is not a thing to send every
+       two seconds to everybody in the queue.
+     - **Polling, not server-sent events, and that is the decision.**
+       `/admin/api/live` holds a thread for as long as a console is open and
+       there are a handful of consoles. There are a few hundred passes against
+       24 waitress threads (`render.yaml`), so the same shape would starve the
+       server at the one moment it has to work. The pass asks every two
+       seconds while it is the open screen, every fifteen on Home, and not at
+       all while the app is out of sight or the screen is something else.
+     - **A poll that changes nothing redraws nothing** — the answer is
+       compared against what the pass is already showing, so the Mini App's
+       own hard-won stillness is not undone by the thing that keeps it fresh.
+
+155. **A laptop screen on a phone is laid out for a laptop.** The organiser:
+     *"most websites built for laptos, you are still able to move around the
+     higher resolution on a smaller screen. Pinch etc."* Overview, Schedules,
+     Roster, Settings and Audit are drawn at 1440. Held at device width their
+     media queries folded them into one column: nothing overflowed, and
+     nothing was usable either — a five-column table stacked into 390px, a
+     settings row with nowhere to put its control.
+     - On a device narrower than 900 those five now set the viewport to
+       `width=1440` and let the browser fit it to the glass. The whole screen
+       is there at once and pinching moves into the part you want, rather than
+       the layout quietly becoming a different, worse one.
+     - **The test is `screen.width`, never `innerWidth`**: once a wide viewport
+       is set `innerWidth` reports that width back, and the test would flip on
+       itself every render.
+     - **The booth, orders, the game and People keep device width.** They are
+       drawn at 390 and have to stay that size under a thumb in a queue. The
+       five that change say so on screen: *"Built for a laptop. Pinch to zoom
+       in, drag to move around."*
+     - **Moving around it had to be let go of, not just allowed.** Laying the
+       page out at 1440 is only half of it: three things on those screens grab
+       a drag for themselves, so you pull the page across and something else
+       moves instead, or nothing does. `setViewport()` puts `data-squeezed` on
+       `<html>` and the last rules in the stylesheet release all three — the
+       top bar stops being sticky (pinned to the layout viewport it drifts
+       over the page as you pan, and there is no room to spare), the nav strip
+       stops scrolling sideways on its own, and Settings' save bar stops being
+       stuck to the bottom. Inner scrollers are let out to full length for the
+       same reason: at this size the page itself is the surface to move on,
+       and a second one inside it is somewhere to get stuck. Everything is
+       still there, in order, where scrolling reaches it.
+     - **The zoom ceiling is raised to 10.** The default stops well short of
+       reading 12px type that has been shrunk to a quarter of its size.
+     - **Known limit:** a toast on a zoomed-in laptop screen can land
+       off-screen, because `position:fixed` on a phone tracks the layout
+       viewport. The screens where a toast carries the important news — the
+       booth, orders — are not among the five.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1674,6 +1772,7 @@ Recorded here and in `BUILD_SPEC.md` §12.
 | `POST /admin/api/backup` | The RUNBOOK's "Back up now" button had no endpoint |
 | `GET /admin/api/roster` | Roster screen summary: active, inactive, walk-ins, past import runs |
 | `POST /api/me/messages` | The Mini App's "Allow messages" answer |
+| `GET /api/me/pass` | The open pass catching up with the booth: claims, payment gate and check-in only, small enough to ask for every two seconds (decision 154) |
 | `POST /api/escape/group`, `DELETE /api/escape/group/{handle}` | Owner adds or removes friends |
 | `GET /admin/api/session` | Resume the console sign-in after a reload |
 | `GET /admin/api/live` | Server-sent events: "something changed" |

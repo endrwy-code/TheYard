@@ -2398,3 +2398,117 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   somebody who has collected nothing, confirm the Overview's "At the event"
   goes up by one, then have the same person collect a pastry and confirm it
   does **not** go up again.
+
+## 2026-09-24 — The console stopped blinking, and the pass keeps up with the booth
+
+- **Changed:** Three faults, one theme — a screen that rebuilds itself is a
+  screen nobody can work in.
+
+  1. **The admin console flashed on every redraw.** Every screen in
+     `templates/admin.html` is a template string, and `render()` wrote the
+     whole of it into the page each time. One character in the People search
+     threw away every node on screen and built it again: the logo had to be
+     decoded, the `vIn`/`rise` entrances replayed on every card, and the box
+     being typed in was a different box by the time the next keystroke landed.
+     A `morph()` now parses the fresh markup off-screen, walks it against the
+     live tree and writes only the differences. Nothing about how a screen is
+     written changed. `wire()` is still the only thing that hands out
+     handlers, so `morph` clears them on any node it keeps. The People and
+     Audit search timers moved out of `wire()`, where each redraw used to
+     build a fresh closure whose predecessor's timer nobody could cancel.
+  2. **The pass did not notice the booth.** The booth hands over on its own
+     device, so a pass in somebody's hand went on saying "Scan to claim" until
+     they left the screen and came back — which at the booth reads as the scan
+     not having worked. New `GET /api/me/pass` carries the claims, the payment
+     gate and the check-in and nothing else; the Mini App asks for it every
+     two seconds while the pass is the open screen, every fifteen on Home, and
+     never while the app is out of sight.
+  3. **Laptop screens were unusable on a phone.** Overview, Schedules, Roster,
+     Settings and Audit are drawn at 1440. Held at device width their media
+     queries folded them into one column — nothing overflowed and nothing was
+     usable. On a device narrower than 900 those five now lay the page out at
+     1440 and let the browser fit it to the glass, the way any laptop site
+     behaves on a phone. Laying it out that way is only half of it:
+     the sticky top bar, the sideways-scrolling nav strip and Settings' sticky
+     save bar each grab a drag for themselves, so the page would not move
+     under your thumb. All three are released while a laptop screen is being
+     read on a phone, inner lists are let out to full length, and the zoom
+     ceiling is raised to 10.
+
+- **Current state:** Typing in the People search keeps the box, its text and
+  its cursor exactly where they were, and leaves the card, the search bar and
+  the top-bar logo untouched. Moving *between* screens still rebuilds, so a
+  screen still arrives with its entrance — `loading()` and `blockedView()`
+  carry ids so the real screen replaces them rather than growing out of them.
+  The camera `<video>` and its stream survive a redraw. The pass turns over
+  from "Scan to claim" to "Collected 4:21 PM" while it is being held, and a
+  poll that changes nothing redraws nothing. The five laptop screens on a
+  phone say "Built for a laptop. Pinch to zoom in, drag to move around."; the
+  booth, orders, the game and People keep device width, because those are
+  drawn at 390 and have to stay that size under a thumb.
+
+  611 pytest tests pass, 5 of them new (the pre-existing
+  `test_the_console_schedule_is_real` failure is unrelated: it reads the
+  laptop's real clock and starts failing once the day is past the first jam
+  slot). Both page scripts pass `node --check`. The browser-side work is
+  covered by three jsdom harnesses in the scratchpad rather than the repo —
+  see *Left unfinished on purpose*.
+
+- **Left unfinished on purpose:**
+  - **The browser tests are not in the repo.** 42 checks on `morph` itself, 26
+    driving the real console (the search keeps its cursor, screens still
+    rebuilt on navigation, the viewport rule) and 15 driving the real Mini App
+    against real captured API answers (the pass turns over untouched) all pass,
+    but they need `jsdom` from npm and this project has no Node toolchain. They
+    were run and thrown away. Adding them means adding a `package.json` and a
+    second test runner, which is not a thing to do on event day.
+  - **Server-sent events for the pass were rejected**, not overlooked. The
+    console's stream holds a thread per console and there are a handful of
+    those; there are a few hundred passes, against 24 waitress threads
+    (`render.yaml`). Polling only while the pass is open is the cheaper shape.
+    The reasoning is written out over `GET /api/me/pass`.
+  - **`refreshSoon()` still skips a live refresh while any field has focus.**
+    With `morph` that guard is no longer needed for anything but the Settings
+    draft, and the People list would stay live while the cursor sits in the
+    search box. Left alone: it is a behaviour change nobody asked for, on the
+    day.
+  - **A toast fired on a zoomed-in laptop screen may be off-screen**, because
+    `position:fixed` on a phone tracks the layout viewport. The screens where
+    toasts carry the important news — the booth, orders — keep device width, so
+    this only affects Settings and the Audit exports.
+
+- **Next step:** the organiser types a name into People on the laptop and
+  confirms the screen no longer blinks; then, on a phone, opens the pass, has
+  a second device scan it at the booth, and watches the line turn over to
+  "Collected" without touching the phone; then opens Overview and Settings on
+  the phone and confirms pinching moves around the laptop layout.
+
+## 2026-09-24 — Two camera faults found while reviewing the console for an iPad
+
+- **Changed:** Nothing yet. Both were found by reading the code during the
+  iPad self-scan review and are written down here rather than fixed, because
+  the fix belongs with the self-serve work the organiser has not chosen yet.
+- **Current state:** (1) The camera never comes back after the tab is hidden.
+  `visibilitychange` calls `stopCamera()` when the tab goes away
+  (`templates/admin.html`, last lines) and nothing restarts it on the way
+  back. Booth mode is also deliberately excluded from the refresh loop
+  (`refreshSoon`, `S.screen !== 'booth'`), so no redraw comes along to
+  restart it either. On a phone this is invisible — the person taps something
+  and the screen redraws. On an iPad left on a stand, one notification, one
+  app switch or one screen sleep leaves a dead black viewfinder with the hint
+  still reading "Point at the pass", and nobody standing there to notice.
+  (2) `narrowDevice()` treats anything whose screen is under 900px wide as a
+  phone, so the iPad mini (744), iPad Air and iPad 10th gen (820) and the
+  11-inch iPad Pro (834) get the laptop screens squeezed to a 1440 viewport
+  with "Built for a laptop. Pinch to zoom in" under them. The 12.9-inch
+  (1024) does not. An iPad has the room to draw those screens properly; it is
+  being told to pinch and zoom for no reason.
+- **Left unfinished on purpose:** Both. Fault (1) wants a matching restart on
+  `visibilitychange`, which is three lines, but it is only worth testing once
+  with whatever self-serve mode turns out to be. Fault (2) wants the
+  phone/tablet/laptop split to be three cases rather than two, which changes
+  how five screens lay out and should not be bundled into a scanner change.
+- **Next step:** The organiser decides on self-serve mode. Fault (1) ships
+  with it and is tested by putting the iPad to sleep mid-queue and waking it.
+  Fault (2) is a separate tier, tested by opening Overview and Settings on
+  the iPad and confirming they are readable without pinching.

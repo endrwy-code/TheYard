@@ -589,6 +589,7 @@ The UI maps error codes to copy.
 | POST /api/session | Start-screen check; returns status, profile and the settings the UI needs |
 | POST /api/session/claimed-handle | "Signed up with a different username?" request. Works for refused people with valid initData; rate-limited (§9 r7) |
 | GET /api/me | Home, pass, claims, payment status, bookings, phone state |
+| GET /api/me/pass | The same pass, while it is the open screen: claims, payment gate and check-in only. Asked for every two seconds at the booth, so it carries no QR and no bookings (24 Sep, STATE.md 154) |
 | GET /api/escape/slots | Escape game board |
 | POST /api/escape/bookings | Book, with optional friends |
 | DELETE /api/escape/bookings/{ref} | Cancel |
@@ -653,6 +654,14 @@ and in `STATE.md` §5.
   `checked_in_at`, `items:[{key, label}]`, `claims.{pastry,photo}` (keys from `config.ITEMS`) (`{claimed:false}` or
   `{claimed:true, id, at, staff, station, variant}`), `escape_booking` (null
   until P0.4), `jam_bookings` (`[]` until P0.6). The gate runs on this call too.
+- **`GET /api/me/pass`** → `claims`, `payment_status`, `payment_ok`,
+  `checked_in_at` — exactly those four, each identical to the same key in
+  `GET /api/me`. It exists because the booth hands over on its own device, so
+  an open pass has to ask to find out; it is deliberately small because
+  everyone in the queue asks for it every two seconds. Polling, not
+  server-sent events: `/admin/api/live` holds a thread per console and there
+  are a handful of consoles, against a few hundred passes and 24 waitress
+  threads. The gate runs on this call too.
 - **`POST /admin/api/login`** — JSON only. Body `{role, password}` for admin, or
   `{role, pin, name, station}` for staff and gm (station is required for
   staff). Returns `{role, name, station, csrf_token, expires_at,

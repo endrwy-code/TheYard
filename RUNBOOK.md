@@ -622,6 +622,12 @@ there's nothing to undo.
 | Open **People**, find somebody who has collected nothing, tap **Mark here** beside their name | The button turns into a green **Here**. Overview's **At the event** goes up by one |
 | Hand that same person a pastry on **Booth**, then look at **People** again | Still **Here**, and **At the event** has **not** gone up again — both ways in count the person once |
 | Find somebody nobody has scanned who has already collected something | Already **Here**, with no button to press. Hovering it says which way they counted, and when |
+| Open **People** and type a name into the search box, slowly | The list narrows as you type and **nothing else on the screen moves** — no blink, no buttons going off and coming back. The cursor stays where you put it, even mid-word (24 Sep, `STATE.md` 153) |
+| Same again on the **Audit** screen's search box | The same: it keeps focus and keeps what you typed |
+| On a phone, open your own pass in Telegram, and have somebody scan it at the booth while you watch | The line turns from **Scan to claim** to **Collected**, with the time, within about two seconds — without touching the phone (24 Sep, `STATE.md` 154) |
+| On a phone, sign in with the **Laptop** password and open **Overview** or **Settings** | The whole laptop screen is there at once, shrunk to fit, with "Built for a laptop. Pinch to zoom in, drag to move around." under it. Pinch and drag to read a part of it (24 Sep, `STATE.md` 155) |
+| On that same phone screen, drag anywhere — the top bar, the nav, the middle | The **whole page** moves. Nothing scrolls on its own underneath you, and the top bar scrolls away with everything else instead of sitting over the page |
+| On a phone, go back to **Booth** | Full size again, built for a thumb |
 | Look at the top bar on a Mobile sign-in | Only **Booth, Orders, Game, People** — Settings and the rest are Laptop only |
 | Tap **Sign out** | Back to the sign-in screen |
 

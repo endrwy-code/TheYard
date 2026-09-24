@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Yard — console</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
@@ -765,6 +765,30 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 #flash .b{ font-family:var(--num); font-stretch:112%; font-size:16px; line-height:1.5 }
 #flash .tap{ font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; opacity:.75 }
 
+/* ---- a laptop screen being read on a phone -------------------------
+   Last in the file on purpose: these have to win over the rules above.
+
+   `setViewport()` puts data-squeezed on <html> when one of the five
+   laptop screens is open on a small device. The page is then laid out at
+   1440 and pinched around, so anything that grabs a drag for itself is
+   in the way — you go to pull the page across and something else moves
+   instead, or nothing does.
+
+   Three of those, and all three are only ever an improvement at this
+   size. The top bar stops being sticky, because a bar pinned to the
+   layout viewport drifts over the page as you pan and there is no room
+   to spare. The nav strip stops scrolling sideways on its own, so a drag
+   that starts on it moves the page. Settings' save bar stops being
+   stuck to the bottom. Every one of them is still on the page, in order,
+   where scrolling reaches it. */
+[data-squeezed] #chrome{ position:static }
+[data-squeezed] .tb-2{ overflow-x:visible; flex-wrap:wrap }
+[data-squeezed] .savebar{ position:static }
+/* Inner scrollers are a second surface to get stuck in. At this size the
+   page itself is the surface: let the lists run their full length. */
+[data-squeezed] .people-list{ max-height:none; overflow:visible }
+[data-squeezed] .people-list .pager{ position:static }
+
 </style>
 </head>
 <body>
@@ -940,7 +964,161 @@ function bigFlash(bg, mark, title, body){
   f.onclick = () => { f.className = ''; scanLocked = false; S.lookup = null; S.lookupCode = ''; render(); };
 }
 
+/* ---- patching the screen in place (24 Sep) -------------------------
+   Every screen here is one big template string, and until today every
+   redraw wrote the whole of it into the page. That threw the live nodes
+   away and built new ones: the logo had to be decoded again, `vIn` and
+   `rise` replayed on every card, and the box you were typing in was a
+   different box by the time the next keystroke landed. One character in
+   the People search made the whole console blink — which is exactly the
+   fault the Mini App had, and fixed, before it.
+
+   So the new markup is parsed off-screen and walked against the live
+   tree, and only the differences are written. A node that has not
+   changed is not touched, and a node that is never replaced cannot
+   replay its entrance, lose its scroll position, drop the camera stream
+   or take the cursor out of an input. Nothing about how a screen is
+   written had to change.
+
+   Position decides what matches what, with an id as a promise that two
+   nodes are the same thing. That is enough because every screen draws
+   the same furniture from the same state — it is the values inside that
+   move, not the shape around them. */
+
+/* wire() is the only thing that hands out behaviour. Clearing these on a
+   node we keep means a button that holds its place but changes its job
+   cannot keep the old job's handler. */
+const HANDLERS = ['onclick', 'onchange', 'oninput', 'onkeydown',
+                  'ondragover', 'ondragleave', 'ondrop'];
+
+function morph(live, html){
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  morphChildren(live, tpl.content);
+}
+
+function samePlace(a, b){
+  if (a.nodeType !== b.nodeType) return false;
+  if (a.nodeType !== 1) return true;              // text and comments: rewrite
+  if (a.tagName !== b.tagName) return false;
+  if (a.id || b.id) return a.id === b.id;
+  return true;
+}
+
+function morphChildren(live, fresh){
+  let o = live.firstChild, n = fresh.firstChild;
+  while (n){
+    const nextN = n.nextSibling;                  // n is about to be moved
+    if (!o){ live.appendChild(n); n = nextN; continue; }
+    const nextO = o.nextSibling;
+    if (samePlace(o, n)) morphNode(o, n);
+    else live.replaceChild(n, o);
+    o = nextO; n = nextN;
+  }
+  while (o){ const next = o.nextSibling; live.removeChild(o); o = next; }
+}
+
+function morphNode(live, fresh){
+  if (live.nodeType !== 1){
+    if (live.nodeValue !== fresh.nodeValue) live.nodeValue = fresh.nodeValue;
+    return;
+  }
+  HANDLERS.forEach(h => { if (live[h]) live[h] = null; });
+
+  const had = live.attributes;
+  for (let i = had.length - 1; i >= 0; i--){
+    const name = had[i].name;
+    if (!fresh.hasAttribute(name)) live.removeAttribute(name);
+  }
+  const wants = fresh.attributes;
+  for (let i = 0; i < wants.length; i++){
+    const a = wants[i];
+    if (live.getAttribute(a.name) !== a.value) live.setAttribute(a.name, a.value);
+  }
+
+  const tag = live.tagName;
+  // What somebody has typed lives in the property, and the attribute stops
+  // driving it the moment they touch the field. So a field's value is
+  // written across by hand — and never into the field they are standing in.
+  if (tag === 'TEXTAREA'){
+    if (live !== document.activeElement && live.value !== fresh.value) live.value = fresh.value;
+    return;                                       // its text is its value
+  }
+  // The camera stream hangs off this node. Leave it exactly where it is.
+  if (tag === 'VIDEO') return;
+
+  morphChildren(live, fresh);
+
+  if (tag === 'INPUT' && live !== document.activeElement){
+    const v = fresh.getAttribute('value');
+    if (v !== null && live.value !== v) live.value = v;
+    if (live.type === 'checkbox' || live.type === 'radio') live.checked = fresh.checked;
+  }
+  // A <select> follows its selected <option>, but only until somebody picks
+  // one by hand; after that the value has to be set.
+  if (tag === 'SELECT' && live !== document.activeElement && live.value !== fresh.value){
+    live.value = fresh.value;
+  }
+}
+
+/* Which screen is on the page. Moving between screens is a move, and a
+   screen is allowed to arrive with its entrance animation; redrawing the
+   screen you are already standing on is not a move, so that one is
+   patched. '@signin' is a screen too — a wrong password should not empty
+   the box you typed it into. */
+let drawn = null;
+let searchTimer = null, auditTimer = null;
+
+/* ---- a laptop screen on a phone (24 Sep) ---------------------------
+   Overview, Schedules, Roster, Settings and Audit are drawn at 1440 and
+   only exist behind the laptop password. Held at device width on a phone
+   their media queries fold them into one column: nothing overflows, and
+   nothing is usable either — a five-column table stacked into 390px, a
+   settings row with nowhere to put its control, a chart the width of a
+   thumb.
+
+   So on a small device those screens are laid out at the width they were
+   drawn for and the browser fits that to the glass — which is what every
+   laptop site does on a phone. The whole screen is there at once, and
+   pinching moves you into the part you want, rather than the layout
+   quietly becoming a different, worse layout.
+
+   The four screens a phone is actually for — the booth, orders, the game
+   and looking somebody up — keep device width. They are drawn at 390 and
+   have to stay that size under a thumb in a queue. */
+const PHONE_VIEWPORT = 'width=device-width, initial-scale=1, viewport-fit=cover';
+/* No initial-scale: the browser picks the one that fits 1440 to the glass, so
+   the screen arrives whole and you pinch into the part you want. The scale
+   ceiling is raised because the default stops well short of reading 12px type
+   that has been shrunk to a quarter size. */
+const LAPTOP_VIEWPORT = 'width=1440, viewport-fit=cover, user-scalable=yes, maximum-scale=10';
+const DRAWN_FOR_A_LAPTOP = ['overview', 'schedules', 'roster', 'settings', 'audit'];
+
+/* The device's own screen, never the window: the moment a wide viewport is
+   set, innerWidth reports that width back and the test would flip on itself
+   every render. */
+function narrowDevice(){
+  return ((window.screen && window.screen.width) || window.innerWidth || 1024) < 900;
+}
+
+function squeezed(){
+  return narrowDevice() && !!S.session && DRAWN_FOR_A_LAPTOP.includes(S.screen);
+}
+
+function setViewport(){
+  const tag = document.getElementById('viewport');
+  if (!tag) return;
+  const on = squeezed();
+  const want = on ? LAPTOP_VIEWPORT : PHONE_VIEWPORT;
+  if (tag.getAttribute('content') !== want) tag.setAttribute('content', want);
+  // The stylesheet reads this to let go of anything that would catch a drag.
+  const html = document.documentElement;
+  if (on) html.setAttribute('data-squeezed', '1');
+  else html.removeAttribute('data-squeezed');
+}
+
 function render(){
+  setViewport();
   const banner = document.getElementById('clockbanner');
   const testing = !!(S.session && S.session.test_clock);
   banner.classList.toggle('on', testing);
@@ -950,18 +1128,23 @@ function render(){
 
   if (!S.session){
     chrome.className = ''; chrome.innerHTML = '';
-    root.innerHTML = signinView(); wireSignin();
+    if (drawn === '@signin') morph(root, signinView());
+    else { root.innerHTML = signinView(); drawn = '@signin'; }
+    wireSignin();
     return;
   }
 
   chrome.className = 'on';
-  chrome.innerHTML = chromeView();
+  morph(chrome, chromeView());
   wireChrome();
 
   const can = ALLOWED[S.session.role].includes(S.screen);
   let html = can ? (SCREENS[S.screen] ? SCREENS[S.screen]() : '') : blockedView();
-  html += `<div class="stagenote">${esc(can ? NOTES[S.screen] : 'Checked on the server too. A phone PIN cannot reach laptop screens by typing the address.')}</div>`;
-  root.innerHTML = html;
+  const note = esc(can ? NOTES[S.screen] : 'Checked on the server too. A phone PIN cannot reach laptop screens by typing the address.')
+    + (squeezed() ? ' <b>Built for a laptop.</b> Pinch to zoom in, drag to move around.' : '');
+  html += `<div class="stagenote">${note}</div>`;
+  if (drawn === S.screen) morph(root, html);
+  else { root.innerHTML = html; drawn = S.screen; }
   wire();
 }
 
@@ -2344,14 +2527,18 @@ function receiptCard(r){
 
 function blockedView(){
   return `
-  <div class="blocked">
+  <div class="blocked" id="blockedcard">
     <div class="t">Not for this sign-in</div>
     <div class="b">Phone sign-ins run the booth, the orders, the game and look people up. Everything else is on the laptop sign-in.</div>
     <div class="c">FORBIDDEN · logged with your station name</div>
   </div>`;
 }
 
-function loading(){ return `<div class="blocked"><div class="b">Loading…</div></div>`; }
+/* The id is load-bearing: a screen patches itself in place now, and two
+   <div>s at the same spot count as the same node. Naming this one means the
+   real screen replaces it rather than growing out of it, so a screen still
+   arrives with its entrance the first time you open it. */
+function loading(){ return `<div class="blocked" id="loadingcard"><div class="b">Loading…</div></div>`; }
 
 /* ---- wiring --------------------------------------------------------- */
 
@@ -2432,17 +2619,23 @@ function wire(){
   });
   const ps = document.getElementById('psearch');
   if (ps){
-    let t;
+    // The timer lives outside wire() on purpose. Each redraw used to build a
+    // fresh closure with a fresh `t`, so the previous keystroke's timer was
+    // no longer anybody's to clear and fired a second search behind this one.
     ps.oninput = () => {
-      clearTimeout(t);
-      t = setTimeout(() => { S.peopleQuery = ps.value.trim(); S.peoplePage = 1;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { S.peopleQuery = ps.value.trim(); S.peoplePage = 1;
         S.focusSearch = true; load(); }, 300);
     };
-    // Keep typing across the re-render the results cause.
+    // The box now survives the redraw, so the cursor is already where they
+    // left it. Only put it back when the box really was rebuilt — moving it
+    // to the end unasked is how you lose a character typed mid-word.
     if (S.focusSearch){
       S.focusSearch = false;
-      ps.focus();
-      ps.setSelectionRange(ps.value.length, ps.value.length);
+      if (document.activeElement !== ps){
+        ps.focus();
+        ps.setSelectionRange(ps.value.length, ps.value.length);
+      }
     }
   }
   const openr = document.getElementById('openreceipt');
@@ -2574,8 +2767,8 @@ function wire(){
   if (fc) fc.onchange = () => { S.auditAction = fc.value; load(); };
   const fs = document.getElementById('fSearch');
   if (fs){
-    let t;
-    fs.oninput = () => { S.auditSearch = fs.value; clearTimeout(t); t = setTimeout(load, 300); };
+    fs.oninput = () => { S.auditSearch = fs.value; clearTimeout(auditTimer);
+      auditTimer = setTimeout(load, 300); };
   }
   root.querySelectorAll('[data-export]').forEach(b => b.onclick = () => doExport(b.dataset.export));
   const bn = document.getElementById('backupNow');

@@ -780,6 +780,72 @@ def test_me_runs_the_gate_on_every_call(roster, client):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/me/pass — the open pass catching up with the booth (24 Sep)
+# ---------------------------------------------------------------------------
+
+def me_pass(client, init_data):
+    return client.get("/api/me/pass", headers={"Authorization": "tma " + init_data})
+
+
+def test_the_open_pass_sees_a_hand_over(roster, client):
+    """The whole point: the booth scans on its own device, and the pass in
+    somebody's hand has to say Collected without them leaving the screen."""
+    p = person(roster, "bananabelles")
+    tg = sign(1001, "bananabelles", "Annabelle")
+
+    before = me_pass(client, tg).get_json()["data"]
+    assert before["claims"]["photo"] == {"claimed": False}
+
+    claims.claim(roster, item="photo", actor=WEI, code=p["pass_code"])
+
+    after = me_pass(client, tg).get_json()["data"]
+    assert after["claims"]["photo"]["claimed"] is True
+    assert after["claims"]["photo"]["at"].endswith("+08:00")      # a real time, in event time
+    assert after["claims"]["photo"]["staff"] == "Wei"
+    assert after["claims"]["pastry"] == {"claimed": False}        # only what was handed over
+
+
+def test_the_open_pass_agrees_with_the_whole_pass(roster, client):
+    """Two readings of one answer. If these ever drift, the pass says one
+    thing while it is open and another the moment it is reopened."""
+    p = person(roster, "bananabelles")
+    tg = sign(1001, "bananabelles", "Annabelle")
+    claims.claim(roster, item="vinyl", actor=WEI, code=p["pass_code"])
+    full = me(client, tg).get_json()["data"]
+    small = me_pass(client, tg).get_json()["data"]
+    for key in ("claims", "payment_status", "payment_ok", "checked_in_at"):
+        assert small[key] == full[key], key
+
+
+def test_the_open_pass_stays_small(roster, client):
+    """It is asked for every couple of seconds by everyone at the booth, so
+    the QR (a base64 PNG) and the bookings must not ride along."""
+    person(roster, "bananabelles")
+    d = me_pass(client, sign(1001, "bananabelles", "Annabelle")).get_json()["data"]
+    assert set(d) == {"claims", "payment_status", "payment_ok", "checked_in_at"}
+    assert len(json.dumps(d)) < 600
+
+
+def test_the_open_pass_follows_the_check_in(roster, client):
+    p = person(roster, "bananabelles")
+    tg = sign(1001, "bananabelles", "Annabelle")
+    assert me_pass(client, tg).get_json()["data"]["checked_in_at"] is None
+    claims.check_in(roster, actor=WEI, code=p["pass_code"])
+    assert me_pass(client, tg).get_json()["data"]["checked_in_at"].endswith("+08:00")
+
+
+def test_the_open_pass_runs_the_gate_like_everything_else(roster, client):
+    """§3 rule 1. A screen that keeps asking must not be the one way in that
+    stops checking."""
+    assert err(me_pass(client, sign(1002, "ryanlow", "Ryan")))["code"] == "NOT_ON_LIST"
+    assert err(client.get("/api/me/pass"))["code"] == "INITDATA_INVALID"
+    tg = sign(1001, "bananabelles", "Annabelle")
+    assert me_pass(client, tg).status_code == 200
+    roster.execute("UPDATE attendees SET status='inactive' WHERE handle='bananabelles'")
+    assert err(me_pass(client, tg))["code"] == "INACTIVE"
+
+
+# ---------------------------------------------------------------------------
 # §3 rule 4 — the console page itself carries no spoilers
 # ---------------------------------------------------------------------------
 

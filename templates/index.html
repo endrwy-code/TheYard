@@ -1206,6 +1206,7 @@ function render(){
     if (nbox && k.focused) nbox.focus();
   });
   wire();
+  passWatch();
   if (tg){
     if (S.stack.length) tg.BackButton.show(); else tg.BackButton.hide();
   }
@@ -2871,6 +2872,69 @@ setInterval(() => {
   if (document.hidden) return;
   tickCountdowns();
 }, 60000);
+
+/* ---- the pass, while it is the screen you are holding (24 Sep) -----
+   The booth hands something over on its own device, so the pass in
+   somebody's hand has no way of knowing. It went on saying "Scan to
+   claim" until they left the screen and came back — and standing at the
+   booth, that reads as the scan not having worked.
+
+   So while the pass is open, it asks. Only then, only while the app is
+   actually in front of them, and only for the small answer: /api/me/pass
+   carries the claims and nothing else, where /api/me carries the QR as a
+   base64 PNG and every booking besides.
+
+   Two seconds on the pass itself, because that is the screen you are on
+   while the counter is handing you the pastry and the line under it has
+   to turn over while you are still looking. Home only shows whether
+   anything is left to collect, so it can amble.
+
+   Server-sent events would be the obvious answer and are the wrong one
+   here: the console's stream holds a thread for as long as it is open,
+   and there are a handful of consoles against a few hundred passes. The
+   reasoning is written out over GET /api/me/pass in app.py. */
+const PASS_EVERY = { food:2000, home:15000 };
+let passTimer = null, passRate = 0;
+
+/* Everything the pass puts on screen, as one string to compare against. */
+function passSnapshot(){
+  const m = S.me;
+  return m ? JSON.stringify([m.claims, m.payment_status, m.payment_ok, m.checked_in_at]) : '';
+}
+
+async function pollPass(){
+  if (!S.me || document.hidden || !PASS_EVERY[S.view]) return;
+  const r = await api('GET','/api/me/pass');
+  // A blip on the way to the booth is not worth a message. The next tick is
+  // two seconds away and the screen still says what it last knew.
+  if (!r.ok) return;
+  const before = passSnapshot();
+  Object.assign(S.me, r.data);
+  // Redraw only when something the pass is showing has actually moved. The
+  // first answer always matches what /api/me just said, and a redraw nobody
+  // asked for is the flash this app spent a week getting rid of.
+  if (passSnapshot() !== before) render();
+}
+
+/* Start, stop or re-rate the asking to match the screen in front of them.
+   Called on every render, so it has to be cheap and it has to be quiet
+   when nothing about the situation has changed. */
+function passWatch(){
+  const want = (!document.hidden && S.me && PASS_EVERY[S.view]) || 0;
+  if (want === passRate) return;
+  passRate = want;
+  clearInterval(passTimer); passTimer = null;
+  if (!want) return;
+  pollPass();
+  passTimer = setInterval(pollPass, want);
+}
+
+/* Coming back to the app is the other moment the pass may be out of date:
+   it was put away at the booth and taken out again after the hand-over. */
+document.addEventListener('visibilitychange', () => {
+  passWatch();
+  if (!document.hidden) pollPass();
+});
 
 startSession().then(() => {
   const sp = startParam();
