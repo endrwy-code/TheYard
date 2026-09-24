@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Saved to an iPad's home screen the console opens with no address bar,
+     which is half of locking a self-serve station down (RUNBOOK). -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Yard">
+<meta name="theme-color" content="#101010">
 <title>The Yard — console</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
@@ -116,6 +123,21 @@ code{ font-family:var(--num); font-stretch:112%; font-weight:700 }
 .vf-box{ position:absolute; width:190px; height:190px; border-radius:26px; box-shadow:inset 0 0 0 3px #AE7338 }
 .vf-line{ position:absolute; width:190px; height:2px; background:#AE7338; animation:tick 1.4s ease-in-out infinite alternate }
 .vf-hint{ position:absolute; bottom:12px; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#C9C5BD }
+/* The front camera, shown as a mirror. Somebody holding their own phone up
+   to the glass aims by mirror logic, so an unflipped picture has them moving
+   the wrong way. It is the picture only: the decoder reads the raw frame off
+   a canvas the CSS never touches, so a mirrored preview still scans. */
+.viewfinder.mirror video, #kiosk.mirror video{ transform:scaleX(-1) }
+.vf-flip{
+  position:absolute; top:10px; right:10px; min-height:40px; padding:0 14px; border:0;
+  border-radius:999px; background:#101010B8; color:#F2EFE8; font-family:inherit;
+  font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  cursor:pointer; backdrop-filter:blur(4px); box-shadow:inset 0 0 0 1px #F2EFE855;
+}
+.vf-flip:active{ transform:scale(.96) }
+.booth-body.showing .vf-flip{ display:none }
+/* One camera, so nothing to flip to. Set once the stream is up. */
+body.onecam .vf-flip{ display:none }
 .coderow{ display:flex; gap:8px }
 .coderow input{
   flex:1; min-width:0; background:#fff; box-shadow:inset 0 0 0 2px #101010; border:0; outline:none;
@@ -789,6 +811,92 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 [data-squeezed] .people-list{ max-height:none; overflow:visible }
 [data-squeezed] .people-list .pager{ position:static }
 
+/* ---- self-serve check-in (24 Sep) -----------------------------------
+   The iPad on a stand by the door, turned round so people check themselves
+   in. Every other screen in this console is drawn at 390 or at 1440 and
+   centred on the page; this one is the whole glass, because the person
+   reading it is standing back from it with their phone held up, not holding
+   it in one hand.
+
+   So it is sized in vmin, not pixels: the same layout fills a 7.9-inch mini
+   and a 12.9-inch Pro, in either orientation, without a media query per
+   iPad. Nothing on it is a staff control -- no nav, no hand-over, no typed
+   code box -- because whoever is standing in front of it is not staff. */
+#kiosk{
+  position:fixed; inset:0; z-index:100; overflow:hidden; background:#0D0D0F; color:#F2EFE8;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+#kiosk video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+#kiosk .k-shade{ position:absolute; inset:0; background:radial-gradient(ellipse at center, #0D0D0F22 30%, #0D0D0FDD 100%) }
+#kiosk .k-box{
+  position:relative; width:46vmin; height:46vmin; border-radius:8vmin;
+  box-shadow:inset 0 0 0 .8vmin #AE7338;
+}
+#kiosk .k-ask{
+  position:relative; margin-top:5vmin; font-family:Anton,sans-serif; font-size:6vmin;
+  text-transform:uppercase; line-height:1; text-align:center; text-shadow:0 2px 18px #000C;
+}
+#kiosk .k-sub{
+  position:relative; margin-top:2vmin; font-size:2.4vmin; font-weight:600; line-height:1.4;
+  text-align:center; max-width:70vmin; color:#C9C5BD; text-shadow:0 2px 14px #000C;
+}
+/* The way back to the console. Small and quiet so it is not part of what a
+   guest is looking at, but labelled and tappable so a volunteer who has
+   never seen this screen before can still find it. The PIN is the lock; this
+   is only the door. */
+#kiosk .k-staff{
+  position:absolute; top:0; left:0; margin:2vmin; min-height:44px; padding:0 16px; border:0;
+  border-radius:999px; background:#F2EFE81A; color:#F2EFE899; font-family:inherit;
+  font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; cursor:pointer;
+}
+#kiosk .vf-flip{ margin:2vmin; top:0; right:0 }
+
+/* The answer. It takes the whole screen in one colour, because it is read
+   from further away than anything else in the app and often at an angle. */
+#kiosk.said .k-box, #kiosk.said .k-ask, #kiosk.said .k-sub, #kiosk.said .vf-flip{ display:none }
+#kiosk .k-said{
+  position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
+  justify-content:center; gap:3vmin; padding:6vmin; text-align:center; animation:flash .18s both;
+}
+#kiosk.said .k-said{ display:flex }
+#kiosk.said.good .k-said{ background:#1F7A4C }
+#kiosk.said.warn .k-said{ background:#AE7338; color:#101010 }
+#kiosk.said.bad  .k-said{ background:#3C4654 }
+#kiosk .k-mark{ font-size:16vmin; line-height:1 }
+#kiosk .k-big{ font-family:Anton,sans-serif; font-size:11vmin; text-transform:uppercase; line-height:.95 }
+#kiosk .k-small{ font-size:3.4vmin; font-weight:700; line-height:1.4; max-width:80vmin }
+
+/* Unlocking. A guest who taps Staff gets this and can walk away from it. */
+#kiosk .k-pin{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:14px; padding:24px; background:#0D0D0FF2; animation:flash .16s both;
+}
+#kiosk .k-pin .t{ font-family:Anton,sans-serif; font-size:30px; text-transform:uppercase }
+#kiosk .k-pin .p{ font-size:13px; color:#C9C5BD; text-align:center; max-width:340px; line-height:1.5 }
+#kiosk .k-pin input{
+  width:min(340px, 80vw); min-height:56px; border:0; outline:none; border-radius:14px; background:#fff;
+  box-shadow:inset 0 0 0 2px #101010; font-family:inherit; font-size:18px; padding:0 14px; color:#101010; text-align:center;
+}
+#kiosk .k-pin .row{ display:flex; gap:10px; width:min(340px, 80vw) }
+#kiosk .k-pin button{
+  flex:1; min-height:52px; border:0; border-radius:14px; background:#F2EFE8; color:#101010;
+  font-family:inherit; font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; cursor:pointer;
+}
+#kiosk .k-pin button.ghost{ background:transparent; color:#F2EFE8; box-shadow:inset 0 0 0 2px #F2EFE855 }
+#kiosk .k-pin .err{ font-size:13px; font-weight:700; color:#E0776F; text-align:center }
+
+/* Turning it on, from the booth. Bottom of the screen, out of the way of the
+   scanning it sits under, and it says what it does rather than naming a mode. */
+.kioskgo{
+  width:100%; min-height:56px; display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:10px 16px; border:0; border-radius:16px; background:transparent;
+  box-shadow:inset 0 0 0 2px #10101033; color:#3C4654; font-family:inherit; text-align:left; cursor:pointer;
+}
+.kioskgo .t{ display:block; font-size:13px; font-weight:700; color:#101010 }
+.kioskgo .w{ display:block; margin-top:3px; font-size:11px; line-height:1.4 }
+.kioskgo:active{ transform:scale(.99) }
+
 </style>
 </head>
 <body>
@@ -871,7 +979,7 @@ const SCANS = {
   valid:    { card:'#1F7A4C', fg:'#fff', mark:'✓', title:'Valid', kicker:'Payment verified',
               body:'Something still to collect — tap it below to hand it over.', person:true, hand:true },
   claimed:  { card:'#A8231B', fg:'#fff', mark:'✕', title:'Already collected', kicker:'Everything included has been handed over',
-              body:'Nothing to hand over. Send them to the front desk rather than arguing at the booth.', person:true, hand:false },
+              body:'Nothing to hand over. The front desk can look up when it went and who handed it over.', person:true, hand:false },
   unpaid:   { card:'#AE7338', fg:'#101010', mark:'!', title:'Not verified', kicker:'Payment submitted, not checked',
               body:'You cannot hand over. An admin can override with a reason, and it goes in the log under their name.', person:true, hand:false },
   unknown:  { card:'#3C4654', fg:'#fff', mark:'?', title:'Unknown code', kicker:'A Yard code, but nobody has it',
@@ -929,6 +1037,11 @@ const S = {
   overview:null, people:null, person:null, gmState:null,
   slots:null, roster:null, settings:null, audit:null, denials:null,
   lookup:null, lookupCode:'',
+  /* Self-serve check-in (24 Sep). Not a screen — it sits over whatever screen
+     is open, takes the nav with it, and comes back to the booth when someone
+     unlocks it. `kioskSaid` is the one line the guest is being shown;
+     `kioskAsk` is the PIN box on the way out. */
+  kiosk:false, kioskSaid:null, kioskAsk:null,
   resetDone:loadResetDone(), gmSlot:null, gmPinned:false, gmAt:0, live:false,
   selectedPerson:null, peopleQuery:'', peoplePage:1, focusSearch:false,
   auditTab:'log',
@@ -1119,6 +1232,21 @@ function setViewport(){
 
 function render(){
   setViewport();
+  /* Self-serve comes first and answers for the whole page. It is not one of
+     the screens: there is no nav above it, no test-clock banner across the
+     top and no stage note under it, because none of that is for the person
+     standing in front of it. Whatever screen was open is still open behind
+     it and comes straight back when a staff member unlocks it. */
+  if (S.kiosk){
+    const chromeK = document.getElementById('chrome');
+    chromeK.className = ''; chromeK.innerHTML = '';
+    document.getElementById('clockbanner').classList.remove('on');
+    const html = kioskView();
+    if (drawn === '@kiosk') morph(root, html);
+    else { root.innerHTML = html; drawn = '@kiosk'; }
+    wireKiosk();
+    return;
+  }
   const banner = document.getElementById('clockbanner');
   const testing = !!(S.session && S.session.test_clock);
   banner.classList.toggle('on', testing);
@@ -1254,8 +1382,19 @@ function startSession(d, screen){
 async function resumeSession(){
   let screen = null;
   try { screen = sessionStorage.getItem('yard_screen'); } catch (e){}
+  /* A self-serve iPad that reloads has to come back up self-serve. Safari
+     discards a background tab overnight, a network blip reloads the page, a
+     guest pulls it down by accident — and coming back up on the console would
+     put the nav, the hand-over buttons and the last guest's name in front of
+     the door with nobody watching. */
+  let wasSelfServe = false;
+  try { wasSelfServe = localStorage.getItem('yard_selfserve') === '1'; } catch (e){}
   const r = await liveCall('GET /admin/api/session', { path:'/admin/api/session' });
   if (r.ok) startSession(r.data, screen);
+  if (wasSelfServe){
+    S.kiosk = true; S.kioskSaid = null; S.kioskAsk = null;
+    loadFacing(); keepAwake(true); drawn = null; render();
+  }
 }
 
 async function load(){
@@ -1344,10 +1483,11 @@ SCREENS.booth = function(){
       <span class="mono" style="font-size:12px">${esc(fmt(now()))}</span>
     </div>
     <div class="booth-body ${sc ? 'showing' : 'scanning'}">
-      <div class="viewfinder" id="viewfinder">
+      <div class="viewfinder${camFacing === 'user' ? ' mirror' : ''}" id="viewfinder">
         <video id="cam" playsinline muted></video>
         <div class="vf-box"></div>
         <div class="vf-line"></div>
+        <button class="vf-flip" id="camflip">Flip camera</button>
         <div class="vf-hint" id="vfhint">${scanLocked ? 'Tap Scan next to scan again' : 'Point at the pass'}</div>
       </div>
       <div class="coderow">
@@ -1383,6 +1523,14 @@ SCREENS.booth = function(){
           sc && sc.person && sc.person.checked_in_at ? 'Check in again' : 'Check in'}</button>
         <button id="scannext" ${sc ? 'class="go"' : ''}>${sc ? 'Scan the next pass' : 'Scan next'}</button>
       </div>
+      <button class="kioskgo" id="kioskgo">
+        <span>
+          <span class="t">Turn the screen round for guests</span>
+          <span class="w">They check themselves in. No hand-overs, no names but their own.
+          The ${esc(S.session.role === 'admin' ? 'admin password' : 'phone PIN')} brings this screen back.</span>
+        </span>
+        <span style="font-size:26px">&rsaquo;</span>
+      </button>
     </div>
   </div>`;
 };
@@ -1480,10 +1628,11 @@ SCREENS.orders = function(){
 
 function orderScanner(){
   return `
-      <div class="viewfinder" id="viewfinder">
+      <div class="viewfinder${camFacing === 'user' ? ' mirror' : ''}" id="viewfinder">
         <video id="cam" playsinline muted></video>
         <div class="vf-box"></div>
         <div class="vf-line"></div>
+        <button class="vf-flip" id="camflip">Flip camera</button>
         <div class="vf-hint" id="vfhint">${scanLocked ? 'Tap Scan again' : 'Point at the pass'}</div>
       </div>
       <div class="coderow">
@@ -2540,6 +2689,228 @@ function blockedView(){
    arrives with its entrance the first time you open it. */
 function loading(){ return `<div class="blocked" id="loadingcard"><div class="b">Loading…</div></div>`; }
 
+/* ---- self-serve check-in -------------------------------------------
+   The iPad turned round so people check themselves in (24 Sep).
+
+   The booth screen could not just be made bigger and pointed at a queue.
+   It carries the nav — Settings, Audit, Sign out — it carries the hand-over
+   buttons, so a guest could mark their own pastry as collected, it explains
+   itself in staff words ("an admin can override with a reason"), and it
+   holds the last person's name and payment status on screen until somebody
+   taps Scan next. All four are fine in a volunteer's hand and none of them
+   are fine on a stand by the door.
+
+   So this is its own screen with its own job. The job is check-in and only
+   check-in: nothing here hands anything over, because handing something over
+   needs a person to pass it. Anything that is not a clean check-in says the
+   same neutral line, so nothing about somebody's payment is read out to the
+   people behind them. The name shown is the first name only. */
+
+const KIOSK_HOLD = { good:4000, warn:7000, bad:6000 };
+let kioskTimer = null, kioskLast = { raw:'', at:0 };
+
+function firstName(n){
+  const w = String(n || '').trim().split(/\s+/);
+  return w[0] || 'there';
+}
+
+function kioskView(){
+  const said = S.kioskSaid;
+  const ask = S.kioskAsk;
+  return `
+  <div id="kiosk" class="${said ? 'said ' + esc(said.tone) : ''}${camFacing === 'user' ? ' mirror' : ''}">
+    <video id="cam" playsinline muted></video>
+    <div class="k-shade"></div>
+    <div class="k-box"></div>
+    <div class="k-ask">Scan your pass</div>
+    <div class="k-sub" id="vfhint">Open The Yard in Telegram and hold your pass up to the screen.</div>
+    <button class="vf-flip" id="kioskflip">Flip camera</button>
+    <button class="k-staff" id="kioskstaff">Staff</button>
+    ${said ? `
+    <div class="k-said">
+      <div class="k-mark">${esc(said.mark)}</div>
+      <div class="k-big">${esc(said.big)}</div>
+      ${said.small ? `<div class="k-small">${esc(said.small)}</div>` : ''}
+    </div>` : ''}
+    ${ask ? `
+    <div class="k-pin">
+      <div class="t">Staff only</div>
+      <div class="p">${S.session
+        ? 'Enter the ' + (S.session.role === 'admin' ? 'admin password' : 'phone PIN')
+          + ' to close self-serve and go back to the console.'
+        : 'This device has been signed out. Sign in again to go back to the console.'}</div>
+      ${S.session ? `<input id="kioskpin" type="password"
+             ${S.session.role === 'admin' ? 'autocomplete="current-password"' : 'inputmode="numeric" autocomplete="off"'}>` : ''}
+      ${ask.err ? `<div class="err">${esc(ask.err)}</div>` : ''}
+      <div class="row">
+        <button class="ghost" id="kioskback">Back</button>
+        <button id="kioskunlock">${S.session ? 'Unlock' : 'Sign in'}</button>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function wireKiosk(){
+  const k = document.getElementById('kiosk');
+  // A reload leaves the page with no gesture behind it, and iOS keeps the
+  // speaker shut until it gets one. Any touch will do.
+  if (k) k.onpointerdown = () => { try { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e){} };
+  const st = document.getElementById('kioskstaff');
+  if (st) st.onclick = () => {
+    S.kioskAsk = { err:'' };
+    render();
+    setTimeout(() => { const b = document.getElementById('kioskpin'); if (b) b.focus(); }, 60);
+  };
+  const fl = document.getElementById('kioskflip');
+  if (fl) fl.onclick = flipCamera;
+  const bk = document.getElementById('kioskback');
+  if (bk) bk.onclick = () => { S.kioskAsk = null; render(); };
+  const un = document.getElementById('kioskunlock');
+  if (un) un.onclick = kioskUnlock;
+  const pin = document.getElementById('kioskpin');
+  if (pin) pin.onkeydown = e => { if (e.key === 'Enter') kioskUnlock(); };
+  if (cameraWanted()) startCamera(); else stopCamera();
+}
+
+function kioskOn(){
+  S.kiosk = true; S.kioskSaid = null; S.kioskAsk = null;
+  scanLocked = false; kioskLast = { raw:'', at:0 };
+  clearTimeout(kioskTimer); kioskTimer = null;
+  try { localStorage.setItem('yard_selfserve', '1'); } catch (e){}
+  // The iPad is about to be turned round, so start on the camera that will be
+  // facing the queue. The flip button is right there if it is the other one.
+  loadFacing();
+  stopCamera();
+  // This tap is the one gesture iOS gives us to open the speaker with. Do it
+  // here, or the first guest's beep is silent.
+  beep(true);
+  keepAwake(true);
+  render();
+}
+
+function kioskOff(){
+  clearTimeout(kioskTimer); kioskTimer = null;
+  S.kiosk = false; S.kioskSaid = null; S.kioskAsk = null;
+  scanLocked = false; kioskLast = { raw:'', at:0 };
+  S.lookup = null; S.lookupCode = '';
+  try { localStorage.removeItem('yard_selfserve'); } catch (e){}
+  loadFacing();
+  stopCamera();
+  keepAwake(false);
+  S.screen = 'booth';
+  drawn = null;                       // coming back out of a full-screen takeover
+  render();
+  if (S.session) load();
+}
+
+async function kioskUnlock(){
+  // Signed out mid-event: the way back is the sign-in, not this box. The queue
+  // never sees it — they see the neutral line until somebody taps Staff.
+  if (!S.session){ kioskOff(); return; }
+  const el = document.getElementById('kioskpin');
+  const secret = el ? el.value : '';
+  if (!secret) return;
+  const r = await api('POST /admin/api/unlock', { path:'/admin/api/unlock', json:{ secret } });
+  if (r.ok){ kioskOff(); return; }
+  if (r.error.code === 'SIGNED_OUT'){ S.kioskAsk = { err:'' }; render(); return; }
+  S.kioskAsk = { err:r.error.code === 'RATE_LIMITED'
+    ? 'Too many tries. Wait a few minutes.' : 'That did not match.' };
+  render();
+  setTimeout(() => { const b = document.getElementById('kioskpin'); if (b) b.focus(); }, 60);
+}
+
+function kioskSay(tone, mark, big, small){
+  S.kioskSaid = { tone, mark, big, small:small || '' };
+  beep(tone === 'good');
+  render();
+  clearTimeout(kioskTimer);
+  kioskTimer = setTimeout(kioskClear, KIOSK_HOLD[tone] || 5000);
+}
+
+function kioskClear(){
+  clearTimeout(kioskTimer); kioskTimer = null;
+  S.kioskSaid = null;
+  scanLocked = false;                 // the camera never stopped; just read again
+  render();
+}
+
+async function kioskScan(raw){
+  /* A pass left in front of the camera after the message clears should not set
+     the whole thing off a second time. The server would shrug — a repeat
+     check-in writes nothing and logs nothing — but the screen would keep
+     congratulating an empty doorway while the next person waits. */
+  const at = Date.now();
+  if (kioskLast.raw === raw && at - kioskLast.at < 10000){
+    clearTimeout(kioskTimer);
+    kioskTimer = setTimeout(kioskClear, 800);
+    return;
+  }
+  kioskLast = { raw, at };
+
+  const code = raw.trim().toUpperCase().replace(/^YARD:/, '').trim();
+  const r = await api('POST /admin/api/checkins', { path:'/admin/api/checkins',
+    json:{ code, kind:'event' } });
+
+  if (!r.ok){
+    /* One line for everything that is not a clean check-in. An unknown code, a
+       name taken off the roster and a rate limit are three different problems
+       for staff and the same instruction for the person standing there — and
+       which one it is happens to be nobody else's business. */
+    kioskSay('bad', '·', 'Please see a staff member', '');
+    return;
+  }
+  const who = firstName(r.data.person && r.data.person.name);
+  if (r.data.payment_ok === false){
+    // Checked in all the same (the organiser's call, 24 Sep): the record of who
+    // walked through the door should not wait on the desk keeping up.
+    kioskSay('warn', '!', 'Please see the front desk', who + ' — you are checked in.');
+  } else if (r.data.already){
+    kioskSay('good', '✓', 'Already checked in', who + ' — you are all set.');
+  } else {
+    kioskSay('good', '✓', 'You are in, ' + who, 'Checked in at ' + fmtIso(r.data.checked_in_at));
+  }
+}
+
+/* The beep. A guest stands back from the iPad looking down at their own phone,
+   so they will not see the screen change colour — the sound is how they know
+   to put it away. Built from an oscillator rather than a file, so there is
+   nothing to load and nothing to 404 on the night. */
+let audioCtx = null;
+function beep(ok){
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime, len = ok ? 0.18 : 0.44;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(ok ? 880 : 300, t);
+    if (!ok) o.frequency.linearRampToValueAtTime(200, t + len);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + len + 0.02);
+  } catch (e){ /* no audio on this device: the screen still says it */ }
+}
+
+/* Keeping the screen on. An iPad sleeps a couple of minutes into a quiet spell
+   and the next queue arrives at a black slab. iPadOS still wants Auto-Lock set
+   to Never for the hard cases (RUNBOOK), so this is the belt, not the braces.
+   The lock is dropped whenever the tab is hidden and has to be asked for again
+   on the way back. */
+let wakeLock = null;
+async function keepAwake(on){
+  try {
+    if (on){
+      if (!wakeLock && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+    } else if (wakeLock){
+      const w = wakeLock; wakeLock = null; await w.release();
+    }
+  } catch (e){ wakeLock = null; }
+}
+
 /* ---- wiring --------------------------------------------------------- */
 
 function wire(){
@@ -2587,10 +2958,17 @@ function wire(){
   root.querySelectorAll('[data-collected]').forEach(b => b.onclick = () => closeOrder(Number(b.dataset.collected), 'collected'));
   root.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => closeOrder(Number(b.dataset.cancel), 'cancel'));
 
+  const cf = document.getElementById('camflip');
+  if (cf) cf.onclick = flipCamera;
+  const kg = document.getElementById('kioskgo');
+  if (kg) kg.onclick = kioskOn;
+
   // Scan once: after a read the camera stays off — with a result on screen,
   // and also when the lookup showed nothing. Only "Scan next", tapping the
   // full-screen result, or opening Booth mode again clears the lock.
-  if (cameraWanted() && !scanLocked) startCamera();
+  // cameraWanted() holds that rule now, because self-serve keeps the camera
+  // running through the lock and this one line cannot say both.
+  if (cameraWanted()) startCamera();
   else stopCamera();
 
   // people
@@ -2991,6 +3369,11 @@ function endSession(message){
   disconnectLive();
   stopCamera();
   scanLocked = false;
+  /* Self-serve survives this on purpose. A sign-in runs out after 12 hours,
+     and if that lands mid-event the last thing the queue should be shown is
+     the console's password box. The screen stays as it is, every scan answers
+     "please see a staff member", and Staff → Sign in is the way back. */
+  if (S.kiosk){ S.kioskSaid = null; S.kioskAsk = null; }
   csrfToken = null;
   S.session = null;
   S.overview = S.people = S.person = S.gmState = null; S.gmSlot = null;
@@ -3229,11 +3612,58 @@ async function makeReader(){
 }
 
 /* Camera. Cameras need HTTPS and permission; the typed code box is always
-   the fallback (RUNBOOK Phase 18). */
+   the fallback (RUNBOOK Phase 18).
+
+   Which way it points is remembered per job, not once for the device (24 Sep).
+   A booth phone is held up to somebody else's pass and wants the back camera;
+   an iPad on a stand is turned round and wants the front one. The same laptop
+   or phone can be both in one evening, so remembering a single answer would
+   mean flipping it back every time the device changed jobs. */
 let camStream = null, camLoop = null, readFrame = null;
+let camFacing = 'environment';
+
+function facingKey(){ return S.kiosk ? 'yard_cam_self' : 'yard_cam_booth'; }
+function loadFacing(){
+  const fallback = S.kiosk ? 'user' : 'environment';
+  try { camFacing = localStorage.getItem(facingKey()) || fallback; }
+  catch (e){ camFacing = fallback; }
+}
+function saveFacing(){ try { localStorage.setItem(facingKey(), camFacing); } catch (e){} }
+
+/* One button, not a list of cameras. An iPad Pro reports four video inputs
+   with names like "Back Ultra Wide Camera", and nobody at a door wants to
+   read that — they want the other one. */
+function flipCamera(){
+  camFacing = camFacing === 'user' ? 'environment' : 'user';
+  saveFacing();
+  stopCamera();
+  camStarting = false;
+  render();                            // the mirror class follows the facing
+  startCamera();
+}
+
+/* What the viewfinder says when the camera will not play. The booth's answer
+   is always "type it instead", which is no use on a screen with no code box
+   and nobody standing behind it, so self-serve gets its own line. */
+function camHint(booth, kiosk){
+  const h = document.getElementById('vfhint');
+  if (h) h.textContent = S.kiosk ? kiosk : booth;
+}
+
+/* A flip button on a device with one camera is a control that does nothing.
+   Count them once the stream is up — before permission is granted the browser
+   hands back a list with no labels and, on Safari, sometimes nothing at all. */
+async function countCameras(){
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const all = await navigator.mediaDevices.enumerateDevices();
+    const n = all.filter(d => d.kind === 'videoinput').length;
+    document.body.classList.toggle('onecam', n > 0 && n < 2);
+  } catch (e){ /* leave the button alone rather than guess */ }
+}
+
 async function startCamera(){
   const video = document.getElementById('cam');
-  const hint = document.getElementById('vfhint');
   if (!video) return;
   // Re-render replaces the <video>, so an existing stream needs re-attaching.
   if (camStream){
@@ -3241,13 +3671,16 @@ async function startCamera(){
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    if (hint) hint.textContent = 'Type the code below';
+    camHint('Type the code below', 'This device has no camera — please see a staff member.');
     return;
   }
   if (camStarting) return;              // "Scan next" and the re-render both ask
   camStarting = true;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    // facingMode without `exact` is a preference: a device with one camera
+    // gives that one back rather than throwing, so the flip button is safe
+    // to press anywhere.
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:camFacing } });
     const v = document.getElementById('cam');
     // Left the screen or got a result while the camera was waking up.
     if (!v || !cameraWanted()){ stream.getTracks().forEach(t => t.stop()); return; }
@@ -3256,15 +3689,15 @@ async function startCamera(){
     v.srcObject = camStream;
     await v.play();
   } catch (e){
-    if (hint) hint.textContent = 'Camera blocked — type the code';
+    camHint('Camera blocked — type the code', 'Camera blocked — please see a staff member.');
     return;
   } finally {
     camStarting = false;
   }
+  countCameras();
   if (!readFrame) readFrame = await makeReader();
   if (!readFrame){
-    const h0 = document.getElementById('vfhint');
-    if (h0) h0.textContent = 'Type the code below';
+    camHint('Type the code below', 'This device cannot read QR codes — please see a staff member.');
     return;
   }
   // A decoder that throws on every frame used to do it in silence, 150 times a
@@ -3275,20 +3708,25 @@ async function startCamera(){
     const v = document.getElementById('cam');
     if (document.hidden || !v || !v.videoWidth) return;
     if (scanLocked) return;
+    if (S.kiosk && S.kioskAsk) return;  // a staff member is typing the PIN over it
     let raw = null;
     try { raw = await readFrame(v); failures = 0; }
     catch (e){
       if (++failures < 8) return;
       stopCamera();
-      const hf = document.getElementById('vfhint');
-      if (hf) hf.textContent = 'Scanning failed — type the code';
+      camHint('Scanning failed — type the code', 'Scanner stopped — please see a staff member.');
       return;
     }
     if (!raw || scanLocked) return;
     // One read per scan: lock first, so a decode already in flight can't
     // fire a second lookup for the same QR.
     scanLocked = true;
-    stopCamera();
+    /* The booth stops the camera here, so the result is the only thing on
+       screen. A self-serve station leaves it running and trusts the lock:
+       waking the camera for every guest puts a second of black in front of
+       everybody in the queue, one person at a time. */
+    if (!S.kiosk) stopCamera();
+    if (S.kiosk){ await kioskScan(raw); return; }
     if (!/^YARD:/.test(raw)){
       if (S.screen === 'orders'){ S.orderScanError = "That QR isn't a Yard pass."; }
       else { S.lookup = { error:'NOT_A_YARD_CODE' }; }
@@ -3306,9 +3744,13 @@ async function startCamera(){
   }, 400);
 }
 let scanLocked = false, camStarting = false;
-/* The camera runs on the booth until something is on screen, and on Orders
-   only while taking an order. */
+/* Should the camera be running? The booth stops it the moment something is
+   read, so one pass cannot be read twice and the result has the screen to
+   itself. Self-serve keeps it running between guests and leans on the lock
+   instead, for the reason above. */
 function cameraWanted(){
+  if (S.kiosk) return true;
+  if (scanLocked) return false;
   if (S.screen === 'booth') return !S.lookup;
   if (S.screen === 'orders') return S.orderScan === 'scan';
   return false;
@@ -3441,7 +3883,18 @@ function gmFollowOn(){
 
 function gmStartsAt(d){ return new Date(d.starts_at).getTime(); }
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); });
+/* Away and back. The camera is dropped when the tab is hidden, and — until
+   24 Sep — nothing ever brought it back: booth mode is deliberately left out
+   of the refresh loop, so no redraw came along to restart it either. On a
+   phone that never showed, because the next thing anyone did was tap
+   something. On an iPad on a stand, one notification or one sleep left a
+   black viewfinder still reading "Point at the pass", with nobody there to
+   notice. The screen lock goes the same way and has to be asked for again. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ stopCamera(); return; }
+  if (S.kiosk) keepAwake(true);
+  if (cameraWanted()) startCamera();
+});
 
 render();
 resumeSession();

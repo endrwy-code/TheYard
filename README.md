@@ -253,6 +253,13 @@ entries for each change.
   Tart, Mini Cookie or Shiopan — the booth records which; the brownie went
   23 Sep), the first photo strip and vinyl crafting; everything with a price is the `price_list` Setting,
   shown on Help. Escape games run 3:05–9:45 PM (decision 133).
+- **An iPad can be turned round for guests** (24 Sep, `STATE.md` decision
+  156). Booth mode has a *Turn the screen round for guests* row: it opens a
+  full-screen self-serve check-in with no nav, no code box and no hand-over
+  buttons, shows a first name and one line, and clears itself. Every
+  viewfinder also has a *Flip camera* button now. Getting back out takes the
+  phone PIN. The iPad's own Guided Access and Auto-Lock settings are the other
+  half of locking it down — `RUNBOOK.md` Phase 15b walks both.
 - **Hosting.** The code goes to a *private* GitHub repository and
   `DEPLOY.md` is the guide for moving it from the laptop + tunnel to a real
   server (decision 134). `.gitignore` keeps secrets and attendees' data out.

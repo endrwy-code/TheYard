@@ -2483,32 +2483,78 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   "Collected" without touching the phone; then opens Overview and Settings on
   the phone and confirms pinching moves around the laptop layout.
 
-## 2026-09-24 — Two camera faults found while reviewing the console for an iPad
+## 2026-09-24 — Flip the camera, and an iPad you can turn round for guests
 
-- **Changed:** Nothing yet. Both were found by reading the code during the
-  iPad self-scan review and are written down here rather than fixed, because
-  the fix belongs with the self-serve work the organiser has not chosen yet.
-- **Current state:** (1) The camera never comes back after the tab is hidden.
-  `visibilitychange` calls `stopCamera()` when the tab goes away
-  (`templates/admin.html`, last lines) and nothing restarts it on the way
-  back. Booth mode is also deliberately excluded from the refresh loop
-  (`refreshSoon`, `S.screen !== 'booth'`), so no redraw comes along to
-  restart it either. On a phone this is invisible — the person taps something
-  and the screen redraws. On an iPad left on a stand, one notification, one
-  app switch or one screen sleep leaves a dead black viewfinder with the hint
-  still reading "Point at the pass", and nobody standing there to notice.
-  (2) `narrowDevice()` treats anything whose screen is under 900px wide as a
-  phone, so the iPad mini (744), iPad Air and iPad 10th gen (820) and the
-  11-inch iPad Pro (834) get the laptop screens squeezed to a 1440 viewport
-  with "Built for a laptop. Pinch to zoom in" under them. The 12.9-inch
-  (1024) does not. An iPad has the room to draw those screens properly; it is
-  being told to pinch and zoom for no reason.
-- **Left unfinished on purpose:** Both. Fault (1) wants a matching restart on
-  `visibilitychange`, which is three lines, but it is only worth testing once
-  with whatever self-serve mode turns out to be. Fault (2) wants the
-  phone/tablet/laptop split to be three cases rather than two, which changes
-  how five screens lay out and should not be bundled into a scanner change.
-- **Next step:** The organiser decides on self-serve mode. Fault (1) ships
-  with it and is tested by putting the iPad to sleep mid-queue and waking it.
-  Fault (2) is a separate tier, tested by opening Overview and Settings on
-  the iPad and confirming they are readable without pinching.
+- **Changed:** The console asked `getUserMedia` for `facingMode:'environment'`
+  in one place and offered no way to ask for the other one. There is now a
+  **Flip camera** button on every viewfinder — the booth, orders and the new
+  self-serve screen — and the front camera's preview is mirrored, because
+  somebody aiming their own phone at the glass aims by mirror logic. The
+  mirror is CSS on the video only; the decoder reads the raw frame off a
+  canvas, so it still scans. The choice is remembered per job, not per device:
+  a booth phone wants the back camera, and the same device running self-serve
+  an hour later wants the front one. On a device with one camera the button is
+  hidden rather than left there doing nothing.
+  Booth mode has a new row at the bottom, **"Turn the screen round for
+  guests."** It opens a full-screen self-serve check-in over the top of the
+  console — no nav, no test-clock banner, no typed code box, no hand-over
+  buttons. A guest holds their pass up, it checks them in, beeps, says one line
+  and clears itself after a few seconds. It shows a first name and nothing
+  else, and everything that is not a clean check-in says the same neutral
+  line, so nobody's payment is read out to the queue behind them. Somebody
+  unverified is checked in anyway and sent to the front desk — the organiser's
+  call: the record of who came through the door should not wait on the desk.
+  Getting back out is **Staff** in the corner and the phone PIN, through a new
+  `POST /admin/api/unlock`, which checks the secret and leaves the session
+  alone. It is on the sign-in rate counter and refusals are audited.
+  `POST /admin/api/checkins` now also answers with `payment_status` and
+  `payment_ok`, so the screen needs one call per guest rather than two — the
+  lookup limit is 30 a minute and a door queue would spend it.
+  Two faults found by reading the code on the way past. **The camera never
+  came back after the tab was hidden**: `visibilitychange` stopped it and
+  nothing restarted it, and booth mode is deliberately outside the refresh
+  loop, so no redraw came along either. On a phone that never showed, because
+  the next thing anyone does is tap something; on an iPad on a stand it is a
+  black viewfinder still reading "Point at the pass" with nobody there to
+  notice. Fixed. And **`scripts/render_console.mjs` had been dead since the
+  viewport change landed** — its mock element had no `getAttribute` and the
+  sandbox no `document.documentElement`, so it threw before drawing anything
+  and nobody re-ran it. Fixed, and eight self-serve cases added to it.
+  Also: the "Already collected" card said *"Send them to the front desk rather
+  than arguing at the booth."* It now says the front desk can look up when it
+  went and who handed it over. Same instruction, no fight in it.
+- **Current state:** Built and checked. 627 pytest tests pass, 16 of them new
+  in `tests/test_self_serve.py` — the unlock endpoint, its rate limit, its
+  audit line, that it leaves the sign-in where it was, and that a check-in
+  reports payment, is idempotent, and hands back no name but the scanner's
+  own. `node scripts/check_pages.mjs` and `node scripts/render_console.mjs`
+  are both green, the latter covering self-serve waiting, checked in, already
+  checked in, front desk, anything else, unlocking, a wrong PIN and a sign-in
+  that ran out. Each self-serve state is also asserted to carry no hand-over
+  button, no code box, no nav and no other guest's name. `RUNBOOK.md` Phase
+  15b walks the iPad setup; `STATE.md` decision 156 and `BUILD_SPEC.md` §12
+  have the reasoning and the shapes.
+  **Not tested on an iPad, or on any phone.** Everything above is the suite
+  and two Node harnesses; none of it has seen a real camera.
+- **Left unfinished on purpose:** The 900px phone/laptop split still calls the
+  iPad mini, Air and 11-inch Pro phones, so Overview and Settings squeeze to a
+  1440 viewport and say "pinch to zoom" on a screen with room to spare. Making
+  that three cases changes how five screens lay out and does not belong in a
+  scanner change. No torch button: Safari on iPad has no support for one, and
+  the thing being scanned is a phone screen, which glows. Self-serve hands
+  nothing over and is not meant to.
+  Also still open, and not ours: `tests/test_escape_capacity.py::
+  test_the_console_schedule_is_real` fails on a clean checkout after 15:30
+  local, because it asserts the first jam slot reads "open" and by then it
+  reads "past". It is a wall-clock dependency in the test, not a fault in the
+  app, and the RUNBOOK has the organiser run this suite on the morning of the
+  event — where it passes.
+- **Next step:** The organiser tests it on the iPad. Booth → "Turn the screen
+  round for guests", check the front camera comes up and Flip swaps it; scan a
+  pass and confirm the beep, the green screen and that it clears itself; hold
+  the same pass there and confirm it does not fire twice; scan an unverified
+  person and confirm the amber "see the front desk" and that People shows them
+  checked in; lock the iPad, wake it, and confirm the viewfinder is live again
+  rather than black; then Staff → the wrong PIN, then the right one, and
+  confirm it lands back on the booth. Phase 15b has the Guided Access and
+  Auto-Lock steps to do first.

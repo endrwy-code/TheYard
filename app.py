@@ -182,6 +182,7 @@ ROLE_RULES = [
     ("POST", r"/admin/api/claims", ANY_CONSOLE),
 
     ("POST", r"/admin/api/checkins", ANY_CONSOLE),
+    ("POST", r"/admin/api/unlock", ANY_CONSOLE),
     ("GET", r"/admin/api/people(/\d+)?", ANY_CONSOLE),
     ("GET", r"/admin/api/orders", ANY_CONSOLE),
     ("POST", r"/admin/api/orders(/\d+/(call|collected|cancel))?", ANY_CONSOLE),
@@ -880,6 +881,32 @@ def admin_checkin():
         return claims.check_in(g.db, actor=actor(), code=code, attendee_id=attendee_id,
                                kind=str(body.get("kind") or "event"))
     return _guarded(run)
+
+
+@app.route("/admin/api/unlock", methods=["POST"])
+def admin_unlock():
+    """Prove a staff member is standing at a self-serve iPad.
+
+    Self-serve mode hands the screen to the queue, so leaving it asks for the
+    same secret the device signed in with. Signing in again would do the job,
+    but it would rotate the session and write a sign-in into the audit log
+    that nobody actually made — so this checks the secret and changes nothing.
+
+    Rate-limited on the sign-in counter, because an iPad left on a stand is
+    exactly where somebody would sit and work through four-digit PINs. A
+    refusal is logged: a run of them is worth seeing the morning after.
+    """
+    body = request.get_json(silent=True) or {}
+    role = g.console["role"]
+    who = client_key()
+    if not auth.signin_allowed(role, who):
+        return fail("RATE_LIMITED", "Too many tries. Wait a few minutes.", 429)
+    if not auth.check_role(role, str(body.get("secret") or "")):
+        auth.signin_failed(role, who)
+        db.audit(g.db, role, "Self-serve unlock refused",
+                 actor_name=g.console["name"], station=g.console["station"] or None)
+        return fail("FORBIDDEN", "That did not match.", 403)
+    return ok({"unlocked": True})
 
 
 # ---------------------------------------------------------------------------

@@ -445,4 +445,10 @@ def check_in(conn, *, actor, code=None, attendee_id=None, kind="event"):
         "checked_in_by": fresh["checked_in_by"],
         "already": not first_time,
         "person": {"id": row["id"], "name": row["name"], "handle": row["handle"]},
+        # Self-serve check-in shows one line to whoever is standing there, so
+        # it cannot afford a second call to find out whether they have paid —
+        # a lookup per guest would spend the 30-a-minute limit on the queue.
+        # The booth ignores both of these; it has the full lookup already.
+        "payment_status": row["payment_status"],
+        "payment_ok": payment_ok(conn, row),
     }

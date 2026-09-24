@@ -905,6 +905,91 @@ laptop is asleep, or Tailscale is signed out. Check in that order.
 
 ---
 
+## Phase 15b — Set up the self-serve iPad (optional)
+
+**Goal.** An iPad on a stand by the door. People hold their own pass up to it,
+it checks them in, and nobody has to stand behind it.
+
+You do not have to use this. The booth on a phone still works exactly as it
+did; this is for when the queue is longer than the volunteers.
+
+### What it does and does not do
+
+It checks people in. That is all. It cannot hand over a pastry, a photo strip
+or anything else — those still need a person to pass the thing across, so they
+stay on the booth. It shows nobody's name but the one scanning, and only their
+first name. It never says why somebody has a problem, in front of the people
+behind them; it says "please see a staff member" and leaves the reason to you.
+
+Somebody who has not been marked as paid **is still checked in**, and is told
+to see the front desk. That is deliberate: the record of who walked through the
+door should not wait on the desk keeping up.
+
+### Setting it up
+
+1. **Open the console in Safari on the iPad** and sign in the way you always
+   do — Mobile and the phone PIN is fine.
+2. **Add it to the home screen.** Share button → Add to Home Screen. Open it
+   from there from now on: it fills the screen with no address bar, so there is
+   nothing for anyone to type a web address into.
+3. **Settings → Display & Brightness → Auto-Lock → Never.** The app keeps the
+   screen awake on its own where iPadOS allows it, but this is the one that
+   always works. Keep the charger plugged in.
+4. **Booth → "Turn the screen round for guests."** The nav bar disappears and
+   the scanner fills the screen.
+5. The front camera comes on, because that is the one facing the queue once you
+   turn the iPad round. If it is pointing the wrong way, tap **Flip camera**.
+   It remembers which one you chose.
+6. **Turn on Guided Access.** Settings → Accessibility → Guided Access → on,
+   and set a passcode. Then, with the self-serve screen open, **triple-click
+   the top button** and tap Start. The home gesture and the side buttons stop
+   working until you triple-click again and type that passcode.
+
+Steps 2 and 6 are the ones that actually lock it. The app can stop somebody
+getting back into the console; it cannot stop somebody swiping up to the home
+screen. Only the iPad can do that.
+
+### Getting back out
+
+Tap **Staff** in the top-left corner, type the phone PIN (or the admin password
+if you signed in on the Laptop door), and it goes back to the booth. If Guided
+Access is on, triple-click the top button first.
+
+Wrong PINs are counted and logged. After a handful of tries it stops accepting
+any PIN for a few minutes, including the right one — that is on purpose, so an
+iPad left alone cannot be guessed into.
+
+### What you should see, and when
+
+| On screen | What happened |
+|---|---|
+| Green, "You're in, *name*" | Checked in. One short beep. |
+| Green, "Already checked in" | They scanned twice. Nothing is double-counted. |
+| Amber, "Please see the front desk" | Checked in, but their payment is not verified. Send them to you. |
+| Grey, "Please see a staff member" | Anything else — an unknown code, somebody off the current roster, or a scan that came too fast after the last one. Look them up on the booth phone. |
+
+Each message clears itself after a few seconds and the scanner comes back. You
+do not tap anything.
+
+### If it stops working
+
+- **Black screen where the camera should be.** Tap Staff, unlock, and turn
+  self-serve back on. Safari drops the camera when the iPad sleeps or you
+  switch apps; the app asks for it back when you return, but a full restart of
+  the mode is the sure fix.
+- **"Camera blocked."** Safari settings → Camera → Allow, for this site. On a
+  home-screen icon this is under Settings → The Yard.
+- **"Please see a staff member" for everybody.** The sign-in has probably run
+  out (they last 12 hours). Tap Staff → Sign in, and sign in again. The queue
+  never sees the password box.
+- **No beep.** iPadOS keeps the speaker shut until the screen has been touched
+  since the last reload. Tap the screen once. Check the volume and that the
+  silent switch is off.
+- **Anything at all.** Turn it off and use the booth on a phone. Nothing about
+  self-serve is required for the night to run.
+
+---
+
 ## Phase 16 — Event-day setup
 
 1. Use `waitress`, not the development server:

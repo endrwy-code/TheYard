@@ -617,6 +617,7 @@ The UI maps error codes to copy.
 | GET /admin/api/lookup/{code} | Booth lookup |
 | POST /admin/api/claims, POST /admin/api/claims/{id}/void | Hand over; void |
 | POST /admin/api/checkins | Event, escape or jam check-in |
+| POST /admin/api/unlock | Leave self-serve on an iPad without a fresh sign-in *(24 Sep, `STATE.md` 156)* |
 | GET /admin/api/slots, POST /admin/api/slots/{id}/block, POST /admin/api/escape/move | Schedules |
 | GET /admin/api/gm/state | GM console state (gm and admin only) |
 | ~~POST /admin/api/gm/{slot_id}/halves~~ | *Gone 23 Sep — there are no halves* |
@@ -688,8 +689,19 @@ and in `STATE.md` §5.
   `error.claim = {item, id, at, staff, station, variant}` and a message like
   "Photo strip already collected at 7:14 PM (Booth 1, Wei)."
 - **`POST /admin/api/checkins`** — body `{code | attendee_id, kind:'event'}` →
-  `{checked_in_at, checked_in_by, already, person}`. A second check-in returns
-  `already: true` with the first one's time and name.
+  `{checked_in_at, checked_in_by, already, person, payment_status, payment_ok}`.
+  A second check-in returns `already: true` with the first one's time and name,
+  and writes nothing. The two payment fields were added on 24 Sep for the
+  self-serve iPad: it has to tell somebody to see the front desk off the same
+  call, because a lookup per guest would spend the 30-a-minute lookup limit on
+  a door queue (`STATE.md` 156). `person` carries `{id, name, handle}` and
+  nothing else — the screen prints the first name and no more.
+- **`POST /admin/api/unlock`** — body `{secret}` → `{unlocked:true}`, or
+  `FORBIDDEN`. Checks the signed-in console's own secret (the phone PIN for a
+  Mobile sign-in, the admin password for a Laptop one) and changes nothing
+  about the session — a fresh sign-in would rotate it and log a sign-in nobody
+  made. Shares the sign-in rate counter, and a refusal is audited as
+  "Self-serve unlock refused": an unattended iPad is where PINs get guessed.
 
 ### Shapes fixed at P0.3
 

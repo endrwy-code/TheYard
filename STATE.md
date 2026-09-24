@@ -1762,6 +1762,81 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        viewport. The screens where a toast carries the important news — the
        booth, orders — are not among the five.
 
+156. **The iPad gets turned round, so it gets its own screen.** 24 Sep, the
+     organiser: *"a button which I can flip the camera such that if it is an
+     Ipad, that I can easily flip the camera and allow people to scan their QR
+     code themselves … a way to focus the screen to just the QR code scanner
+     … a way to semi lock the screen?"*
+     - **The flip itself is small.** `getUserMedia` asked for
+       `facingMode:'environment'` in one place and nothing offered the other.
+       One button — *Flip camera*, not a list of cameras, because an iPad Pro
+       reports four video inputs with names like "Back Ultra Wide Camera" and
+       nobody at a door wants to read that. The front camera's preview is
+       **mirrored**, because somebody aiming their own phone at the glass aims
+       by mirror logic. That is the picture only: the decoder reads the raw
+       frame off a canvas the CSS never touches, so a mirrored preview still
+       scans. The choice is remembered **per job, not per device** — a booth
+       phone wants the back camera and the same laptop running self-serve an
+       hour later wants the front one.
+     - **Self-serve could not be the booth screen made bigger.** The booth
+       carries the nav (Settings, Audit, Sign out), it carries the hand-over
+       buttons — so a guest could mark their own pastry collected — it explains
+       itself in staff words, and it holds the last person's name and payment
+       status on screen until somebody taps Scan next. All four are fine in a
+       volunteer's hand and none of them are fine on a stand by the door. So
+       it is its own screen, over the top of whatever screen was open, with
+       the nav and the banner gone with it.
+     - **Its job is check-in and only check-in.** Nothing on it hands anything
+       over, because handing something over needs a person to pass the thing.
+     - **An unverified payment still checks in** — the organiser's call, asked
+       and answered the same day. The record of who walked through the door
+       should not wait on the front desk keeping up. The screen sends them to
+       the desk and says nothing about why.
+     - **One line for every kind of failure.** An unknown code, a name off the
+       current roster and a rate limit are three problems for staff and the
+       same instruction for the person standing there — "please see a staff
+       member" — and which one it is happens to be nobody else's business.
+       First name only, never the handle.
+     - **Check-in now answers with the payment state.** Otherwise the screen
+       needs a lookup *and* a check-in for every guest, and the lookup limit is
+       30 a minute: a door queue would spend it.
+     - **`POST /admin/api/unlock`, not a second sign-in.** Logging in again
+       would work and would rotate the session and write a sign-in nobody made
+       into the audit log. This checks the secret and changes nothing. It is
+       on the sign-in's rate counter and a refusal is logged, because an iPad
+       on a stand is exactly where somebody sits and works through PINs.
+     - **The lock is half the app's and half the iPad's, and the RUNBOOK says
+       so.** The app can stop somebody getting back into the console. It
+       cannot stop somebody swiping up to the home screen — only Guided Access
+       can, and Auto-Lock → Never is what actually keeps the screen on.
+       Phase 15b walks both, plus Add to Home Screen so there is no address
+       bar to type into. The page asks for a screen wake lock as well, where
+       iPadOS allows it.
+     - **It survives a reload.** A self-serve iPad that comes back up on the
+       console would put the nav and the last guest's name in front of the
+       door with nobody watching, so the mode is remembered in `localStorage`.
+     - **A beep, because nobody is watching the screen.** A guest stands back
+       looking down at their own phone and will not see it change colour. Built
+       from an oscillator, so there is no file to load and none to 404 on the
+       night.
+     - **The camera stays on between guests.** The booth stops it the moment
+       something is read, so a pass cannot be read twice; self-serve leans on
+       the lock instead, because waking the camera per person puts a second of
+       black in front of the queue, one guest at a time.
+     - **Fixed on the way past:** the camera never came back after the tab was
+       hidden. `visibilitychange` stopped it and nothing restarted it, and
+       booth mode is deliberately left out of the refresh loop, so no redraw
+       came along either. Invisible on a phone — the next thing anyone does is
+       tap something. On a stand it is a black viewfinder still reading "Point
+       at the pass", with nobody there to notice.
+     - **Left alone on purpose:** the 900px phone/laptop split still calls the
+       iPad mini, Air and 11-inch Pro phones, so Overview and Settings are
+       squeezed to 1440 and say "pinch to zoom" on a screen with room to spare
+       (decision 155). Making that three cases changes how five screens lay
+       out and does not belong in a scanner change. And no torch button: Safari
+       on iPad does not support one, and the thing being scanned is a phone
+       screen, which glows.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1776,6 +1851,7 @@ Recorded here and in `BUILD_SPEC.md` §12.
 | `POST /api/escape/group`, `DELETE /api/escape/group/{handle}` | Owner adds or removes friends |
 | `GET /admin/api/session` | Resume the console sign-in after a reload |
 | `GET /admin/api/live` | Server-sent events: "something changed" |
+| `POST /admin/api/unlock` | Getting back out of self-serve on an iPad without signing the device in again (decision 156) |
 | `POST /admin/api/people/{id}/unlink` | Unlink a Telegram account (reason required) |
 | `POST /admin/api/gm/{slot_id}/cues/{key}` | Mark a script cue done; hint lines go to the actor |
 | `POST /api/jam/bookings` | Free jam booking for a group, all or nothing (replaces `POST /api/jam/holds`) |

@@ -10,6 +10,13 @@ const code = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>
 
 const el = () => ({
   classList: { add(){}, remove(){}, toggle(){}, contains(){ return false; } },
+  // setViewport() reads and writes the <meta> tag's content on every render
+  // (24 Sep). Without these the harness dies before it draws anything.
+  attrs: {},
+  getAttribute(n){ return n in this.attrs ? this.attrs[n] : null; },
+  setAttribute(n, v){ this.attrs[n] = String(v); },
+  removeAttribute(n){ delete this.attrs[n]; },
+  hasAttribute(n){ return n in this.attrs; },
   style: { setProperty(){} }, dataset: {}, querySelectorAll: () => [], appendChild(){},
   addEventListener(){}, focus(){}, set innerHTML(v){}, get innerHTML(){ return ""; },
   set textContent(v){}, get textContent(){ return ""; }, hidden: false, value: "",
@@ -22,7 +29,8 @@ const sandbox = {
   console,
   document: {
     getElementById: () => el(), querySelector: () => el(), querySelectorAll: () => [],
-    createElement: el, body: el(), head: el(), addEventListener(){}, activeElement: null,
+    createElement: el, body: el(), head: el(), documentElement: el(),
+    addEventListener(){}, activeElement: null,
   },
   window: { addEventListener(){}, location:{ origin:"https://x" }, matchMedia:()=>({matches:false}) },
   navigator: { userAgent: "node", mediaDevices: null },
@@ -43,7 +51,8 @@ vm.createContext(sandbox);
 // the sandbox's global object. Hand them out explicitly, the way
 // scripts/render_views.mjs does.
 vm.runInContext(code + ";\nglobalThis.__S = S; globalThis.__SCREENS = SCREENS;"
-                     + "\nglobalThis.__SCREENS.__signin = signinView;",
+                     + "\nglobalThis.__SCREENS.__signin = signinView;"
+                     + "\nglobalThis.__SCREENS.__kiosk = kioskView;",
                 sandbox, { filename: "admin.html", timeout: 5000 });
 
 const S = sandbox.__S;
@@ -137,11 +146,34 @@ const cases = [
       people: [player({ phone_msg: "held" })], booked: 1, checked_in: 1 }) }],
   ["gm (nobody booked)", "gm", { gmState: gm({ people: [], booked: 0, checked_in: 0 }) }],
   ["gm (no hint file)", "gm", { gmState: gm({ hints: [] }) }],
+
+  /* Self-serve: the iPad turned round at the door (24 Sep). What matters here
+     is as much what is absent as what is present — see NOT below. */
+  ["self-serve (waiting)", "__kiosk", { kiosk: true, kioskSaid: null, kioskAsk: null }],
+  ["self-serve (checked in)", "__kiosk", { kiosk: true, kioskAsk: null,
+    kioskSaid: { tone: "good", mark: "\u2713", big: "You are in, Heidi",
+                 small: "Checked in at 7:04pm" } }],
+  ["self-serve (already checked in)", "__kiosk", { kiosk: true, kioskAsk: null,
+    kioskSaid: { tone: "good", mark: "\u2713", big: "Already checked in",
+                 small: "Heidi \u2014 you are all set." } }],
+  ["self-serve (see the front desk)", "__kiosk", { kiosk: true, kioskAsk: null,
+    kioskSaid: { tone: "warn", mark: "!", big: "Please see the front desk",
+                 small: "Heidi \u2014 you are checked in." } }],
+  ["self-serve (anything else)", "__kiosk", { kiosk: true, kioskAsk: null,
+    kioskSaid: { tone: "bad", mark: "\u00b7", big: "Please see a staff member", small: "" } }],
+  ["self-serve (staff unlocking)", "__kiosk", { kiosk: true, kioskSaid: null,
+    kioskAsk: { err: "" } }],
+  ["self-serve (wrong PIN)", "__kiosk", { kiosk: true, kioskSaid: null,
+    kioskAsk: { err: "That did not match." } }],
+  ["self-serve (signed out mid-event)", "__kiosk", { kiosk: true, kioskSaid: null,
+    kioskAsk: { err: "" }, session: null }],
 ];
 
 const MUST = {
   "booth (scanning)": ['id="cam"', 'id="vfhint"', 'id="viewfinder"', 'id="codebox"', 'id="lookup"',
-                       'id="checkin"', 'id="scannext"', "booth-body scanning"],
+                       'id="checkin"', 'id="scannext"', "booth-body scanning",
+                       // 24 Sep: flip the camera, and hand the screen over.
+                       'id="camflip"', 'id="kioskgo"', "Turn the screen round for guests"],
   "booth (signed in with the PIN alone)": ['id="cam"', 'id="scannext"', "Mobile"],
   "booth (nothing collected yet)": ['id="cam"', 'id="codebox"', 'id="scannext"', "booth-body showing",
                                     'data-hand="photo"', 'data-hand="vinyl"', 'data-variant="tart"',
@@ -172,6 +204,20 @@ Object.assign(MUST, {
   "gm (messages still on testing)": ["Not sent (test mode)", "Who gets messages"],
   "gm (nobody booked)": ["Nobody is booked on this game."],
   "gm (no hint file)": ["No hint file on this laptop"],
+
+  "self-serve (waiting)": ['id="kiosk"', 'id="cam"', 'id="kioskstaff"', 'id="kioskflip"',
+                           "Scan your pass", "Open The Yard in Telegram"],
+  "self-serve (checked in)": ["said good", "You are in, Heidi", "Checked in at 7:04pm"],
+  "self-serve (already checked in)": ["said good", "Already checked in", "you are all set"],
+  "self-serve (see the front desk)": ["said warn", "Please see the front desk",
+                                      "you are checked in"],
+  "self-serve (anything else)": ["said bad", "Please see a staff member"],
+  "self-serve (staff unlocking)": ['id="kioskpin"', 'id="kioskunlock"', 'id="kioskback"',
+                                   "Staff only", "phone PIN", ">Unlock<"],
+  "self-serve (wrong PIN)": ["That did not match.", 'id="kioskpin"'],
+  // No session left, so there is nothing to unlock against: the way back is
+  // the sign-in, and the box that would take a PIN is gone with it.
+  "self-serve (signed out mid-event)": ["signed out", ">Sign in<", 'id="kioskback"'],
 });
 
 // The scanning state must never carry a hand-over button, and a result must
@@ -189,7 +235,21 @@ const NOT = {
   "gm (before the start)": ["have it", "Phone sent", "Phone on its way", 'data-gm="end"'],
   "gm (finished)": ['data-gm="end"', 'data-gm="pause"'],
   "gm (no hint file)": ["data-hint="],
+  "self-serve (signed out mid-event)": ['id="kioskpin"', "phone PIN", "admin password"],
 };
+/* The whole point of the screen. A guest standing in front of an unattended
+   iPad must not be able to hand themselves anything, type a code at it, walk
+   into the console, sign the device out, or read the last person's details
+   off it — so none of that may appear on any self-serve state. */
+for (const [name] of cases) {
+  if (!name.startsWith("self-serve")) continue;
+  NOT[name] = (NOT[name] || []).concat([
+    "data-hand=", "handbox", "Hand over", "Override",
+    'id="codebox"', 'id="lookup"', 'id="checkin"', 'id="scannext"',
+    'id="signout"', "Sign out", "data-screen=", "Settings", "Audit",
+    "Heidi Lim", "@heidily", "payment", "Payment",
+  ]);
+}
 // There is no Start to press and no half to stand in, on any GM screen.
 for (const [name] of cases) {
   if (!name.startsWith("gm")) continue;
