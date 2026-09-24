@@ -591,7 +591,7 @@ def unlink(conn, attendee_id, reason, by):
 
 
 # ---------------------------------------------------------------------------
-# Schedules: block a slot, move a person
+# Schedules: block a slot
 # ---------------------------------------------------------------------------
 
 def block_slot(conn, slot_id, blocked, reason, by):
@@ -619,37 +619,401 @@ def block_slot(conn, slot_id, blocked, reason, by):
     return bookings._run(conn, run)
 
 
+# ---------------------------------------------------------------------------
+# Seating: who is in which slot, and moving them between slots
+# ---------------------------------------------------------------------------
+#
+# Schedules counts seats. This names them, because you cannot move somebody
+# you cannot see, and until 24 Sep the only way to move anyone was to type a
+# time into a box that matched it back as text — "6.45" never found the 6:45
+# game, and every game that had started, finished or filled was left off the
+# list it offered, so the answer came back as "no open game at that time"
+# whatever you typed.
+#
+# The rule that shapes all of it: **a move never takes a seat off anyone
+# else.** A target with no room is refused; nobody is bumped to make space.
+# Times are not a reason to refuse — the front desk moves people into games
+# that have started and out of games that are over, which is most of what
+# this is for.
+
+
+def _slot_of(conn, slot_id, room, what):
+    try:
+        slot_id = int(slot_id)
+    except (TypeError, ValueError):
+        raise ClaimError("VALIDATION_FAILED", f"Pick a {what}.")
+    slot = conn.execute("SELECT * FROM slots WHERE id=? AND room=?", (slot_id, room)).fetchone()
+    if slot is None:
+        raise ClaimError("NOT_FOUND", f"No such {what}.")
+    return slot
+
+
+def _by(row):
+    """Who booked this seat, when it was not the person sitting in it."""
+    if not row["booked_by_id"] or row["booked_by_id"] == row["attendee_id"]:
+        return None
+    return "@" + row["owner_handle"] if row["owner_handle"] else row["owner_name"]
+
+
+def _seat_columns(b):
+    """The columns every seat on the board needs, for either table's alias."""
+    return (f"{b}.ref_code, {b}.attendee_id, {b}.booked_by_id, a.name, a.handle, "
+            "o.handle AS owner_handle, o.name AS owner_name")
+
+
+def seating_board(conn, now):
+    """Both rooms, slot by slot, with the names in each one."""
+    cfg = bookings._settings(conn)
+    escape = []
+    for sl in bookings._slots(conn, "escape"):
+        rows = conn.execute(
+            f"SELECT {_seat_columns('b')}, b.status FROM escape_bookings b "  # noqa: S608
+            "JOIN attendees a ON a.id = b.attendee_id "
+            "LEFT JOIN attendees o ON o.id = b.booked_by_id "
+            "WHERE b.slot_id=? AND b.status IN ('booked','checked_in') "
+            "ORDER BY b.created_at, b.id", (sl["id"],)).fetchall()
+        starts, ends = bookings._dt(sl["starts_at"]), bookings._dt(sl["ends_at"])
+        escape.append({
+            "id": sl["id"], "starts_at": claims.local_iso(sl["starts_at"]),
+            "ends_at": claims.local_iso(sl["ends_at"]),
+            "capacity": sl["capacity"], "booked": len(rows),
+            "blocked": bool(sl["is_blocked"]), "block_reason": sl["block_reason"],
+            "running": starts <= now < ends, "done": now >= ends,
+            "closed": starts - timedelta(minutes=cfg["cutoff"]) <= now < starts,
+            "people": [{"attendee_id": r["attendee_id"], "name": r["name"],
+                        "handle": r["handle"] or "", "ref": r["ref_code"],
+                        "checked_in": r["status"] == "checked_in", "booked_by": _by(r)}
+                       for r in rows],
+        })
+    jam = []
+    for sl in bookings._slots(conn, "jam"):
+        rows = conn.execute(
+            f"SELECT {_seat_columns('j')}, j.instrument FROM jam_bookings j "  # noqa: S608
+            "JOIN attendees a ON a.id = j.attendee_id "
+            "LEFT JOIN attendees o ON o.id = j.booked_by_id "
+            "WHERE j.slot_id=? AND j.status='confirmed' "
+            "ORDER BY j.created_at, j.id", (sl["id"],)).fetchall()
+        starts, ends = bookings._dt(sl["starts_at"]), bookings._dt(sl["ends_at"])
+        held = {r["instrument"] for r in rows}
+        jam.append({
+            "id": sl["id"], "starts_at": claims.local_iso(sl["starts_at"]),
+            "ends_at": claims.local_iso(sl["ends_at"]),
+            "capacity": sl["capacity"], "booked": len(rows),
+            "blocked": bool(sl["is_blocked"]), "block_reason": sl["block_reason"],
+            "running": starts <= now < ends, "done": now >= ends,
+            # A jam seat is an instrument, so what is free here is what a name
+            # dragged in can actually be given.
+            "free": [{"key": k, "label": config.INSTRUMENT_LABELS[k]}
+                     for k in config.INSTRUMENT_KEYS if k not in held],
+            "people": [{"attendee_id": r["attendee_id"], "name": r["name"],
+                        "handle": r["handle"] or "", "ref": r["ref_code"],
+                        "instrument": r["instrument"] or "",
+                        "instrument_label": config.INSTRUMENT_LABELS.get(r["instrument"], ""),
+                        "booked_by": _by(r)}
+                       for r in rows],
+        })
+    return {"escape": escape, "jam": jam,
+            "instruments": [{"key": k, "label": lab} for k, lab in config.INSTRUMENTS],
+            "seats_taken": sum(g["booked"] for g in escape),
+            "seats_total": sum(g["capacity"] for g in escape),
+            "jam_seats_taken": sum(j["booked"] for j in jam),
+            "jam_seats_total": sum(j["capacity"] for j in jam)}
+
+
+# ---------------------------------------------------------------------------
+# One move
+# ---------------------------------------------------------------------------
+#
+# `check_room` is on for a move made on its own and off inside a batch, where
+# the room has already been counted against the evening as it will be once
+# every move is saved. It is the only difference between the two: a batch
+# still refuses a blocked slot, a clash, or a seat somebody already holds.
+
+def _escape_move(conn, person, slot_id, reason, by, now, check_room=True):
+    """Move one escape seat. No transaction of its own, so a batch can hold one."""
+    b = bookings.active_booking(conn, person["id"])
+    if b is None:
+        raise ClaimError("NO_BOOKING", f"{person['name']} has no escape game to move.")
+    target = _slot_of(conn, slot_id, "escape", "game")
+    if target["id"] == b["slot_id"]:
+        raise ClaimError("VALIDATION_FAILED", f"{person['name']} is already in that game.")
+    if target["is_blocked"]:
+        raise ClaimError("SLOT_BLOCKED",
+                         f"The {claims.clock(target['starts_at'])} game is blocked. Unblock it first.")
+    taken = bookings._taken(conn, target["id"])
+    if check_room and taken >= target["capacity"]:
+        raise ClaimError("SLOT_FULL",
+                         f"The {claims.clock(target['starts_at'])} game is full — "
+                         f"{taken} of {target['capacity']} seats are taken. Nobody was moved.",
+                         seats_left=0)
+    if bookings._escape_clashes(conn, person["id"], target):
+        raise ClaimError("TIME_CONFLICT",
+                         f"The {claims.clock(target['starts_at'])} game runs over "
+                         f"{person['name']}'s jam slot. Move the jam slot first.")
+    conn.execute("UPDATE escape_bookings SET slot_id=?, reminder_sent_at=NULL WHERE id=?",
+                 (target["id"], b["id"]))
+    told = _tell_them_moved(
+        conn, person, "moved",
+        notify.text_moved(b["starts_at"], target["starts_at"], notify.place(conn, "escape")),
+        notify.GO_TICKET, target, now)
+    db.audit(conn, "admin", "Escape booking moved", actor_name=by, entity="attendee",
+             entity_id=person["id"],
+             details={"ref": b["ref_code"], "reason": reason,
+                      "before": {"game": claims.clock(b["starts_at"])},
+                      "after": {"game": claims.clock(target["starts_at"])}})
+    return {"room": "escape", "who": notify.who(person), "ref": b["ref_code"],
+            "from": claims.clock(b["starts_at"]), "to": claims.clock(target["starts_at"]),
+            "told": told, "moved_to": claims.local_iso(target["starts_at"])}
+
+
+def _jam_seat_of(conn, person, ref):
+    """The jam seat a move is about. Somebody may hold more than one, so the
+    ref says which; one seat needs no ref."""
+    held = bookings.jam_bookings_of(conn, person["id"])
+    if not held:
+        raise ClaimError("NO_BOOKING", f"{person['name']} has no jam slot to move.")
+    ref = _clean(ref, 12).upper()
+    if ref:
+        seat = next((r for r in held if r["ref_code"].upper() == ref), None)
+        if seat is None:
+            raise ClaimError("NOT_FOUND", f"{person['name']} has no jam slot {ref}.")
+        return seat
+    if len(held) > 1:
+        raise ClaimError("VALIDATION_FAILED",
+                         f"{person['name']} holds {len(held)} jam slots. Say which one.")
+    return held[0]
+
+
+def _jam_move(conn, person, ref, slot_id, instrument, reason, by, now, check_room=True):
+    """Move one jam seat, on the instrument it is given."""
+    seat = _jam_seat_of(conn, person, ref)
+    target = _slot_of(conn, slot_id, "jam", "slot")
+    if target["id"] == seat["slot_id"]:
+        raise ClaimError("VALIDATION_FAILED", f"{person['name']} is already in that slot.")
+    if target["is_blocked"]:
+        raise ClaimError("SLOT_BLOCKED",
+                         f"The {claims.clock(target['starts_at'])} slot is blocked. Unblock it first.")
+    want = _instrument_for(person, instrument or seat["instrument"])
+    seated = bookings._jam_seats(conn, target["id"])
+    if any(r["attendee_id"] == person["id"] for r in seated):
+        raise ClaimError("ALREADY_BOOKED",
+                         f"{person['name']} already has a seat in the "
+                         f"{claims.clock(target['starts_at'])} slot.")
+    if check_room:
+        free = [k for k in config.INSTRUMENT_KEYS if not any(r["instrument"] == k for r in seated)]
+        if len(seated) >= target["capacity"]:
+            raise ClaimError("SLOT_FULL",
+                             f"The {claims.clock(target['starts_at'])} slot is full — "
+                             f"{len(seated)} of {target['capacity']} seats are taken. "
+                             "Nobody was moved.", seats_left=0)
+        if want not in free:
+            # Somebody else is on it. Naming what is free there is the whole
+            # answer — taking it off them to make the move work is not.
+            raise ClaimError("INSTRUMENT_TAKEN",
+                             f"Someone already has the "
+                             f"{config.INSTRUMENT_LABELS[want].lower()} in the "
+                             f"{claims.clock(target['starts_at'])} slot. "
+                             + _free_sentence(free) + " Nobody was moved.",
+                             instruments=[want], free=free)
+    game = bookings._busy_escape(conn, person["id"])
+    if game and bookings._overlaps(game[0], game[1], bookings._dt(target["starts_at"]),
+                                   bookings._dt(target["ends_at"])):
+        raise ClaimError("TIME_CONFLICT",
+                         f"The {claims.clock(target['starts_at'])} slot runs over "
+                         f"{person['name']}'s escape game. Move the game first.")
+    conn.execute("UPDATE jam_bookings SET slot_id=?, instrument=?, reminder_sent_at=NULL WHERE id=?",
+                 (target["id"], want, seat["id"]))
+    told = _tell_them_moved(
+        conn, person, "jam_moved",
+        notify.text_jam_moved(seat["starts_at"], target["starts_at"], target["ends_at"],
+                              want, notify.place(conn, "jam")),
+        notify.GO_BOOKINGS, target, now)
+    db.audit(conn, "admin", "Jam booking moved", actor_name=by, entity="attendee",
+             entity_id=person["id"],
+             details={"ref": seat["ref_code"], "reason": reason,
+                      "before": {"slot": claims.clock(seat["starts_at"]),
+                                 "instrument": seat["instrument"]},
+                      "after": {"slot": claims.clock(target["starts_at"]), "instrument": want}})
+    return {"room": "jam", "who": notify.who(person), "ref": seat["ref_code"],
+            "from": claims.clock(seat["starts_at"]), "to": claims.clock(target["starts_at"]),
+            "instrument": want, "instrument_label": config.INSTRUMENT_LABELS[want],
+            "told": told, "moved_to": claims.local_iso(target["starts_at"])}
+
+
+def _tell_them_moved(conn, person, kind, text, go, target, now):
+    """Queue the "you have been moved" message, and say whether it will go.
+
+    It expires at the **end** of the slot they have been moved into, not the
+    start. Expiring at the start is what every other message does, because a
+    reminder for a game that has begun is noise — but a move is not a
+    reminder. The front desk's commonest move is into the game running right
+    now, and an expiry on the start time meant `deliver` marked that message
+    "expired" before it ever sent: the one person who needed telling was the
+    one never told. Past the end there is genuinely nothing to say, so that
+    is where it stops.
+    """
+    ends = datetime.fromisoformat(target["ends_at"])
+    notify.queue(conn, person["id"], kind, text, go=go, expires_at=ends, now=now)
+    return ends > now
+
+
+def _free_sentence(free):
+    if not free:
+        return "Nothing is free there."
+    return "Free there: " + ", ".join(config.INSTRUMENT_LABELS[k].lower() for k in free) + "."
+
+
+def _instrument_for(person, raw):
+    """A seat booked before 19 Sep has no instrument on it, and a move has to
+    name one rather than carry the blank across."""
+    if not raw:
+        raise ClaimError("VALIDATION_FAILED",
+                         f"{person['name']}'s jam seat has no instrument on it. "
+                         "Pick one for them.")
+    return bookings._instrument(raw)
+
+
 def move_person(conn, attendee_id, slot_id, reason, by, now):
-    """Move one person's escape seat to another game. The half is worked out
-    again for the new game, and the person is told."""
+    """Move one person's escape seat to another game, and tell them."""
     person = get_attendee(conn, attendee_id)
     reason = _clean(reason) or "moved by the front desk"
+    return bookings._run(conn, lambda: _escape_move(conn, person, slot_id, reason, by, now))
+
+
+def move_jam_person(conn, attendee_id, ref, slot_id, instrument, reason, by, now):
+    """Move one person's jam seat to another slot, and tell them."""
+    person = get_attendee(conn, attendee_id)
+    reason = _clean(reason) or "moved by the front desk"
+    return bookings._run(
+        conn, lambda: _jam_move(conn, person, ref, slot_id, instrument, reason, by, now))
+
+
+# ---------------------------------------------------------------------------
+# A screenful of moves, saved together
+# ---------------------------------------------------------------------------
+
+MOVE_LIMIT = 60
+
+
+def apply_moves(conn, moves, reason, by, now):
+    """Save the moves staged on the Seating board — all of them, or none.
+
+    Saved together because they are planned together. Applied one at a time,
+    two people swapping games would fail on whichever went first: the game it
+    is going to is full until the other one has left it. So the room is
+    counted against the evening **as it will be once the whole batch is
+    saved**, not as it stands now, and one `BEGIN IMMEDIATE` around the lot
+    means a refusal leaves the evening exactly as it was.
+
+    What is asked is only ever "is there room" — never "who can I take out to
+    make room". Nobody is removed by a move.
+    """
+    if not isinstance(moves, list) or not moves:
+        raise ClaimError("VALIDATION_FAILED", "Nothing to save.")
+    if len(moves) > MOVE_LIMIT:
+        raise ClaimError("VALIDATION_FAILED", f"Too many moves at once — the limit is {MOVE_LIMIT}.")
+    reason = _clean(reason) or "moved on the Seating board"
 
     def run():
-        b = bookings.active_booking(conn, person["id"])
-        if b is None:
-            raise ClaimError("NO_BOOKING", f"{person['name']} has no escape game to move.")
-        target = conn.execute("SELECT * FROM slots WHERE id=? AND room='escape'", (slot_id,)).fetchone()
-        if target is None:
-            raise ClaimError("NOT_FOUND", "No such game.")
-        if target["id"] == b["slot_id"]:
-            raise ClaimError("VALIDATION_FAILED", "They're already in that game.")
-        if target["is_blocked"]:
-            raise ClaimError("SLOT_BLOCKED", "That game is blocked.")
-        if bookings._taken(conn, target["id"]) >= target["capacity"]:
-            raise ClaimError("SLOT_FULL", "That game is full.")
-        if bookings._escape_clashes(conn, person["id"], target):
-            raise ClaimError("TIME_CONFLICT", f"That game clashes with {person['name']}'s jam slot.")
-        conn.execute("UPDATE escape_bookings SET slot_id=?, reminder_sent_at=NULL "
-                     "WHERE id=?", (target["id"], b["id"]))
-        notify.queue(conn, person["id"], "moved",
-                     notify.text_moved(b["starts_at"], target["starts_at"], notify.place(conn, "escape")),
-                     go=notify.GO_TICKET, expires_at=datetime.fromisoformat(target["starts_at"]), now=now)
-        db.audit(conn, "admin", "Escape booking moved", actor_name=by, entity="attendee",
-                 entity_id=person["id"],
-                 details={"ref": b["ref_code"], "reason": reason,
-                          "before": {"game": claims.clock(b["starts_at"])},
-                          "after": {"game": claims.clock(target["starts_at"])}})
-        return {"moved_to": claims.local_iso(target["starts_at"])}
+        # Read inside the transaction: on a live console the board on screen
+        # is a few seconds old, and the moves have to be checked against the
+        # evening as it is at the moment they are saved.
+        plan = [_read_move(conn, m) for m in moves]
+        seen = set()
+        for m in plan:
+            key = (m["room"], m["seat"]["id"])
+            if key in seen:
+                raise ClaimError("VALIDATION_FAILED",
+                                 f"{m['person']['name']} is on the board twice. Undo one of them.")
+            seen.add(key)
+        _room_afterwards(conn, plan)
+        # Jam rows move in two passes. One slot holds each instrument once, so
+        # a pair swapping the drums would collide halfway through. Parking the
+        # instrument — NULL, which the unique index lets repeat — and handing
+        # it back as each row lands keeps every state in between legal.
+        for m in plan:
+            if m["room"] == "jam":
+                conn.execute("UPDATE jam_bookings SET instrument=NULL WHERE id=?", (m["seat"]["id"],))
+        done = []
+        for m in plan:
+            if m["room"] == "escape":
+                done.append(_escape_move(conn, m["person"], m["slot_id"], reason, by, now,
+                                         check_room=False))
+            else:
+                done.append(_jam_move(conn, m["person"], m["seat"]["ref_code"], m["slot_id"],
+                                      m["instrument"], reason, by, now, check_room=False))
+        db.audit(conn, "admin", "Seating saved", actor_name=by, entity="slots",
+                 details={"reason": reason, "moves": [
+                     {"who": d["who"], "room": d["room"], "from": d["from"], "to": d["to"]}
+                     for d in done]})
+        return done
 
-    return bookings._run(conn, run)
+    return {"moves": bookings._run(conn, run)}
+
+
+def _read_move(conn, raw):
+    """One staged move, read off the wire, with the seat it is about."""
+    if not isinstance(raw, dict):
+        raise ClaimError("VALIDATION_FAILED", "That is not a move.")
+    room = str(raw.get("room") or "escape").strip().lower()
+    if room not in ("escape", "jam"):
+        raise ClaimError("VALIDATION_FAILED", "A move is either escape or jam.")
+    person = get_attendee(conn, raw.get("attendee_id"))
+    slot = _slot_of(conn, raw.get("slot_id"), room, "game" if room == "escape" else "slot")
+    if room == "escape":
+        seat = bookings.active_booking(conn, person["id"])
+        if seat is None:
+            raise ClaimError("NO_BOOKING", f"{person['name']} has no escape game to move.")
+        instrument = None
+    else:
+        seat = _jam_seat_of(conn, person, raw.get("ref"))
+        # Settled here, before anything is parked, so the second pass has an
+        # instrument to hand back.
+        instrument = _instrument_for(person, raw.get("instrument") or seat["instrument"])
+    return {"room": room, "person": person, "seat": seat, "slot_id": slot["id"],
+            "instrument": instrument}
+
+
+def _room_afterwards(conn, plan):
+    """Would every slot the batch touches still fit, once all of it is saved?
+
+    Counting a slot as it stands now is what makes a swap impossible, and a
+    swap is the front desk's most ordinary request.
+    """
+    for room, table, live in (("escape", "escape_bookings", "('booked','checked_in')"),
+                              ("jam", "jam_bookings", "('confirmed')")):
+        mine = [m for m in plan if m["room"] == room]
+        for slot_id in {m["slot_id"] for m in mine} | {m["seat"]["slot_id"] for m in mine}:
+            slot = conn.execute("SELECT * FROM slots WHERE id=?", (slot_id,)).fetchone()
+            held = conn.execute(f"SELECT COUNT(*) FROM {table} WHERE slot_id=? "  # noqa: S608
+                                f"AND status IN {live}", (slot_id,)).fetchone()[0]
+            leaving = sum(1 for m in mine if m["seat"]["slot_id"] == slot_id)
+            arriving = sum(1 for m in mine if m["slot_id"] == slot_id)
+            after = held - leaving + arriving
+            if after > slot["capacity"]:
+                raise ClaimError(
+                    "SLOT_FULL",
+                    f"The {claims.clock(slot['starts_at'])} "
+                    f"{'game' if room == 'escape' else 'slot'} would hold {after} people with "
+                    f"{slot['capacity']} seats. Nothing was saved.",
+                    seats_left=max(0, slot["capacity"] - (held - leaving)))
+    # The same question for the instruments: two people cannot arrive in one
+    # slot on the same one, and neither can an arrival and somebody staying.
+    moving = {m["seat"]["id"] for m in plan if m["room"] == "jam"}
+    for slot_id in {m["slot_id"] for m in plan if m["room"] == "jam"}:
+        slot = conn.execute("SELECT * FROM slots WHERE id=?", (slot_id,)).fetchone()
+        after = {row["instrument"]: row["attendee_id"]
+                 for row in bookings._jam_seats(conn, slot_id) if row["id"] not in moving}
+        for m in plan:
+            if m["room"] != "jam" or m["slot_id"] != slot_id:
+                continue
+            want = m["instrument"]
+            if want in after:
+                free = [k for k in config.INSTRUMENT_KEYS if k not in after]
+                raise ClaimError(
+                    "INSTRUMENT_TAKEN",
+                    f"Two people would be on the {config.INSTRUMENT_LABELS[want].lower()} in the "
+                    f"{claims.clock(slot['starts_at'])} slot. "
+                    + _free_sentence(free) + " Nothing was saved.",
+                    instruments=[want], free=free)
+            after[want] = m["person"]["id"]

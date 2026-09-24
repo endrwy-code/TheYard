@@ -2,6 +2,27 @@
 
 **Read this first, then `README.md`, `BUILD_SPEC.md`, `RUNBOOK.md`.**
 
+## Before anything else: where the app actually runs
+
+**The app runs on Render, built from `github.com/endrwy-code/TheYard`. The
+laptop is not the target — it is where the code is written.** Work is not
+done when it passes on `127.0.0.1:5000`; it is done when it is **pushed to
+GitHub and pulled by Render**. Every agent on this project should take that
+as the first fact about it:
+
+- Nothing reaches the organiser, the volunteers or anybody at the event until
+  it is committed and pushed. A change that only exists on the laptop has not
+  shipped, however well it runs there.
+- `python app.py` on the laptop is a debug server with the reloader on. It
+  picks up every `.py` save immediately, so editing while somebody is using it
+  restarts it under them. `bot.py` never reloads and has to be restarted by
+  hand.
+- The Render service has **its own database**. The laptop's `data/app.db` is
+  not the event's data and never becomes it.
+- `render.yaml` and `DEPLOY.md` say how the deployment is set up.
+- **Do not push without the organiser asking.** They decide when a change goes
+  out, because pushing is deploying.
+
 This file is the handover point. It records what exists, what is still mock,
 every decision taken since the original handoff and why, and what happens next.
 If you are a new agent or a new session, everything you need to continue is
@@ -11,7 +32,17 @@ Keep it current. The rule on this project is that after every major decision,
 **every** affected file gets updated in the same pass: this file, `README.md`,
 `BUILD_SPEC.md`, `RUNBOOK.md`, and `context/PROJECT_STATUS.md`.
 
-Last updated: 24 Sep 2026. **Latest (decision 152, live):** there are now
+Last updated: 24 Sep 2026. **Latest (decision 157, live):** a **Seating**
+tab names the people in every escape game and jam slot and lets the front desk
+move them — **tap a name, then tap where they go**, or drag it; a name dropped
+on a name swaps the two; nothing is saved until **Save**. A game that is
+running or over takes people just the same, and **a move never takes a seat
+off anybody else**: a full slot is refused with its real count, and an
+instrument somebody holds is never taken off them. The typed-time move that
+answered "6.45" with *no open game at that time* is gone, and so is the
+Schedules button that pointed at it. **650 tests pass, 1 skipped.**
+
+**Before that (decision 152, live):** there are now
 **three ways to be at the event** — the front desk scans you, you redeem
 something on your pass, or an admin taps **Mark here** beside your name on
 **People**. Any one counts, and all three together still count you **once**.
@@ -1837,6 +1868,65 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        on iPad does not support one, and the thing being scanned is a phone
        screen, which glows.
 
+157. **Moving somebody is a board, not a box you type a time into.** 24 Sep,
+     the organiser: *"I type in their timeslot of the time … for example 6.45.
+     It tells me that timeslot is full when it is not"*, and *"let me move
+     people but dont kick people out of their slot"*.
+     - **The box was the fault, not the server.** People → *Move to another
+       game* opened a browser prompt, listed the games it thought were open,
+       and matched what you typed against `short()` — `"6:45"` — as text.
+       `6.45` found nothing; a game that had started, finished or filled was
+       filtered out before you saw it, so no time you could type would be
+       found; and the refusal, *"No open game at 6.45"*, read as *that game is
+       full* when it was empty. `move_person` itself already allowed a move
+       into a game that was over. The typing is gone, and with it the
+       Schedules button that only told you to go and do the typing.
+     - **A new Seating tab**, admin-only, between Game and Schedules, chosen
+       over two tabs because the nav already carries nine on a laptop that
+       squeezes. One switch inside it: The Last Guest, and the Jamming studio.
+     - **The jam room is listed by instrument**, five named seats a slot,
+       because the instrument is what is scarce in there (decision 100) and a
+       heap of names would not say what is free.
+     - **Tap a name, then tap where they go.** Dragging works too, but a
+       finger cannot do HTML5 drag, so the tap is the control and the drag is
+       the mouse's shortcut to it. A name dropped on a name **swaps the two**.
+     - **Nothing is written until Save**, and the board is drawn as it will
+       look once it is saved, so the plan can be read before it is real. The
+       live refresh leaves the screen alone while a plan is on it, the way it
+       already leaves a half-filled Settings alone.
+     - **A move never takes a seat off anybody else.** This is the rule the
+       organiser asked for and it is the one the code is shaped around. A full
+       slot is refused, with its real count in the refusal; in the jam room an
+       instrument somebody holds is never taken off them, and the refusal
+       names what is free instead. Nobody is bumped, ever.
+     - **Times refuse nothing.** A game that is running or over takes people
+       just the same. A no-show from the 3:05 goes into a later one; somebody
+       who turned up early goes into the one on now. That is most of what the
+       screen is for, and it is exactly what the old list left out.
+     - **A save is all of it or none of it**, and the room is counted against
+       the evening **as it will be once every move is saved**, not as it
+       stands. Counting it as it stands is what makes a swap impossible —
+       each slot is full until the other empties — and a swap is the front
+       desk's most ordinary request. Jam rows move in two passes, the
+       instrument parked at `NULL` and handed back as each row lands, because
+       one slot holds each instrument once and two people trading drum kits
+       would collide halfway through.
+     - **Everybody moved gets a message.** The escape room already had one;
+       `notify.text_jam_moved` is its twin, and it names the instrument
+       because a move can hand somebody a different one. The message expires
+       at the **end** of the slot, not its start — expiring at the start is
+       right for a reminder and wrong for this, and while it was written that
+       way a move into the game running now queued a message `notify.deliver`
+       dropped as stale, so the one person who needed telling was never told.
+       A move into a slot that is already over reports `told:false`, and the
+       console says in the toast that the front desk has to say it in person.
+     - **Two tests were failing on the clock, not the code.** `conftest.py`
+       now pins `app.now_utc` for every test, not only those using the
+       `client` fixture — console tests build their own client and kept the
+       laptop's real time, which was fine until the laptop reached the event.
+       On 24 Sep the 3 PM jam slot began reading back as "past" and the suite
+       went red on the one morning the RUNBOOK has the organiser run it.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.
@@ -1852,6 +1942,9 @@ Recorded here and in `BUILD_SPEC.md` §12.
 | `GET /admin/api/session` | Resume the console sign-in after a reload |
 | `GET /admin/api/live` | Server-sent events: "something changed" |
 | `POST /admin/api/unlock` | Getting back out of self-serve on an iPad without signing the device in again (decision 156) |
+| `GET /admin/api/seating` | Who is in every escape game and jam slot, by name — the board you move people on (decision 157) |
+| `POST /admin/api/seating/moves` | A screenful of moves saved together, all of them or none, so two people can swap (decision 157) |
+| `POST /admin/api/jam/move` | One jam seat to another slot, keeping or changing the instrument (decision 157) |
 | `POST /admin/api/people/{id}/unlink` | Unlink a Telegram account (reason required) |
 | `POST /admin/api/gm/{slot_id}/cues/{key}` | Mark a script cue done; hint lines go to the actor |
 | `POST /api/jam/bookings` | Free jam booking for a group, all or nothing (replaces `POST /api/jam/holds`) |

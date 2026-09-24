@@ -6,6 +6,13 @@ This project isn't one piece of code. It's several systems working together:
 your terminal windows, Flask, the bot, the tunnel, BotFather, Telegram and the
 desk devices. So this guide explains how they connect, not just what to type.
 
+**Where the app really runs: Render, built from
+`github.com/endrwy-code/TheYard`.** The laptop is for writing and trying
+things out. Nothing anybody else can use changes until it is pushed to GitHub
+and pulled by Render, and Render keeps its own database, so what you see at
+`127.0.0.1:5000` is never the event's data. Pushing is deploying — it goes out
+when you say so. `DEPLOY.md` has the detail.
+
 **Every step is laid out the same way:** the goal, why it matters, the exact
 commands, what you should see, and what to do if you see something else.
 
@@ -316,6 +323,32 @@ enough and both together still count the person once (23 Sep, `STATE.md` 135;
 24 Sep, 152). The third way in is the **Mark here** button beside each name on
 **People**, for somebody who has collected nothing and whose pass will not
 scan.
+
+**Moving somebody between games or jam slots** is the **Seating** screen (24
+Sep, `STATE.md` 157). It names the people in every slot, two boards behind one
+switch — The Last Guest, and the Jamming studio, which lists its five
+instruments because that is what is booked in there. **Tap a name, then tap
+where you want them**; on a laptop you can drag it across instead. A name
+dropped on another name **swaps the two**, which is how you trade places
+between games that are both full. Nothing happens until you press **Save** —
+until then the plan sits in the black bar at the bottom and each line has an
+**Undo**, and the board shows you what it will look like afterwards.
+
+Three things to know about it:
+
+- **A game that is over, or one running right now, takes people just the
+  same.** Somebody who never turned up for their 3:05 goes into a later one,
+  and somebody standing in front of you goes into the game on now.
+- **Nobody is ever moved out to make room.** A game with every seat taken is
+  refused and tells you how full it really is. In the jam room, an instrument
+  somebody else is holding is never taken off them — the refusal names what is
+  free in that slot, and you can put the person on one of those.
+- **Everyone you move gets a Telegram message** saying where they are now, and
+  every move is in the Audit log under your name.
+
+**Schedules** is now only for blocking a time. Blocking one takes its seats
+off the attendee board straight away; anyone already booked stays booked, and
+Seating is where you move them.
 
 **If you see** "No admin password is set on this laptop yet" — run
 `python manage.py set-admin-password` (Phase 4), then restart `app.py`.
@@ -1063,7 +1096,9 @@ It asks which tunnel to use.
 | **"Something went wrong at our end"**, or "The Yard answered with an error (HTTP 500)" | **Not** a network fault. The server was reached and crashed; nothing was saved | Read the `app.py` window — the crash is printed there with a timestamp and the real reason on the last line. `HOW_IT_WORKS.md` §3 explains how to read it |
 | **"The database refused that change, so nothing was saved"** (409) | Two records clashed — the same username, the same transaction reference — and the database stopped it. Nothing was half-written | The message names the constraint. Usually someone exists twice, or a reference was already used |
 | **The roster preview looks right but Commit fails** | Someone in the file already exists under a different kind of record — most often you, because you filled in your own Paperform | Preview the file again and commit that. Fixed 18 Sep; the message now names who clashes |
-| **A game shows more people booked than it seats** | Someone lowered the seat count in Settings after those people had booked. Nobody is thrown out automatically | Settings names the game when you save. Move the extra people on the Schedules screen |
+| **A game shows more people booked than it seats** | Someone lowered the seat count in Settings after those people had booked. Nobody is thrown out automatically | Settings names the game when you save. Move the extra people on the **Seating** screen |
+| **"The 6:45 game is full"** when you can see it is not | Since 24 Sep this message carries the real count — *"11 of 12 seats are taken"*. If it says a number you do not believe, the board on **Seating** is a few seconds old; leave and come back to it, then try again | If the count really is right, somebody booked in the meantime. Nobody is ever removed to make room — move one of them out first, or press Save with both moves on the plan and they swap |
+| **A move you planned on Seating did not save** | A save is all of it or none of it. One refusal stops the lot, and the message names which slot | Fix or **Undo** that one line in the bar at the bottom and press Save again. Nothing was written, so the evening is exactly as it was |
 | Blank white screen in Telegram | The page errored, or the tunnel is down | Open the public URL in a normal browser. If it loads there, turn on Telegram's Mini App inspecting (last row of this table) |
 | **Everyone refused at Start**, including you | The app was opened from a keyboard-area button, so Telegram sent no user data — or the bot token is wrong | Check the `/start` button is an inline button (Phase 10.3). Then check `TELEGRAM_TOKEN` has no stray spaces |
 | ngrok warning page | Normal on the first visit | Click through once; a cookie hides it for 7 days. Gone entirely on Tailscale |

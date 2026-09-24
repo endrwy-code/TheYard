@@ -465,10 +465,18 @@ def test_somebody_off_the_roster_cannot_be_marked_here(roster, admin):
     assert err(r)["code"] == "INACTIVE"
 
 
-def test_the_list_and_the_turnout_never_disagree(roster, admin):
+def test_the_list_and_the_turnout_never_disagree(roster, admin, monkeypatch):
     """Both read `claims.at_the_event`, so the rule cannot drift — including
     when the doors move. (The stat counts only active, non-test people; the
-    list shows everyone, so it is the rule that is shared, not the scope.)"""
+    list shows everyone, so it is the rule that is shared, not the scope.)
+
+    The check-in is stamped by `db.utcnow`, which is the real clock and takes
+    no notice of the test clock. Pinned here so all three people arrive at
+    4 PM as the test says they do: left alone, the third one is stamped with
+    the laptop's own time, and this went red the moment that time passed the
+    18:00 the doors are moved to below.
+    """
+    monkeypatch.setattr(db, "utcnow", lambda: AFTER)
     scanned(roster, "heidily", AFTER)
     collected(roster, "bananabelles", AFTER)
     admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "joncjy")})

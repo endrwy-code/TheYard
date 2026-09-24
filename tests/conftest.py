@@ -65,13 +65,27 @@ def conn(data_dir):
     c.close()
 
 
+@pytest.fixture(autouse=True)
+def pinned_clock(monkeypatch):
+    """See TEST_NOW: the API's clock is pinned so the suite means the same
+    thing before, during and after the event.
+
+    Autouse, not part of the `client` fixture, because most console tests
+    build their own test client (`Console`) and so never went through it.
+    Those kept the laptop's real clock, which is fine until the laptop's
+    clock reaches the event — on 24 Sep the 3 PM jam slot started reading
+    back as "past" and the suite went red on the one morning the RUNBOOK
+    has the organiser run it. A test that wants a different moment still
+    monkeypatches `app.now_utc` itself, and doing so still wins.
+    """
+    import app as webapp
+    monkeypatch.setattr(webapp, "now_utc", lambda: TEST_NOW)
+
+
 @pytest.fixture()
-def client(data_dir, monkeypatch):
+def client(data_dir, pinned_clock):
     import app as webapp
     webapp.app.config["TESTING"] = True
-    # See TEST_NOW: the API's clock is pinned so the suite means the same
-    # thing before, during and after the event.
-    monkeypatch.setattr(webapp, "now_utc", lambda: TEST_NOW)
     return webapp.app.test_client()
 
 

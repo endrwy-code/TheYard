@@ -952,10 +952,6 @@ function until(iso){
   const d = Math.round(m / 1440);
   return 'in ' + d + ' day' + (d === 1 ? '' : 's');
 }
-function listOf(words){
-  return words.length < 2 ? words.join('') : words.slice(0, -1).join(', ') + ' and ' + words[words.length - 1];
-}
-
 function toast(msg, bad){
   const t = document.getElementById('toast');
   t.textContent = msg;

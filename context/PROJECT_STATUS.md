@@ -9,6 +9,16 @@ This file was rewritten after P0.1 (the gate) went live. The version before it
 described a much earlier prototype and several of its claims are no longer
 true; the corrections are noted at the bottom so nobody acts on the old ones.
 
+## Where it runs (read this first)
+
+**The app runs on Render, built from `github.com/endrwy-code/TheYard`.** The
+laptop writes the code; Render serves it. Work is finished when it is pushed
+to GitHub and pulled by Render, not when it passes on `127.0.0.1:5000`, and
+Render keeps its own database so nothing on the laptop is the event's data.
+Pushing is deploying — **push only when the organiser asks.** This used to be
+recorded only as a correction at the bottom of this file; it is the first
+thing about the project, so it is here.
+
 ## What this project is
 
 A Telegram Mini App for The Yard, a one-day event on Thursday 24 September 2026
@@ -175,6 +185,10 @@ now out of date, and acting on them would waste time:
   longer true.** Free accounts get one fixed dev domain and endpoints no longer
   time out, so the URL should survive restarts. This is also noted in
   `BUILD_SPEC.md` §7.4.
+- It named **Render** as the permanent hosting plan. **This was reversed and
+  Render is where the app runs** — see "Where it runs" at the top of this
+  file, which is now the first thing recorded about the project rather than a
+  correction down here. The original text of the correction follows.
 - It named **Render** as the permanent hosting plan. **This was rejected on
   22 Sep and then reversed — the app runs on Render now** (23 Sep), built from
   GitHub. The reason for the original rejection has not gone away and is worth

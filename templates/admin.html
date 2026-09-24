@@ -566,6 +566,95 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 .sub .t{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase }
 .sub .m{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#A8A29B }
 
+/* ---- seating -------------------------------------------------------- */
+/* A name you can pick up and a slot you can put it in. The board is the
+   control: there is no box to type a time into, because typing one is what
+   used to go wrong — "6.45" is not "6:45", and a game that had started was
+   not on the list to be typed at all. */
+.seat{ padding:24px 28px 30px; display:flex; flex-direction:column; gap:18px }
+.seat .lead{ font-size:13px; line-height:1.5; color:#3C4654; max-width:78ch }
+.seat .lead b{ color:#101010 }
+.seatgrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px }
+.slotcard{
+  background:#fff; box-shadow:inset 0 0 0 1px #10101022; border-radius:20px;
+  padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px;
+  transition:box-shadow .2s var(--ease), background .2s var(--ease);
+}
+.slotcard.blocked{ background:#FCF4F3 }
+.slotcard.done{ background:#FBFAF7 }
+/* Where the person in your hand can go. Everything else is dimmed rather
+   than hidden, so the board keeps its shape while you move someone. */
+.slotcard.drop{ box-shadow:inset 0 0 0 2px #101010; cursor:pointer }
+.slotcard.drop.over{ background:#F2EFE8 }
+.slotcard.dim{ opacity:.45 }
+.slothead{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap }
+.slothead .time{ font-family:var(--num); font-stretch:112%; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums }
+.slothead .count{ font-family:var(--num); font-stretch:112%; font-size:12px; color:#3C4654; margin-left:auto }
+.slothead .count.full{ color:#A8231B; font-weight:700 }
+.names{ display:flex; flex-wrap:wrap; gap:6px }
+.chip{
+  font:inherit; font-size:13px; text-align:left; border:0; cursor:pointer;
+  background:#F2EFE8; color:#101010; border-radius:999px; padding:7px 12px;
+  display:inline-flex; align-items:center; gap:6px; min-height:36px;
+  box-shadow:inset 0 0 0 1px #10101018; transition:transform .12s var(--ease), background .2s var(--ease);
+}
+.chip:hover{ background:#E4E0D6 }
+.chip:active{ transform:scale(.96) }
+.chip.picked{ background:#101010; color:#F2EFE8; box-shadow:inset 0 0 0 2px #101010 }
+.chip.moving{ background:#8FA65B; color:#101010; box-shadow:inset 0 0 0 1px #10101030 }
+.chip .h{ font-family:var(--num); font-stretch:112%; font-size:11px; color:#3C4654 }
+.chip.picked .h, .chip.moving .h{ color:inherit; opacity:.8 }
+.chip .mark{ font-size:11px; font-weight:700 }
+.seatempty{ font-size:12px; color:#3C4654 }
+/* The jam room seats by instrument, so its slots are five named seats
+   rather than a heap of names: that is what is actually free in there. */
+.instruments{ display:flex; flex-direction:column; gap:4px }
+.iseat{
+  display:grid; grid-template-columns:96px 1fr; gap:10px; align-items:center;
+  font-size:13px; padding:6px 8px; border-radius:12px; min-height:34px;
+  background:transparent; border:0; text-align:left; font-family:inherit; color:#101010; width:100%;
+}
+.iseat .l{ font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#3C4654 }
+.iseat .free{ color:#3C4654 }
+.iseat.open{ cursor:pointer; box-shadow:inset 0 0 0 1px #10101022 }
+.iseat.open:hover{ background:#F2EFE8 }
+.iseat.open.over{ background:#E4E0D6 }
+.iseat.taken .n{ font-weight:600 }
+.iseat.moving{ background:#8FA65B }
+.iseat.picked{ background:#101010; color:#F2EFE8 }
+.iseat.picked .l{ color:#C8CFC7 }
+/* The plan, and the only thing that writes it down. It sits on top of the
+   board so it is still there when the list of slots is long. */
+.savebar{
+  position:sticky; bottom:0; z-index:5; background:#101010; color:#F2EFE8;
+  padding:14px 28px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+}
+.savebar .plan{ display:flex; flex-wrap:wrap; gap:8px; flex:1; min-width:240px }
+.savebar .m{ font-size:13px; color:#A8A29B }
+.planrow{
+  display:inline-flex; align-items:center; gap:8px; background:#1C2024; border-radius:999px;
+  padding:6px 8px 6px 12px; font-size:12px;
+}
+.planrow .num{ font-family:var(--num); font-stretch:112%; font-variant-numeric:tabular-nums }
+.planrow button{
+  font:inherit; font-size:11px; border:0; cursor:pointer; background:#F2EFE8; color:#101010;
+  border-radius:999px; min-height:28px; padding:0 10px;
+}
+.planrow button:hover{ background:#fff }
+.savebar .go{
+  font:inherit; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  border:0; cursor:pointer; background:#F2EFE8; color:#101010; border-radius:999px;
+  min-height:44px; padding:0 20px;
+}
+.savebar .go:hover{ background:#fff }
+.savebar .go:disabled{ opacity:.5; cursor:default }
+.savebar .go.ghost{ background:transparent; color:#F2EFE8; box-shadow:inset 0 0 0 2px #F2EFE8 }
+@media (max-width:640px){
+  .seat{ padding:18px 16px 24px }
+  .seatgrid{ grid-template-columns:1fr }
+  .savebar{ padding:12px 16px }
+}
+
 /* ---- schedules ------------------------------------------------------ */
 .sched{ padding:24px 28px 30px; display:flex; flex-direction:column; gap:22px }
 .sched h3{ font-family:Anton,sans-serif; font-size:26px; text-transform:uppercase; margin:0; line-height:1 }
@@ -989,8 +1078,6 @@ const SCANS = {
   inactive: { card:'#101010', fg:'#F2EFE8', mark:'·', title:'Inactive', kicker:'Removed from the latest roster',
               body:'They were on an older list and are not on the current one. Front desk decides.', person:true, hand:false }
 };
-function toSec(t){ return Number(t.split(':')[0]) * 60 + Number(t.split(':')[1]); }
-
 /* ===================================================================
    2. STATE + RENDER
    =================================================================== */
@@ -1000,18 +1087,18 @@ function toSec(t){ return Number(t.split(':')[0]) * 60 + Number(t.split(':')[1])
    standing up: the booth, the orders, the game, and looking someone up — in
    the order a phone shows them. */
 const ALLOWED = {
-  admin:['overview','person','booth','orders','gm','schedules','roster','settings','audit'],
+  admin:['overview','person','booth','orders','gm','seating','schedules','roster','settings','audit'],
   mobile:['booth','orders','gm','person']
 };
 /* One nav, in one order. On the laptop, every screen is listed; on a phone,
    only the phone's four, so the bar fits and nothing on it is a dead end. */
 const NAV = [
   ['overview','Overview'], ['person','People'], ['booth','Booth'], ['orders','Orders'], ['gm','Game'],
-  ['schedules','Schedules'], ['roster','Roster'],
+  ['seating','Seating'], ['schedules','Schedules'], ['roster','Roster'],
   ['settings','Settings'], ['audit','Audit']
 ];
 const SCREEN_LABEL = { booth:'Booth mode', orders:'Orders', gm:'Game-master console',
-                       overview:'Overview', person:'People',
+                       overview:'Overview', person:'People', seating:'Seating',
                        schedules:'Schedules', roster:'Roster', settings:'Settings', audit:'Audit' };
 const NOTES = {
   booth:'One hand, bright light, a queue. The result fills the screen, the words repeat the colour, and the next scan is one tap away.',
@@ -1019,7 +1106,8 @@ const NOTES = {
   overview:'Everything an organiser checks between queues, on one screen. Tap a line under "Needs you now" to go there.',
   person:'Keyboard-first: the search box has focus on load, and @ is fixed in front of it. Every destructive action wants a reason.',
   gm:'Read in a dim room at arm\'s length. The timer runs on this device from the server\'s clock; every press is logged under your name.',
-  schedules:'Both boards on one screen. Blocking a game takes its seats off the attendee board immediately; people already booked stay booked and are listed for you to move.',
+  seating:'Who is in every slot, by name. Tap a name, then tap where you want them — nothing is saved until you press Save. A move never takes a seat off anybody else.',
+  schedules:'Both boards on one screen, for blocking a time and nothing else. Blocking a game takes its seats off the attendee board immediately; people already booked stay booked, and Seating is where you move them.',
   roster:'Upload as often as you like. Nothing is written until you press Commit, and re-importing the same file changes nothing.',
   settings:'Amber rows still need filling in. Changing game or jam times rebuilds the timetable; anyone already booked on a time that disappears is listed for you.',
   audit:'Every write in the system, with who and when. Exports and backups live on the second tab.'
@@ -1036,6 +1124,10 @@ const S = {
   orderCode:'', orderScanError:'',
   overview:null, people:null, person:null, gmState:null,
   slots:null, roster:null, settings:null, audit:null, denials:null,
+  /* Seating (24 Sep). `seatMoves` is the plan on screen and nothing more:
+     it is not saved until Save is pressed, and the live refresh leaves the
+     screen alone while anything is in it. */
+  seating:null, seatRoom:'escape', seatPicked:null, seatMoves:[], seatSaving:false,
   lookup:null, lookupCode:'',
   /* Self-serve check-in (24 Sep). Not a screen — it sits over whatever screen
      is open, takes the nav with it, and comes back to the booth when someone
@@ -1422,6 +1514,22 @@ async function load(){
   if (s === 'orders'){
     const r = await api('GET /admin/api/orders', { path:'/admin/api/orders' });
     if (r.ok) S.orders = r.data;
+  }
+  if (s === 'seating'){
+    const r = await api('GET /admin/api/seating', { path:'/admin/api/seating' });
+    if (r.ok){
+      S.seating = r.data;
+      // A plan survives leaving the screen and coming back, but not the
+      // booking it was about: somebody who cancelled while it sat there
+      // would fail the whole save, and the rest of the plan with it.
+      const gone = S.seatMoves.filter(m => !seatOrigin(m.room, m.ref));
+      if (gone.length){
+        S.seatMoves = S.seatMoves.filter(m => seatOrigin(m.room, m.ref));
+        toast(gone.map(m => m.name).join(', ') + (gone.length === 1 ? ' is' : ' are')
+              + ' no longer booked, so that move is off the plan.', 'bad');
+      }
+      if (S.seatPicked && !seatOrigin(S.seatPicked.room, S.seatPicked.ref)) S.seatPicked = null;
+    }
   }
   if (s === 'schedules') S.slots = (await api('GET /admin/api/slots', { path:'/admin/api/slots' })).data;
   if (s === 'roster') S.roster = (await api('GET /admin/api/roster', { path:'/admin/api/roster' })).data;
@@ -1845,7 +1953,6 @@ SCREENS.person = function(){
             ${escB ? `<div class="kv"><span>${esc(escB.ref)} · ${esc(fmtIso(escB.starts_at))}${escB.booked_by ? ' · added by ' + esc(escB.booked_by) : ''}</span><span class="tag tag-room">The Last Guest</span></div>` : ''}
             ${jams.map(j => `<div class="kv"><span>${esc(j.ref)} · ${esc(fmtIso(j.starts_at))}</span><span class="tag" style="background:#3B32C4;color:#F2EFE8">Jam</span></div>`).join('')}
             ${!escB && !jams.length ? `<div class="kv"><span style="color:#3C4654">No bookings</span></div>` : ''}
-            ${escB && isAdmin ? `<button class="smallbtn" id="moveesc">Move to another game</button>` : ''}
           </div>
         </div>
 
@@ -2138,6 +2245,328 @@ function gmElapsed(d){
   return d.elapsed_seconds + Math.floor((Date.now() - S.gmAt) / 1000);
 }
 
+/* ---- Seating -------------------------------------------------------- */
+
+/* Who is in every slot, by name, and a way to move them that does not ask
+   anybody to type a time. The old control did: it listed the games it
+   thought were open and matched what you typed against "6:45" as text, so
+   "6.45" found nothing and a game that had started, finished or filled was
+   never on the list to be found. Here you tap a name and tap where it goes.
+
+   Nothing is written until Save. Until then the moves live in `S.seatMoves`
+   and the board is drawn as it will look once they are saved, so the plan
+   can be read off the screen before it is real. */
+
+function instLabel(key){
+  const d = S.seating;
+  const found = d && (d.instruments || []).find(i => i.key === key);
+  return found ? found.label : '';
+}
+
+/* The board with the staged moves already applied. Everything the screen
+   draws comes from here, so what you see is what Save will do. */
+function seatingView(){
+  const d = S.seating;
+  if (!d) return null;
+  const room = S.seatRoom;
+  const slots = (room === 'escape' ? d.escape : d.jam).map(s => ({ ...s, people: s.people.slice() }));
+  const by = {};
+  slots.forEach(s => by[s.id] = s);
+  S.seatMoves.filter(m => m.room === room).forEach(m => {
+    const from = by[m.from_slot], to = by[m.slot_id];
+    if (!from || !to) return;
+    const i = from.people.findIndex(p => p.attendee_id === m.attendee_id
+      && (room === 'escape' || p.ref === m.ref));
+    if (i < 0) return;
+    const p = from.people.splice(i, 1)[0];
+    const inst = m.instrument || p.instrument;
+    to.people.push({ ...p, instrument:inst, instrument_label:instLabel(inst),
+                     moving:true, was:from.starts_at });
+  });
+  slots.forEach(s => {
+    s.booked = s.people.length;
+    if (room === 'jam'){
+      const held = s.people.map(p => p.instrument);
+      s.free = (d.instruments || []).filter(i => !held.includes(i.key));
+    }
+  });
+  return slots;
+}
+
+/* Can the person in your hand go in this slot? The same two questions the
+   server asks, asked early so a slot that cannot take them is never lit up.
+   A refusal the board cannot see coming still comes back from Save. */
+function seatCanDrop(slot, inst){
+  const p = S.seatPicked;
+  if (!p || slot.id === p.from_slot || slot.blocked) return false;
+  if (S.seatRoom === 'escape') return slot.people.length < slot.capacity;
+  if (slot.people.some(x => x.attendee_id === p.attendee_id)) return false;
+  return slot.free.some(f => f.key === (inst || p.instrument));
+}
+
+function seatChip(p, slot){
+  const held = S.seatPicked;
+  const picked = held && held.ref === p.ref;
+  const cls = ['chip', picked ? 'picked' : '', p.moving ? 'moving' : ''].filter(Boolean).join(' ');
+  const swap = held && !picked && String(slot.id) !== String(held.from_slot) && !slot.blocked;
+  const title = swap ? 'Swap with ' + held.name
+    : p.booked_by ? 'booked by ' + p.booked_by : '';
+  return `<button class="${cls}" draggable="true" data-pick="${esc(p.ref)}"
+    data-slot="${esc(slot.id)}" title="${esc(title)}">
+    ${p.moving ? '<span class="mark">→</span>' : ''}${esc(p.name)}
+    <span class="h">@${esc(p.handle)}</span>${p.checked_in ? '<span class="mark">✓</span>' : ''}
+  </button>`;
+}
+
+SCREENS.seating = function(){
+  const d = S.seating;
+  if (!d) return loading();
+  const slots = seatingView();
+  const room = S.seatRoom;
+  const picked = S.seatPicked;
+
+  const card = (s) => {
+    const full = s.people.length >= s.capacity;
+    const state = s.blocked ? 'Blocked' : s.running ? 'Running now' : s.done ? 'Done'
+      : full ? 'Full' : s.closed ? 'Booking closed' : 'Open';
+    const pillBg = s.blocked ? '#A8231B' : s.running ? '#AE7338' : s.done ? '#3C4654'
+      : full ? '#101010' : '#8FA65B';
+    const pillFg = (s.blocked || s.done || s.running || full) ? '#fff' : '#101010';
+    const can = room === 'escape' && seatCanDrop(s);
+    const cls = ['slotcard', s.blocked ? 'blocked' : '', s.done ? 'done' : '',
+                 can ? 'drop' : '', picked && !can && room === 'escape' ? 'dim' : ''
+                ].filter(Boolean).join(' ');
+    const body = room === 'escape'
+      ? (s.people.length
+          ? `<div class="names">${s.people.map(p => seatChip(p, s)).join('')}</div>`
+          : `<div class="seatempty">Nobody booked.</div>`)
+      : `<div class="instruments">${(d.instruments || []).map(i => {
+            const who = s.people.find(p => p.instrument === i.key);
+            if (who) return `<div class="iseat taken ${who.moving ? 'moving' : ''}">
+                <span class="l">${esc(i.label)}</span>
+                <span class="n">${seatChip(who, s)}</span></div>`;
+            const open = seatCanDrop(s, i.key);
+            return `<${open ? 'button' : 'div'} class="iseat ${open ? 'open' : ''}"
+                ${open ? `data-drop="${esc(s.id)}" data-inst="${esc(i.key)}"` : ''}>
+                <span class="l">${esc(i.label)}</span>
+                <span class="free">${open ? 'put them here' : 'free'}</span>
+              </${open ? 'button' : 'div'}>`;
+          }).join('')}</div>`;
+    return `<div class="${cls}" data-card="${esc(s.id)}"
+      ${can ? `data-drop="${esc(s.id)}"` : ''}>
+      <div class="slothead">
+        <span class="time">${esc(short(s.starts_at))}</span>
+        <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
+        <span class="count ${full ? 'full' : ''}">${esc(s.people.length)} of ${esc(s.capacity)}</span>
+      </div>
+      ${s.blocked && s.block_reason ? `<div class="seatempty">${esc(s.block_reason)}</div>` : ''}
+      ${body}
+    </div>`;
+  };
+
+  const lead = room === 'escape'
+    ? `Tap a name, then tap the game you want them in — or drag it across. A game that is
+       running or over takes people just the same, so a no-show can be put in a later one and
+       somebody who turned up early can be put in the one on now.
+       <b>Nobody is ever moved out to make room</b>: a game with every seat taken says so and
+       the move is refused.`
+    : `The room seats by instrument, so each slot has five named seats. Tap a name, then tap a
+       free seat — or drag it across. If their own instrument is taken where they are going,
+       put them on one that is free; <b>it is never taken off the person holding it</b>.`;
+
+  const plan = S.seatMoves.map((m, i) => `<span class="planrow">
+      <span>${esc(m.name)}</span>
+      <span class="num">${esc(m.from_label)} → ${esc(m.to_label)}</span>
+      ${m.instrument ? `<span>${esc(instLabel(m.instrument))}</span>` : ''}
+      <button data-undo="${i}">Undo</button>
+    </span>`).join('');
+
+  return `
+  <div class="wide">
+    <div class="sub">
+      <span class="t">Seating</span>
+      <span class="m">${esc(d.seats_taken)} of ${esc(d.seats_total)} escape seats · ${
+        esc(d.jam_seats_taken)} of ${esc(d.jam_seats_total)} jam seats</span>
+    </div>
+    <div class="tabs2">
+      <button data-room="escape" class="${room === 'escape' ? 'on' : ''}">The Last Guest</button>
+      <button data-room="jam" class="${room === 'jam' ? 'on' : ''}">Jamming studio</button>
+    </div>
+    <div class="seat">
+      <div class="lead">${lead}</div>
+      ${picked ? `<div class="lead"><b>${esc(picked.name)}</b> is in your hand, from ${
+        esc(picked.from_label)}. Tap where they go, or tap them again to put them back.</div>` : ''}
+      <div class="seatgrid">${slots.map(card).join('')}</div>
+    </div>
+    ${S.seatMoves.length ? `<div class="savebar">
+      <div class="plan">${plan}</div>
+      <button class="go ghost" id="seatclear">Undo all</button>
+      <button class="go" id="seatsave" ${S.seatSaving ? 'disabled' : ''}>${
+        S.seatSaving ? 'Saving…' : 'Save ' + S.seatMoves.length + ' move'
+          + (S.seatMoves.length === 1 ? '' : 's')}</button>
+    </div>` : `<div class="savebar"><span class="m">Nothing moved yet. Nothing is saved until you press Save.</span></div>`}
+  </div>`;
+};
+
+function seatWhere(ref, slotId){
+  const slots = seatingView() || [];
+  const slot = slots.find(s => String(s.id) === String(slotId));
+  const p = slot && slot.people.find(x => x.ref === ref);
+  return p ? { slot, person:p } : null;
+}
+
+function seatHold(slot, p){
+  return { room:S.seatRoom, attendee_id:p.attendee_id, ref:p.ref, name:p.name,
+           instrument:p.instrument || '', from_slot:slot.id, from_label:short(slot.starts_at) };
+}
+
+/* Tapping a name does one of three things, in the order you would expect:
+   puts it down if it is the one in your hand, swaps if you are holding
+   somebody from another slot, and otherwise picks it up. The swap is there
+   because two full slots cannot be traded one move at a time — each is full
+   until the other one empties — and trading two people is the front desk's
+   most ordinary request. */
+function seatPick(ref, slotId){
+  const at = seatWhere(ref, slotId);
+  if (!at) return;
+  const held = S.seatPicked;
+  if (held && held.ref === ref){ S.seatPicked = null; render(); return; }
+  if (held && String(at.slot.id) !== String(held.from_slot)){ seatSwap(at); return; }
+  S.seatPicked = seatHold(at.slot, at.person);
+  render();
+}
+
+function seatSwap(at){
+  const held = S.seatPicked;
+  const from = (seatingView() || []).find(s => String(s.id) === String(held.from_slot));
+  if (!from || at.slot.blocked || from.blocked){
+    toast('That slot is blocked. Unblock it first.', 'bad');
+    return;
+  }
+  const them = at.person, theirSlot = at.slot;
+  // Each takes the other's place, and in the jam room the other's
+  // instrument with it — nobody is left holding two of anything.
+  const a = { ...held, slot_id:theirSlot.id, to_label:short(theirSlot.starts_at) };
+  const b = { room:S.seatRoom, attendee_id:them.attendee_id, ref:them.ref, name:them.name,
+              slot_id:from.id, to_label:short(from.starts_at),
+              from_slot:theirSlot.id, from_label:short(theirSlot.starts_at) };
+  if (S.seatRoom === 'jam'){ a.instrument = them.instrument; b.instrument = held.instrument; }
+  seatStage(a); seatStage(b);
+  S.seatPicked = null;
+  render();
+}
+
+/* Where this seat really is on the server, staged moves ignored. Every move
+   is recorded against that, so the plan stays a list of destinations rather
+   than a pile of steps: move somebody twice and the second one replaces the
+   first, and putting them back where they started removes the move instead
+   of adding one that cancels it out. */
+function seatOrigin(room, ref){
+  const d = S.seating;
+  if (!d) return null;
+  for (const s of (room === 'escape' ? d.escape : d.jam)){
+    const p = s.people.find(x => x.ref === ref);
+    if (p) return { slot_id:s.id, starts_at:s.starts_at, instrument:p.instrument || '' };
+  }
+  return null;
+}
+
+function seatStage(move){
+  const o = seatOrigin(move.room, move.ref);
+  if (!o) return;
+  move = { ...move, from_slot:o.slot_id, from_label:short(o.starts_at) };
+  const i = S.seatMoves.findIndex(m => m.room === move.room && m.ref === move.ref);
+  const home = String(o.slot_id) === String(move.slot_id)
+    && (move.room === 'escape' || (move.instrument || o.instrument) === o.instrument);
+  if (home){ if (i >= 0) S.seatMoves.splice(i, 1); return; }
+  if (i >= 0) S.seatMoves[i] = move; else S.seatMoves.push(move);
+}
+
+function seatDrop(slotId, instrument){
+  const p = S.seatPicked;
+  if (!p) return;
+  const slot = (seatingView() || []).find(s => String(s.id) === String(slotId));
+  if (!slot || !seatCanDrop(slot, instrument)) return;
+  const move = { room:p.room, attendee_id:p.attendee_id, ref:p.ref, name:p.name,
+                 slot_id:slot.id, to_label:short(slot.starts_at) };
+  if (p.room === 'jam') move.instrument = instrument || p.instrument;
+  seatStage(move);
+  S.seatPicked = null;
+  render();
+}
+
+async function seatSave(){
+  if (!S.seatMoves.length || S.seatSaving) return;
+  S.seatSaving = true; render();
+  const r = await api('POST /admin/api/seating/moves', { path:'/admin/api/seating/moves',
+    json:{ moves:S.seatMoves.map(m => ({ room:m.room, attendee_id:m.attendee_id, ref:m.ref,
+                                         slot_id:m.slot_id, instrument:m.instrument })),
+           reason:'moved on the Seating board' } });
+  S.seatSaving = false;
+  if (!r.ok){
+    // Nothing was saved, so the plan stays on screen to be corrected.
+    toast(r.error.message || r.error.code, 'bad');
+    render();
+    return;
+  }
+  const moves = r.data.moves;
+  S.seatMoves = []; S.seatPicked = null;
+  /* Somebody moved into a slot that is already over gets no message, because
+     there is nothing useful left to tell them. Say so rather than letting the
+     front desk assume Telegram did the talking. */
+  const quiet = moves.filter(m => !m.told).map(m => m.who);
+  const said = moves.length + (moves.length === 1 ? ' move saved' : ' moves saved');
+  toast(quiet.length === moves.length
+          ? said + '. Nobody was messaged — those slots are over. Tell them yourself.'
+          : quiet.length
+            ? said + '. ' + quiet.join(', ') + ' got no message — that slot is over. Tell them yourself.'
+            : said + (moves.length === 1 ? '. They get a message.' : '. Everybody moved gets a message.'),
+        quiet.length ? 'bad' : 'good');
+  load();
+}
+
+function wireSeating(){
+  root.querySelectorAll('[data-room]').forEach(b => b.onclick = () => {
+    S.seatRoom = b.dataset.room; S.seatPicked = null; render();
+  });
+  root.querySelectorAll('[data-pick]').forEach(b => {
+    b.onclick = e => { e.stopPropagation(); seatPick(b.dataset.pick, b.dataset.slot); };
+    b.ondragstart = e => {
+      // Pick up on the way out, never swap: a drag that has just begun is
+      // not somebody being dropped on.
+      const at = seatWhere(b.dataset.pick, b.dataset.slot);
+      if (at){ S.seatPicked = seatHold(at.slot, at.person); render(); }
+      try { e.dataTransfer.setData('text/plain', b.dataset.pick); } catch (x){}
+      e.dataTransfer.effectAllowed = 'move';
+    };
+    // A name dropped on a name is a swap, which is the only way to trade two
+    // slots that are both full.
+    b.ondragover = e => {
+      if (!S.seatPicked || S.seatPicked.ref === b.dataset.pick) return;
+      e.preventDefault(); e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move'; b.classList.add('picked');
+    };
+    b.ondragleave = () => { if (!(S.seatPicked && S.seatPicked.ref === b.dataset.pick)) b.classList.remove('picked'); };
+    b.ondrop = e => {
+      e.preventDefault(); e.stopPropagation();
+      seatPick(b.dataset.pick, b.dataset.slot);
+    };
+  });
+  root.querySelectorAll('[data-drop]').forEach(el => {
+    el.onclick = () => seatDrop(el.dataset.drop, el.dataset.inst);
+    el.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; el.classList.add('over'); };
+    el.ondragleave = () => el.classList.remove('over');
+    el.ondrop = e => { e.preventDefault(); el.classList.remove('over'); seatDrop(el.dataset.drop, el.dataset.inst); };
+  });
+  root.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => {
+    S.seatMoves.splice(Number(b.dataset.undo), 1); render();
+  });
+  const clear = document.getElementById('seatclear');
+  if (clear) clear.onclick = () => { S.seatMoves = []; S.seatPicked = null; render(); };
+  const save = document.getElementById('seatsave');
+  if (save) save.onclick = seatSave;
+}
+
 /* ---- Schedules ------------------------------------------------------ */
 
 SCREENS.schedules = function(){
@@ -2161,7 +2590,6 @@ SCREENS.schedules = function(){
       </span>
       <span class="statepill" style="background:${pillBg};color:${pillFg}">${esc(state)}</span>
       <span class="acts">
-        ${s.booked ? `<button class="smallbtn" data-move="${s.id}">Move someone</button>` : ''}
         <button class="smallbtn ${s.blocked ? '' : 'danger'}" data-block="${s.id}" data-blocked="${s.blocked ? 1 : 0}">${s.blocked ? 'Unblock' : 'Block'}</button>
       </span>
     </div>`;
@@ -2194,7 +2622,7 @@ SCREENS.schedules = function(){
     <div class="sched">
       <div>
         <h3>The Last Guest</h3>
-        <div class="lead">Every 20 minutes from ${esc(esc_.length ? short(esc_[0].starts_at) : '—')} to ${esc(esc_.length ? short(esc_[esc_.length - 1].starts_at) : '—')} PM, ${esc(esc_.length ? esc_[0].capacity : 12)} a game. Blocking a game hides it from the attendee board straight away. People already booked stay booked — move them first.</div>
+        <div class="lead">Every 20 minutes from ${esc(esc_.length ? short(esc_[0].starts_at) : '—')} to ${esc(esc_.length ? short(esc_[esc_.length - 1].starts_at) : '—')} PM, ${esc(esc_.length ? esc_[0].capacity : 12)} a game. Blocking a game hides it from the attendee board straight away. People already booked stay booked — move them on Seating first.</div>
       </div>
       <div class="table">
         <div class="trow head"><span>Start</span><span>Seats</span><span>State</span><span>Who</span><span></span></div>
@@ -3032,8 +3460,6 @@ function wire(){
   if (reopen) reopen.onclick = () => doPayment('reopen', prompt('Why are you changing the verdict?'));
   const unlink = document.getElementById('unlink');
   if (unlink) unlink.onclick = doUnlink;
-  const move = document.getElementById('moveesc');
-  if (move) move.onclick = doMove;
   root.querySelectorAll('[data-void]').forEach(b => b.onclick = async () => {
     const reason = prompt('Reason for voiding this ' + b.dataset.item + ' claim (it goes in the log under your name):');
     if (!reason || !reason.trim()) return;
@@ -3059,9 +3485,11 @@ function wire(){
   root.querySelectorAll('[data-link]').forEach(b => b.onclick = () => resolveDenial(b.dataset.link, 'link'));
   root.querySelectorAll('[data-dismiss]').forEach(b => b.onclick = () => resolveDenial(b.dataset.dismiss, 'dismiss'));
 
+  // seating
+  wireSeating();
+
   // schedules
   root.querySelectorAll('[data-block]').forEach(b => b.onclick = () => toggleBlock(b.dataset.block, b.dataset.blocked === '1'));
-  root.querySelectorAll('[data-move]').forEach(b => b.onclick = () => toast('Open the person on People, then "Move to another game".'));
 
   // roster
   const pick = document.getElementById('pickfile');
@@ -3209,22 +3637,6 @@ async function doUnlink(){
     json:{ reason:reason.trim() } });
   if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
   toast('Unlinked.', 'good');
-  load();
-}
-
-async function doMove(){
-  const sl = await api('GET /admin/api/slots', { path:'/admin/api/slots' });
-  if (!sl.ok){ toast(sl.error.message || sl.error.code, 'bad'); return; }
-  const open = sl.data.escape.filter(g => !g.blocked && !g.done && g.booked < g.capacity);
-  const answer = prompt('Move ' + S.person.name + ' to which game? Type the time.\nOpen: '
-    + open.map(g => short(g.starts_at) + ' (' + (g.capacity - g.booked) + ' free)').join(', '));
-  if (!answer) return;
-  const g = open.find(x => short(x.starts_at) === answer.trim().replace(/\s*(pm|am)$/i, ''));
-  if (!g){ toast('No open game at ' + answer + '.', 'bad'); return; }
-  const r = await api('POST /admin/api/escape/move', { path:'/admin/api/escape/move',
-    json:{ attendee_id:S.selectedPerson, slot_id:g.id, reason:'moved from the People screen' } });
-  if (!r.ok){ toast(r.error.message || r.error.code, 'bad'); return; }
-  toast('Moved to ' + fmtIso(r.data.moved_to) + '. They get a message.', 'good');
   load();
 }
 
@@ -3812,11 +4224,19 @@ function typing(){
   return !!el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) && el.id !== 'gmpick';
 }
 
+/* Work in progress that a redraw would throw away: half-filled Settings, and
+   a Seating plan that has not been saved. Both are the person's, not the
+   server's, so the refresh waits rather than wiping them. */
+function staging(){
+  return (S.screen === 'settings' && Object.keys(S.settingsDraft).length > 0)
+      || (S.screen === 'seating' && (S.seatMoves.length > 0 || !!S.seatPicked));
+}
+
 function refreshSoon(){
   clearTimeout(liveTimer);
   liveTimer = setTimeout(() => {
     if (!S.session || document.hidden) return;
-    if (typing() || (S.screen === 'settings' && Object.keys(S.settingsDraft).length)){ refreshSoon(); return; }
+    if (typing() || staging()){ refreshSoon(); return; }
     // Not while a camera is open: a redraw would restart the video under
     // someone's thumb. The list catches up the moment they are done.
     if (S.screen !== 'booth' && !(S.screen === 'orders' && S.orderScan === 'scan')) load();
@@ -3849,7 +4269,7 @@ function renderChromeOnly(){
 setInterval(() => {
   if (document.hidden || !S.session) return;
   connectLive();
-  if (!S.live && !typing() && ['overview', 'person', 'schedules', 'gm'].includes(S.screen)) load();
+  if (!S.live && !typing() && !staging() && ['overview', 'person', 'seating', 'schedules', 'gm'].includes(S.screen)) load();
   if (!S.live && !typing() && S.screen === 'orders' && S.orderScan !== 'scan') load();
 }, 30000);
 

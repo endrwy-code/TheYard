@@ -172,6 +172,19 @@ def text_moved(old_utc, new_utc, where=None):
         footer="the front desk moved it for you. come 5 mins early")
 
 
+def text_jam_moved(old_utc, new_start_utc, new_end_utc, instrument=None, where=None):
+    """The jam room's twin of `text_moved`. The instrument is named because a
+    move can hand someone a different one — theirs may be taken in the slot
+    they are going to, and finding that out at the door is too late."""
+    return _msg(
+        "🔁 your jam slot has moved",
+        [("❌", f"was {claims.clock(old_utc)}"),
+         ("✅", f"now {_when(new_start_utc, new_end_utc)}"),
+         ("🎵", _instrument_label(instrument) if instrument else None),
+         ("📍", _place(where, "jam"))],
+        footer="the front desk moved it for you")
+
+
 def text_friend_removed(by, starts_utc):
     return _msg(
         "❌ you've been taken off The Last Guest",

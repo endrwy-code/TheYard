@@ -2558,3 +2558,131 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   rather than black; then Staff → the wrong PIN, then the right one, and
   confirm it lands back on the booth. Phase 15b has the Guided Access and
   Auto-Lock steps to do first.
+
+---
+
+## 2026-09-24 — Seating: the people in every slot, and a way to move them
+
+- **Changed:** Moving somebody between escape games was a typed time. The
+  People screen offered **Move to another game**, which opened a browser
+  prompt listing the games it thought were open and then matched what you
+  typed against `short()` — `"6:45"` — as text. Three things were wrong with
+  it at once: `6.45` is not `6:45`, so a dot found nothing; a game that had
+  started, finished or filled was filtered out of the list before you ever
+  saw it, so there was no time you could type that would be found; and the
+  refusal it gave back, *"No open game at 6.45"*, read as "that game is full"
+  when the game was empty. Nothing was wrong on the server — it already
+  allowed a move into a game that was over. The box in front of it was the
+  fault.
+
+  It is gone, and so is **Move someone** on Schedules, which never moved
+  anybody: it popped a message telling you to go to People and use the box
+  above. In their place there is a new **Seating** tab, admin-only, next to
+  Schedules.
+
+  Seating names the people in every slot. Two boards behind one switch — The
+  Last Guest, and the Jamming studio, which lists five named instrument seats
+  a slot because that is what is actually scarce in there. You **tap a name,
+  then tap where they go**, or drag it across; a name dropped on another name
+  **swaps the two**, which is the only way to trade two slots that are both
+  full. Nothing is written until **Save**. Until then the plan sits in a bar
+  at the bottom and the board is drawn as it will look once it is saved, so
+  it can be read before it is real.
+
+  The rule underneath all of it: **a move never takes a seat off anybody
+  else.** A slot with no room is refused and says how full it is — *"The 6:45
+  game would hold 13 people with 12 seats"* — and nobody is bumped to make
+  space. In the jam room an instrument somebody else is holding is never taken
+  off them; the refusal names what is free there instead, and the move can put
+  the person on one of those. Times refuse nothing: a game that is running or
+  over takes people just the same, which is the whole reason the screen
+  exists.
+
+  A save is all of it or none of it, in one `BEGIN IMMEDIATE`, and the room is
+  counted against **the evening as it will be once every move is saved**
+  rather than as it stands now. Counting it as it stands is what makes a swap
+  impossible — each slot is full until the other empties — and a swap is the
+  front desk's most ordinary request. Jam rows move in two passes, their
+  instrument parked at `NULL` and handed back as each row lands, because one
+  slot holds each instrument once and two people trading drum kits would
+  collide halfway through.
+
+  New: `services/admin.py` §Seating (`seating_board`, `move_jam_person`,
+  `apply_moves`), `GET /admin/api/seating`, `POST /admin/api/seating/moves`,
+  `POST /admin/api/jam/move`, and `notify.text_jam_moved` — the jam room's
+  twin of the message the escape room already sent, which names the
+  instrument because a move can hand somebody a different one. Everybody
+  moved gets a message. Every move is one audit row, and the save is another.
+  `POST /admin/api/escape/move` is unchanged and still the single-move form.
+
+  Two tests were failing on the clock rather than on the code, and both were
+  fixed. `tests/conftest.py` now pins `app.now_utc` for **every** test, not
+  only those using the `client` fixture: console tests build their own client
+  and so kept the laptop's real time, which was fine until the laptop reached
+  the event — on 24 Sep the 3 PM jam slot started reading back as "past" and
+  `test_the_console_schedule_is_real` went red on the one morning the RUNBOOK
+  has the organiser run the suite. `test_the_list_and_the_turnout_never_
+  disagree` went the same way at 18:00, because `claims.check_in` stamps with
+  `db.utcnow` and takes no notice of any test clock; it is pinned in the test.
+
+  One bug was found in the new code while writing it and fixed: the move
+  message expired at the **start** of the slot somebody was moved into, which
+  is right for a reminder and wrong here. `notify.deliver` drops an expired
+  message, so a move into the game running right now — the commonest move of
+  the night — queued a message that was never sent, and the one person who
+  needed telling was the one never told. It now expires at the slot's **end**,
+  and each move reports `told`, so a move into a slot that is already over
+  says in the toast that nobody was messaged and the front desk has to say it
+  themselves.
+
+  Dead code removed with it: `doMove()` and its button, the Schedules
+  `data-move` button and its handler, `toSec()` in `admin.html` and `listOf()`
+  in `index.html` — both defined and never called.
+
+- **Current state:** Built and checked. **650 pytest tests pass, 1 skipped**,
+  22 of them new in `tests/test_seating.py`: that the board names who is in
+  each slot and who booked them, that a game that is over can still be moved
+  out of and still lists its people, that a full slot is refused with its real
+  count while the person already in it stays put, that two people in full
+  games can swap in one save, that one bad move saves none of them, that a jam
+  seat keeps its instrument, that an instrument somebody else holds is never
+  taken off them and the refusal names what is free, that two drummers can
+  swap slots, that two arrivals cannot bring the same instrument, that §9 r18
+  still refuses a jam slot over somebody's game, and that a seat with no
+  instrument on it has to be given one, that a move into a game that has begun
+  still reaches the person through `notify.deliver`, and that a move into one
+  that is over reports it told nobody. `node scripts/render_console.mjs` is
+  green, and the screen's own picking, swapping and staging were walked
+  through twenty cases in a Node harness.
+  **Not tried on a laptop or a phone by anybody.** Everything above is the
+  suite and the harnesses.
+
+- **Left unfinished on purpose:** Seating moves people and does nothing else —
+  no cancelling, no adding, no blocking. Blocking stays on Schedules, which is
+  now only for that. Nobody can be dragged into a blocked slot; unblock it
+  first. Dragging is HTML5 drag, which does not work under a finger, so
+  tap-a-name-then-tap-where is the control that works everywhere and dragging
+  is the mouse's shortcut to the same thing. The board is admin-only: a Mobile
+  sign-in cannot reach it, on the screen or on the server. Group bookings are
+  shown, not enforced — a friend seated by somebody says *booked by @them* on
+  their chip, and moving one person out of a group is allowed, because
+  splitting a group is sometimes the point.
+
+  One ordering limit is left in: moving somebody's **game and their jam slot
+  in the same save**, where the new game sits on the old jam slot's time, is
+  refused even when the finished evening would be fine. Room is counted
+  against the final state; clashes are still checked move by move, so the game
+  half looks at a jam slot that has not moved yet. The refusal names it —
+  *"runs over X's jam slot. Move the jam slot first."* — so the way through is
+  two saves rather than one. Checking clashes on the final state too is a
+  bigger change than this case is worth.
+
+- **Next step:** The organiser tries it. Seating → The Last Guest, tap
+  somebody in a game that has already been and gone, tap a later game, check
+  the bar at the bottom reads the move and the board shows them in the new
+  place; press Save and check the toast and that Telegram gets the message.
+  Then the 6:45 that started this: tap a name, tap 6:45, confirm it takes them
+  without a word about being full. Then two people in two full games — tap one
+  name, tap the other name, and confirm both halves stage and save together.
+  Then the Jamming studio: move somebody whose instrument is taken where they
+  are going, and confirm the free seats are what you tap.

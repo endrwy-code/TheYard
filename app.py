@@ -1227,6 +1227,28 @@ def admin_move():
                                             body.get("reason"), g.console["name"], now_utc()))
 
 
+@app.route("/admin/api/jam/move", methods=["POST"])
+def admin_move_jam():
+    body = request.get_json(silent=True) or {}
+    return _run(lambda: console.move_jam_person(g.db, body.get("attendee_id"), body.get("ref"),
+                                                body.get("slot_id"), body.get("instrument"),
+                                                body.get("reason"), g.console["name"], now_utc()))
+
+
+# Seating: the board that names who is in each slot, and the moves staged on
+# it, saved in one go so a swap works (services/admin.py).
+@app.route("/admin/api/seating")
+def admin_seating():
+    return ok(console.seating_board(g.db, now_utc()))
+
+
+@app.route("/admin/api/seating/moves", methods=["POST"])
+def admin_seating_moves():
+    body = request.get_json(silent=True) or {}
+    return _run(lambda: console.apply_moves(g.db, body.get("moves"), body.get("reason"),
+                                            g.console["name"], now_utc()))
+
+
 @app.route("/admin/api/gm/state")
 def admin_gm_state():
     return _run(lambda: game.state(g.db, now_utc(), request.args.get("slot_id")))

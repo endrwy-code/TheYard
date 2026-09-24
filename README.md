@@ -4,6 +4,16 @@ You are building the backend for a one-day event on **Thursday 24 September
 2026** in Singapore. The front-end is designed, approved and finished. Your job
 is the Flask app, the Telegram bot and the database behind it.
 
+## The first fact about this project
+
+**It runs on Render, built from `github.com/endrwy-code/TheYard`.** The laptop
+is where the code is written, not where it runs for anybody else. A change is
+not delivered until it is **pushed to GitHub and pulled by Render** — passing
+on `127.0.0.1:5000` is not shipping. Render has its own database, so the
+laptop's `data/app.db` is never the event's data. Pushing is deploying, so
+**push only when the organiser asks.** `STATE.md` opens with the same note and
+`DEPLOY.md` has the detail.
+
 ## Read these, in this order
 
 0. **`STATE.md`** — where the build is right now: what is live, what is still

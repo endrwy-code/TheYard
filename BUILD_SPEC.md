@@ -8,6 +8,11 @@ through a free tunnel. No stack switch. No paid services required.
 
 Ask the organiser before changing any rule in §3 or §9.
 
+**Where it runs: Render, built from `github.com/endrwy-code/TheYard`.** The
+laptop writes the code; nothing is delivered until it is pushed to GitHub and
+pulled by Render, and Render keeps its own database. Pushing is deploying, so
+push only when the organiser asks. `STATE.md` opens with the same note.
+
 **Current build state is in `STATE.md`** — what is live, what is still mock,
 and every decision taken since the handoff. Nothing in §3 or §9 has changed.
 P0.1 and P0.2 are live and signed off. P0.3, P0.4 and `bot.py` are built and
@@ -618,7 +623,9 @@ The UI maps error codes to copy.
 | POST /admin/api/claims, POST /admin/api/claims/{id}/void | Hand over; void |
 | POST /admin/api/checkins | Event, escape or jam check-in |
 | POST /admin/api/unlock | Leave self-serve on an iPad without a fresh sign-in *(24 Sep, `STATE.md` 156)* |
-| GET /admin/api/slots, POST /admin/api/slots/{id}/block, POST /admin/api/escape/move | Schedules |
+| GET /admin/api/slots, POST /admin/api/slots/{id}/block | Schedules — the counts, and blocking a time |
+| GET /admin/api/seating, POST /admin/api/seating/moves | Seating — who is in every slot by name, and a screenful of moves saved together *(24 Sep, `STATE.md` 157)* |
+| POST /admin/api/escape/move, POST /admin/api/jam/move | One seat moved on its own, either room *(24 Sep, `STATE.md` 157)* |
 | GET /admin/api/gm/state | GM console state (gm and admin only) |
 | ~~POST /admin/api/gm/{slot_id}/halves~~ | *Gone 23 Sep — there are no halves* |
 | POST /admin/api/gm/{slot_id}/{action} | pause, resume, shorten, extend, end, lock, unlock *(23 Sep: no start, no phone-on/phone-off)* |
@@ -702,6 +709,29 @@ and in `STATE.md` §5.
   about the session — a fresh sign-in would rotate it and log a sign-in nobody
   made. Shares the sign-in rate counter, and a refusal is audited as
   "Self-serve unlock refused": an unattended iPad is where PINs get guessed.
+
+- **`GET /admin/api/seating`** → `{escape:[…], jam:[…], instruments, seats_taken,
+  seats_total, jam_seats_taken, jam_seats_total}`. A slot carries
+  `{id, starts_at, ends_at, capacity, booked, blocked, block_reason, running,
+  done, people:[{attendee_id, name, handle, ref, booked_by}]}`; an escape seat
+  adds `checked_in`, a jam seat adds `instrument`, `instrument_label`, and the
+  slot adds `free` — the instruments nobody has in it. Retired times are left
+  out, the same way Schedules leaves them out. Admin only.
+- **`POST /admin/api/seating/moves`** — body
+  `{moves:[{room, attendee_id, slot_id, ref?, instrument?}], reason}` →
+  `{moves:[{room, who, ref, from, to, moved_to, instrument?}]}`. **All of them
+  or none**, in one `BEGIN IMMEDIATE`, and the room is counted against the
+  evening *as it will be once every move is saved* — without that a swap is
+  impossible, because each slot is full until the other one empties. Up to 60
+  moves. `room` is `escape` or `jam`; `ref` says which jam seat when somebody
+  holds more than one; `instrument` moves them onto a different one.
+  **No move ever removes anybody**: a slot with no room is refused, naming its
+  real count, and an instrument somebody holds is never taken off them. Times
+  refuse nothing — a game that is running or over takes people just the same,
+  which is what the front desk needs (24 Sep, `STATE.md` 157).
+- **`POST /admin/api/escape/move`**, **`POST /admin/api/jam/move`** — the same
+  move on its own, body `{attendee_id, slot_id, reason}` plus `{ref,
+  instrument}` for the jam room. Same rules, its own transaction.
 
 ### Shapes fixed at P0.3
 
