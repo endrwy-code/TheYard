@@ -387,6 +387,18 @@ def at_the_event(alias="a"):
             f"AND c.voided_at IS NULL AND c.claimed_at >= ?))")
 
 
+def doors_bound(conn):
+    """The moment `at_the_event` measures from: today's doors-open, in UTC.
+
+    Here rather than at each call site, because the overview stat and the
+    People list ask the same question and an event where the two measure from
+    different clocks is one nobody can reason about. The import is deferred:
+    notify imports this module.
+    """
+    from services import notify
+    return notify._iso(notify.event_local(db.get_setting(conn, "doors_open")))
+
+
 def ever_seen(alias="a"):
     """The same, with no clock on it — scanned in or redeemed at any time.
 

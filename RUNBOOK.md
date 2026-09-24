@@ -310,7 +310,12 @@ Overview, GM, Roster, Settings and Audit all read your own data; nothing in
 the console is a demo any more (`STATE.md` §3). Overview's top line reads
 "N signed up, N opened the app, N at the event": opening the app is anyone who
 has linked their Telegram account, at any time, while **at the event** counts
-only check-ins made from 3 PM on the 24th (23 Sep, `STATE.md` 135).
+people from 3 PM on the 24th only, and counts them **two ways** — the front
+desk scanned them, **or** they redeemed something on their pass. Either one is
+enough and both together still count the person once (23 Sep, `STATE.md` 135;
+24 Sep, 152). The third way in is the **Mark here** button beside each name on
+**People**, for somebody who has collected nothing and whose pass will not
+scan.
 
 **If you see** "No admin password is set on this laptop yet" — run
 `python manage.py set-admin-password` (Phase 4), then restart `app.py`.
@@ -614,6 +619,9 @@ there's nothing to undo.
 | Type the pass code of an imported person (from `python manage.py roster`) → Look up | Green **Valid** card with the hand-over buttons. *(Since 22 Sep payment is not checked at all — `STATE.md` 138. Set **Settings → Hand-over needs payment** back to **Verified** and this reads amber **Not verified**, with no hand-over button.)* |
 | Look up your own pass → **Check in** | Green: **Checked in**, with the time and "Wei · Booth 1" |
 | Tap **Check in** again | Slate: **Already checked in**, showing the first time and name |
+| Open **People**, find somebody who has collected nothing, tap **Mark here** beside their name | The button turns into a green **Here**. Overview's **At the event** goes up by one |
+| Hand that same person a pastry on **Booth**, then look at **People** again | Still **Here**, and **At the event** has **not** gone up again — both ways in count the person once |
+| Find somebody nobody has scanned who has already collected something | Already **Here**, with no button to press. Hovering it says which way they counted, and when |
 | Look at the top bar on a Mobile sign-in | Only **Booth, Orders, Game, People** — Settings and the rest are Laptop only |
 | Tap **Sign out** | Back to the sign-in screen |
 

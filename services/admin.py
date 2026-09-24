@@ -54,7 +54,7 @@ def overview(conn, now):
     # front desk scanned them, or they redeemed something on their pass. The
     # desk is one person and the counters are three, so a scan was never going
     # to see everybody. `claims.at_the_event` holds the definition.
-    doors = notify._iso(notify.event_local(s["doors_open"]))
+    doors = claims.doors_bound(conn)
     here = conn.execute(
         "SELECT COUNT(*) FROM attendees a WHERE a.status='active' AND a.is_test=0 "
         f"AND {claims.at_the_event('a')}",  # noqa: S608 - fixed fragment, values bound

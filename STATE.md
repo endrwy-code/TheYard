@@ -11,7 +11,13 @@ Keep it current. The rule on this project is that after every major decision,
 **every** affected file gets updated in the same pass: this file, `README.md`,
 `BUILD_SPEC.md`, `RUNBOOK.md`, and `context/PROJECT_STATUS.md`.
 
-Last updated: 22 Sep 2026, 18:50. **Latest (decisions 135–137, live):**
+Last updated: 24 Sep 2026. **Latest (decision 152, live):** there are now
+**three ways to be at the event** — the front desk scans you, you redeem
+something on your pass, or an admin taps **Mark here** beside your name on
+**People**. Any one counts, and all three together still count you **once**.
+**606 tests pass, 1 skipped.**
+
+**22 Sep (decisions 135–137, live):**
 Overview counts **Opened the app** and **At the event** apart, the second
 only from 3 PM on the 24th; **"the front desk"** is the one name for the desk
 (Registration on the plan); the floorplan is a fixed frame you **pinch,
@@ -1624,6 +1630,39 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        `method` under "If they are still stuck". Following the rewrite's
        section 6.2 literally would have dropped two hints and broken a passing
        test; `ESCAPE_ROOM_PLAN.md` section 4a records the choice.
+152. **Three ways to be at the event, and a person counts once.** 24 Sep, the
+     organiser: *"either one counts as an entry, both also count as an
+     entry"*. Decision 135 counted only a front-desk scan. Earlier on the 24th
+     **redeeming anything** was made to count as well, because the desk is one
+     person and the counters are three. That still left the person standing at
+     the desk who has collected nothing and whose pass will not scan, so the
+     **People list now has one control per row, beside the name**, posting the
+     attendee id to the check-in endpoint that already existed. No new way to
+     be marked present — a new way to reach the old one, with the same audit
+     line either way.
+     - **Counting once is structural, not a guard.** `claims.at_the_event` is
+       an `OR` over one attendee row, so it asks one question per person, not
+       one per event. Two ways in cannot add up to two people however they are
+       combined, and `check_in` only ever stamps the first time
+       (`WHERE checked_in_at IS NULL`), so a second press reports the first
+       stamp and changes nothing.
+     - **One definition, now in two screens.** The People list puts
+       `claims.at_the_event` into its `SELECT` rather than writing the rule out
+       a second time in Python, and the doors-open time both bind to moved into
+       `claims.doors_bound()`, which Overview calls too. The list and the
+       turnout cannot end up reading different clocks.
+     - **The control is pressable only when pressing does something.** Four
+       faces: **Mark here** (on the roster, not counted yet), **Here**
+       (counted — the tooltip says scanned or collected, and when), **Before
+       doors** (scanned during the rehearsal: they do not count, and marking
+       cannot help, because the stamp they have is the one that is too early)
+       and **Off the roster** (check-in refuses them anyway). Somebody already
+       counted through a redemption is **not** offered the press: it would
+       stamp a check-in that moves no number on any screen, and a control that
+       looks alive and does nothing visible is what gets pressed twice.
+     - **Known gap, left open:** the Check-in sheet in the export still lists
+       only people who were *scanned*, so it under-reports against Overview.
+       The export was not touched.
 
 ### Endpoints added beyond §12
 
@@ -1846,7 +1885,10 @@ found — the organiser is making it private before the next push.
 ### LIVE 22 Sep, 18:45: two counters, the front desk, a pinchable map (decisions 135–137)
 
 Overview counts **Opened the app** and **At the event** separately, the second
-only from the doors on the 24th; the Settings row is **Front desk** and the
+only from the doors on the 24th — and since 24 Sep it counts three ways in
+(scanned, redeemed, or **Mark here** on People), any one of which is enough and
+all of which together still count a person once (decision 152); the Settings
+row is **Front desk** and the
 Floorplan says it is Registration on the plan; the map is a fixed frame you
 pinch, double-tap and drag. **432 tests pass** (two new: the two counters, and
 the counter following the doors Setting); 32 screen states render; the

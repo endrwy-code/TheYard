@@ -73,6 +73,54 @@ def list_tag(row):
     return " · ".join(parts)
 
 
+def here_view(row, doors):
+    """The "are they here?" control on one People row (24 Sep).
+
+    `here` is the count itself and comes straight out of the SQL — it is
+    `claims.at_the_event`, the same question the turnout stat asks, so the list
+    and the stat cannot disagree. Everything else here is wording: which of the
+    two ways in happened, so a row can say so without anyone opening the person.
+
+    `can_mark` is true exactly when pressing would do something. Check-in only
+    ever stamps the first time, so a second press on somebody already stamped
+    is a button that looks alive and then refuses. Two cases turn it off:
+    somebody already counted (the job is done — a scan on top would not change
+    the turnout, and offering it invites "did I need to do that as well?"), and
+    somebody off the roster, whom check-in refuses anyway.
+
+    The awkward case the note exists for: scanned during the rehearsal, before
+    the doors. They do not count, and marking them cannot help, because the
+    stamp they already have is the one that is too early. The row says so
+    rather than offering a press that does nothing.
+    """
+    scanned, took, ever = row["checked_in_at"], row["first_claim"], row["any_claim"]
+    here = bool(row["here"])
+    active = row["status"] == "active"
+    can_mark = active and not here and not scanned
+    if here:
+        # Which way, for the tooltip. The count is decided in SQL, not here.
+        ways = []
+        if scanned and scanned >= doors:
+            ways.append("scanned in at " + claims.clock(scanned))
+        if took:
+            ways.append("collected something at " + claims.clock(took))
+        label = "Here"
+        note = ("Here — " + " · ".join(ways)) if ways else "Here."
+    elif can_mark:
+        label = "Mark here"
+        note = (f"Collected something at {claims.clock(ever)}, before the doors opened — "
+                "not counted in the turnout. Mark them when they walk in." if ever
+                else "Not here yet.")
+    elif not active:
+        label = "Off the roster"
+        note = "Removed from the latest roster. The front desk decides, not this button."
+    else:
+        label = "Before doors"
+        note = (f"Scanned in at {claims.clock(scanned)}, before the doors opened — "
+                "not counted in the turnout. They count as soon as they collect something.")
+    return {"here": here, "here_label": label, "here_note": note, "can_mark": can_mark}
+
+
 def search(conn, q, page=1):
     """Name, username, email, pass code or booking ref. Empty q lists everyone.
 
@@ -109,10 +157,24 @@ def search(conn, q, page=1):
         page = 1
     page = min(max(page, 1), pages)
     offset = (page - 1) * PAGE_SIZE
+    # Who is here, asked the same way the overview asks it — `at_the_event` as a
+    # SELECT expression rather than a rule written out a second time, so the
+    # list and the turnout stat can never disagree (24 Sep). The three
+    # doors-open values bind ahead of the search terms.
+    doors = claims.doors_bound(conn)
     rows = conn.execute(
-        f"SELECT * FROM attendees WHERE {where} "  # noqa: S608 - fixed fragments, values bound
+        f"SELECT a.*, {claims.at_the_event('a')} AS here, "  # noqa: S608 - values bound
+        # The first collection that counted, and the first of any. They differ
+        # for somebody handed something during setup and something again after
+        # the doors: the row must name the one that put them in the turnout,
+        # not the earlier one that did not.
+        "(SELECT MIN(c.claimed_at) FROM claims c WHERE c.attendee_id = a.id "
+        " AND c.voided_at IS NULL AND c.claimed_at >= ?) AS first_claim, "
+        "(SELECT MIN(c.claimed_at) FROM claims c WHERE c.attendee_id = a.id "
+        " AND c.voided_at IS NULL) AS any_claim "
+        f"FROM attendees a WHERE {where} "
         "ORDER BY status = 'active' DESC, name COLLATE NOCASE LIMIT ? OFFSET ?",
-        args + [PAGE_SIZE, offset],
+        [doors, doors, doors] + args + [PAGE_SIZE, offset],
     ).fetchall()
     return {
         "query": q,
@@ -126,7 +188,7 @@ def search(conn, q, page=1):
         "has_prev": page > 1,
         "has_next": page < pages,
         "people": [{"id": r["id"], "name": r["name"], "handle": r["handle"],
-                    "tag": list_tag(r)} for r in rows],
+                    "tag": list_tag(r), **here_view(r, doors)} for r in rows],
     }
 
 

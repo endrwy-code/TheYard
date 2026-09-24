@@ -328,3 +328,163 @@ def test_a_page_number_out_of_range_lands_on_a_real_page(roster):
 def test_a_search_that_fits_on_one_page_has_no_pager(roster):
     d = people.search(roster, "heidily")
     assert d["pages"] == 1 and not d["has_next"] and not d["has_prev"]
+
+
+# ---------------------------------------------------------------------------
+# "Mark here" on a People row (24 Sep) — the second way in
+# ---------------------------------------------------------------------------
+
+# Doors open 3 PM Asia/Singapore on the 24th, which is 07:00 UTC.
+AFTER = "2026-09-24T08:00:00+00:00"       # 4 PM, the event is running
+LATER = "2026-09-24T09:00:00+00:00"       # 5 PM
+BEFORE = "2026-09-23T10:00:00+00:00"      # the rehearsal, the day before
+
+
+def row(conn, handle, **kw):
+    """One person's row out of the People list."""
+    d = people.search(conn, handle, **kw)
+    return next(p for p in d["people"] if p["handle"] == handle)
+
+
+def collected(conn, handle, at, item="pastry"):
+    """They took something off a counter, and nobody scanned them."""
+    conn.execute("INSERT INTO claims (attendee_id, item, claimed_at, staff_name, station) "
+                 "VALUES (?,?,?,'Wei','Booth 1')", (pid(conn, handle), item, at))
+
+
+def scanned(conn, handle, at):
+    conn.execute("UPDATE attendees SET checked_in_at=?, checked_in_by='Wei · Front desk' "
+                 "WHERE handle=?", (at, handle))
+
+
+def turnout(admin):
+    d = admin.get("/admin/api/overview").get_json()["data"]
+    return next(s for s in d["stats"] if s["label"] == "At the event")["value"]
+
+
+def test_a_row_starts_not_here_and_offers_the_press(roster, admin):
+    r = row(roster, "heidily")
+    assert r["here"] is False and r["can_mark"] is True
+    assert (r["here_label"], r["here_note"]) == ("Mark here", "Not here yet.")
+    assert turnout(admin) == "0"
+
+
+def test_marking_someone_here_from_the_list_counts_them(roster, admin):
+    """The button the front desk uses when nobody scanned the person."""
+    r = admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "heidily"),
+                                           "kind": "event"})
+    assert r.status_code == 200 and r.get_json()["data"]["already"] is False
+    assert row(roster, "heidily")["here"] is True
+    assert turnout(admin) == "1"
+
+
+def test_redeeming_shows_as_here_with_nothing_left_to_press(roster, admin):
+    """The other way in. They walked to the pastry table and took a tart —
+    plainly at the event, and the row must not ask anyone to confirm it."""
+    collected(roster, "heidily", AFTER)
+    r = row(roster, "heidily")
+    assert r["here"] is True and r["can_mark"] is False
+    assert r["here_label"] == "Here"
+    assert "collected something at 4:00 PM" in r["here_note"]
+    assert turnout(admin) == "1"
+
+
+def test_both_ways_in_are_one_person(roster, admin):
+    """Either counts, and both together still count once — the turnout asks
+    one question per person, not one per event."""
+    collected(roster, "heidily", AFTER)
+    admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "heidily")})
+    assert turnout(admin) == "1"
+    note = row(roster, "heidily")["here_note"]
+    assert "scanned in at" in note and "collected something at 4:00 PM" in note
+
+
+def test_marking_the_same_person_twice_counts_once(roster, admin):
+    aid = pid(roster, "heidily")
+    first = admin.post("/admin/api/checkins", {"attendee_id": aid}).get_json()["data"]
+    again = admin.post("/admin/api/checkins", {"attendee_id": aid}).get_json()["data"]
+    assert first["already"] is False and again["already"] is True
+    assert again["checked_in_at"] == first["checked_in_at"]      # the first stamp stands
+    assert turnout(admin) == "1"
+
+
+def test_a_rehearsal_scan_is_not_here_and_cannot_be_pressed(roster, admin):
+    """They have a stamp, and it is the wrong side of the doors. Marking them
+    cannot help — check-in only ever stamps the first time — so the row says
+    so instead of offering a press that would do nothing."""
+    scanned(roster, "heidily", BEFORE)
+    r = row(roster, "heidily")
+    assert r["here"] is False and r["can_mark"] is False
+    assert r["here_label"] == "Before doors"
+    assert "before the doors opened" in r["here_note"]
+    assert turnout(admin) == "0"
+
+
+def test_a_rehearsal_collection_still_leaves_the_press_open(roster, admin):
+    """Handed something during setup and never scanned. They do not count yet,
+    and unlike a rehearsal scan there is nothing stopping the front desk from
+    marking them when they actually walk in."""
+    collected(roster, "heidily", BEFORE)
+    r = row(roster, "heidily")
+    assert r["here"] is False and r["can_mark"] is True
+    assert r["here_label"] == "Mark here"
+    assert "before the doors opened" in r["here_note"]
+
+    admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "heidily")})
+    assert row(roster, "heidily")["here"] is True and turnout(admin) == "1"
+
+
+def test_the_note_names_the_collection_that_counted(roster):
+    """Something during setup and something after the doors: the row names the
+    one that put them in the turnout, not the earlier one that did not."""
+    collected(roster, "heidily", BEFORE, item="pastry")
+    collected(roster, "heidily", LATER, item="photo_strip")
+    note = row(roster, "heidily")["here_note"]
+    assert "collected something at 5:00 PM" in note and "10:00" not in note
+
+
+def test_a_voided_collection_is_not_attendance(roster, admin):
+    """Voiding is what the console does when an item went out by mistake, and
+    a mistake is not attendance."""
+    collected(roster, "heidily", AFTER)
+    roster.execute("UPDATE claims SET voided_at=?, voided_by='Max', void_reason='wrong person' "
+                   "WHERE attendee_id=?", (LATER, pid(roster, "heidily")))
+    r = row(roster, "heidily")
+    assert r["here"] is False and r["can_mark"] is True
+    assert turnout(admin) == "0"
+
+
+def test_somebody_off_the_roster_cannot_be_marked_here(roster, admin):
+    """Check-in refuses them, so the row must not offer the press — and it says
+    why it will not, rather than borrowing the rehearsal wording."""
+    roster.execute("UPDATE attendees SET status='removed' WHERE handle='heidily'")
+    r = row(roster, "heidily")
+    assert r["can_mark"] is False and r["here_label"] == "Off the roster"
+    assert "roster" in r["here_note"]
+    r = admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "heidily")})
+    assert err(r)["code"] == "INACTIVE"
+
+
+def test_the_list_and_the_turnout_never_disagree(roster, admin):
+    """Both read `claims.at_the_event`, so the rule cannot drift — including
+    when the doors move. (The stat counts only active, non-test people; the
+    list shows everyone, so it is the rule that is shared, not the scope.)"""
+    scanned(roster, "heidily", AFTER)
+    collected(roster, "bananabelles", AFTER)
+    admin.post("/admin/api/checkins", {"attendee_id": pid(roster, "joncjy")})
+
+    def here_in_list():
+        return sum(1 for p in people.search(roster, "")["people"] if p["here"])
+
+    assert here_in_list() == 3 == int(turnout(admin))
+
+    # Move the doors past all three and both readings fall together.
+    db.set_setting(roster, "doors_open", "18:00", by="test")
+    assert here_in_list() == 0 == int(turnout(admin))
+
+
+def test_staff_can_mark_someone_here(roster):
+    """The front desk is not an admin, and this is the front desk's job."""
+    staff = Console()
+    r = staff.post("/admin/api/checkins", {"attendee_id": pid(roster, "heidily")})
+    assert r.status_code == 200 and row(roster, "heidily")["here"] is True

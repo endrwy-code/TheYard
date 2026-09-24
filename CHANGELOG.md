@@ -2351,3 +2351,50 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   supposed to spend those minutes on. The line has to be forgettable on the
   first read and obvious on the second.
 - **Next step:** the nine printed photographs, and the notebook amounts.
+
+## 2026-09-24 — The People list can mark somebody here, next to their name
+
+- **Changed:** Being at the event had one door the console could open — the
+  Booth screen, which wants a pass in front of a camera. Yesterday redeeming
+  anything was made to count too, so the counters register people the front
+  desk never caught. That left the gap in the middle: somebody standing at the
+  desk who has not collected anything yet and whose pass will not scan. The
+  People list now carries **one control per row, to the right of the name**.
+  It posts the attendee id to the check-in endpoint that already existed, so
+  there is no new way to be marked present — only a new way to reach the old
+  one, and it is the same audit line either way.
+  The control has four faces, and only the first is pressable:
+  **Mark here** (not counted yet, on the roster), **Here** (counted — the
+  tooltip says which way, scanned or collected, with the time),
+  **Before doors** (scanned during the rehearsal: they do not count and
+  marking them cannot help, because check-in only ever stamps the first time)
+  and **Off the roster** (check-in refuses them anyway).
+  The list asks the same question the Overview asks: `claims.at_the_event`
+  goes into the `SELECT` rather than being written out a second time in
+  Python. The doors-open time it binds to moved into `claims.doors_bound()`,
+  which the Overview now calls too, so the two cannot end up reading different
+  clocks.
+- **Current state:** **606 tests pass, 1 skipped.** Thirteen are new and they
+  pin the rule the organiser asked for: either way in counts, **both together
+  still count once** (the turnout asks one question per person, not one per
+  event), a second press changes nothing and leaves the first stamp standing,
+  a voided collection is not attendance, a rehearsal scan is not, a rehearsal
+  *collection* still leaves the press open, the row names the collection that
+  actually counted when there are two, staff (not just admins) can mark
+  somebody here, and the list and the turnout move together when the doors
+  move. `admin.html` passes `node --check`, and all four row faces were
+  rendered from the shipped code to confirm the markup, the escaping, and that
+  only the pressable face carries `data-here`.
+- **Left unfinished on purpose:** Marking is **not** offered to somebody who
+  already counts through a redemption. Pressing would stamp a check-in that
+  changes no number on any screen, and a control that looks alive and does
+  nothing visible is what makes somebody press it twice. The cost is that the
+  Check-in sheet in the export still lists only people who were scanned, so it
+  under-reports turnout against the Overview — the export was not touched.
+  There is also no button on the person panel to the right; the row for
+  whoever is open stays on screen beside it, and a second control doing the
+  same job is the thing to avoid.
+- **Next step:** the organiser walks the People list on the night — mark
+  somebody who has collected nothing, confirm the Overview's "At the event"
+  goes up by one, then have the same person collect a pastry and confirm it
+  does **not** go up again.

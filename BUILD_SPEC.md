@@ -684,10 +684,21 @@ and in `STATE.md` §5.
 
 ### Shapes fixed at P0.3
 
-- **`GET /admin/api/people?q=`** → `{query, total, shown, people:[{id, name,
-  handle, tag}]}`. `q` matches name, email, username (normalised), pass code
-  in any shape, or a booking ref. At most 50 are returned, active people first.
+- **`GET /admin/api/people?q=&page=`** → `{query, total, shown, page, pages,
+  page_size, first, last, has_prev, has_next, people:[{id, name, handle, tag,
+  here, here_label, here_note, can_mark}]}`. `q` matches name, email, username
+  (normalised), pass code in any shape, or a booking ref. 50 a page, active
+  people first; `page` is 1-based and clamped into range, so a stale page
+  number lands on the last real page rather than an empty screen (24 Sep).
   Any console role.
+  `here` is `claims.at_the_event` for that person — scanned in **or** having
+  redeemed something, either one from the doors on — so the row and Overview's
+  "At the event" cannot disagree. `can_mark` is true only when
+  `POST /admin/api/checkins` would actually stamp something: on the roster, not
+  already counted, not already stamped. `here_label` is the one word the row's
+  control shows (`Mark here`, `Here`, `Before doors`, `Off the roster`) and
+  `here_note` is the sentence behind it. Any console role: marking somebody
+  here is the front desk's job, so staff get it too.
 - **`GET /admin/api/people/{id}`** → `id, name, handle, tg_user_id,
   tg_first_name, paperform_id, status, is_test, source, pass_code, pass_qr
   (data URI), payment_status, payment_ok, payment` (the latest verdict:
