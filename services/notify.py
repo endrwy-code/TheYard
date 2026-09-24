@@ -354,9 +354,23 @@ def schedule_due(conn, now=None):
 
     close = event_local(s["doors_close"])
     if s.get("last_call") and close - timedelta(minutes=int(s["last_call_minutes"])) <= local < close:
+        # Everybody who is here and still has something on their pass. Since
+        # 24 Sep "here" includes anybody who redeemed something, not only
+        # somebody the desk scanned — before that, a person who walked past the
+        # front desk to the pastry table got no last call for the two items
+        # they had left.
+        #
+        # This uses `ever_seen` rather than `at_the_event`, so it is not
+        # bounded by the doors. The overview needs that bound because it is
+        # measuring turnout and a rehearsal would inflate it; this is a
+        # message, and the two mistakes are not the same size. Pinging somebody
+        # who went home is noise. Failing to tell somebody standing in the room
+        # that they have a photo strip unclaimed and thirty minutes left is the
+        # thing the message exists to prevent.
         for r in conn.execute(
-                "SELECT * FROM attendees WHERE status='active' AND checked_in_at IS NOT NULL "
-                "AND tg_user_id IS NOT NULL"):
+                "SELECT a.* FROM attendees a WHERE a.status='active' "
+                f"AND {claims.ever_seen('a')} "  # noqa: S608 - fixed fragment
+                "AND a.tg_user_id IS NOT NULL"):
             if not claims.payment_ok(conn, r):
                 continue
             open_items = [i for i, c in claims.claims_for(conn, r["id"]).items() if not c["claimed"]]

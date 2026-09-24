@@ -264,3 +264,67 @@ def test_admin_sees_who_was_refused(roster, admin, client):
     d = admin.get("/admin/api/gate-attempts").get_json()["data"]["attempts"]
     assert d[0]["tg_username"] == "ryanlow" and d[0]["outcome"] == "NOT_ON_LIST"
     assert Console().get("/admin/api/gate-attempts").status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Paging the list (24 Sep)
+# ---------------------------------------------------------------------------
+
+def _many(conn, n):
+    """Enough people to need more than one page."""
+    for i in range(n):
+        conn.execute(
+            "INSERT INTO attendees (name, handle, status, source, created_at, updated_at) "
+            "VALUES (?,?,'active','walk_in',?,?)",
+            (f"Page Person {i:03d}", f"pageperson{i:03d}", db.utcnow(), db.utcnow()))
+
+
+def test_the_list_pages_instead_of_stopping_at_fifty(roster):
+    """It used to stop at 50 and the rest of the roster could only be reached
+    by guessing enough of a name to search for."""
+    _many(roster, 120)
+    first = people.search(roster, "")
+    assert first["page"] == 1 and first["shown"] == people.PAGE_SIZE
+    assert first["pages"] == -(-first["total"] // people.PAGE_SIZE)
+    assert first["has_next"] and not first["has_prev"]
+    assert (first["first"], first["last"]) == (1, 50)
+
+    second = people.search(roster, "", page=2)
+    assert second["page"] == 2 and (second["first"], second["last"]) == (51, 100)
+    assert second["has_prev"] and second["has_next"]
+
+    # No row appears on two pages, and between them they are the whole list.
+    ids1 = [p["id"] for p in first["people"]]
+    ids2 = [p["id"] for p in second["people"]]
+    assert not set(ids1) & set(ids2)
+
+    last = people.search(roster, "", page=first["pages"])
+    assert not last["has_next"] and last["last"] == last["total"]
+
+
+def test_every_person_is_reachable_by_walking_the_pages(roster):
+    _many(roster, 120)
+    total = people.search(roster, "")["total"]
+    seen, page = [], 1
+    while True:
+        d = people.search(roster, "", page=page)
+        seen += [p["id"] for p in d["people"]]
+        if not d["has_next"]:
+            break
+        page += 1
+    assert len(seen) == total == len(set(seen))
+
+
+def test_a_page_number_out_of_range_lands_on_a_real_page(roster):
+    """A stale page left over from a wider search must never answer with an
+    empty screen — it lands on the last page instead."""
+    _many(roster, 120)
+    d = people.search(roster, "", page=999)
+    assert d["page"] == d["pages"] and d["people"]
+    for bad in (0, -3, "", None, "abc"):
+        assert people.search(roster, "", page=bad)["page"] == 1
+
+
+def test_a_search_that_fits_on_one_page_has_no_pager(roster):
+    d = people.search(roster, "heidily")
+    assert d["pages"] == 1 and not d["has_next"] and not d["has_prev"]

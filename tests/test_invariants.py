@@ -7,7 +7,7 @@ seat numbers, an old row from a previous version of the item list is still in
 the database.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 import re
 

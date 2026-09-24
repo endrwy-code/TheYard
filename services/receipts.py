@@ -31,7 +31,6 @@ import hashlib
 import io
 import secrets
 from datetime import datetime, timezone
-from urllib.parse import urlparse
 
 import config
 import db

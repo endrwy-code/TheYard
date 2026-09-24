@@ -901,7 +901,8 @@ def _run(fn):
 
 @app.route("/admin/api/people")
 def admin_people():
-    return _run(lambda: people.search(g.db, request.args.get("q", "")))
+    return _run(lambda: people.search(g.db, request.args.get("q", ""),
+                                      request.args.get("page", 1)))
 
 
 @app.route("/admin/api/people/<int:attendee_id>")

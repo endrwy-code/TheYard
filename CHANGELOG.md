@@ -2278,3 +2278,51 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   carrying the amounts, they have to agree, and the notebook is the one in
   Kai's handwriting. Nothing in the app can check that.
 - **Next step:** the nine printed photographs.
+
+---
+
+## 2026-09-24 — Redeeming counts as being here, and the People list has pages
+
+- **Changed:** Three things, on the morning of the event.
+  **(1) "At the event" counts two ways in.** It counted people the front desk
+  had scanned, from `doors_open` (3 PM) onward. It now counts somebody who was
+  scanned **or** who redeemed anything on their pass, still only from 3 PM. The
+  desk is one person and the counters are three, so a scan was never going to
+  see everyone: somebody who walks straight to the pastry table and takes a
+  tart is plainly at the event. A **voided** claim does not count — voiding is
+  what the console does when an item went out by mistake, and a mistake is not
+  attendance. The definition lives once, in `claims.at_the_event()`, because
+  the overview stat and the last-call message ask the same question and an
+  event where those two disagree is one nobody can reason about.
+  **(2) Last call reaches them too.** It went to `checked_in_at IS NOT NULL`,
+  so a person who walked past the desk to the pastry table got no warning
+  about the two items they had left. It uses `claims.ever_seen()` — the same
+  two ways in, with no clock on it. Deliberately **not** bounded by the doors,
+  unlike the stat: the stat measures turnout and a rehearsal would inflate it,
+  but this is a message, and the two mistakes are not the same size. Pinging
+  somebody who went home is noise; failing to tell somebody in the room that
+  they have a photo strip unclaimed and thirty minutes left is the thing the
+  message exists to prevent.
+  **(3) The People list pages.** It stopped at 50 and the rest of the roster
+  could only be reached by guessing enough of a name to search for. Same 50 a
+  screenful, with Back / Next and "Showing 51–100 of 168" — which also says
+  *which* fifty you are looking at, where "First 50 of 168" never did. The
+  pager is sticky at the foot of the list, so Next is reachable without
+  scrolling to the bottom first. A page number out of range lands on the last
+  real page rather than an empty screen, and a new search returns to page 1.
+- **Current state:** **593 tests pass, 1 skipped.** Eight are new: four on
+  attendance (redeeming counts, one person counted once however many ways,
+  a claim before the doors still does not count, a voided claim is not
+  attendance) and four on paging (it pages, every person is reachable by
+  walking the pages, an out-of-range page lands somewhere real, a short search
+  has no pager). Both page scripts pass `node --check`.
+- **Left unfinished on purpose:** The cleanup pass was **dead code only, no
+  behaviour change**, because the event runs today and a restructure that
+  breaks at 7 PM is not worth the tidiness. Removed: `database.py` (0 bytes,
+  nothing imported it, and `context/PROJECT_STATUS.md` had listed it as
+  deletable since the first prototype), `bookings.instruments_view()` (19
+  lines, referenced nowhere — the jam screens build their own view), and four
+  unused imports. Checked and found clean: no unread rows in
+  `DEFAULT_SETTINGS`. **`app.py` is still 1,100 lines and `admin.html` still
+  3,000** — splitting them is real work and it is not today's.
+- **Next step:** the nine printed photographs, and the notebook amounts.

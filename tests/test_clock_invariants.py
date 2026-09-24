@@ -16,7 +16,6 @@ and learn nothing from it.
 These tests read the real phone file, not a stub.
 """
 
-import re
 import sys
 from pathlib import Path
 

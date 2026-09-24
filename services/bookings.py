@@ -728,25 +728,6 @@ def _jam_party(conn, owner_id, slot_id):
         "ORDER BY j.created_at, j.id", (slot_id, owner_id)).fetchall()
 
 
-def instruments_view(conn, slot_id=None):
-    """The five instruments, and who has each one in this slot.
-
-    The room is booked by instrument since 19 Sep, so this is the real board:
-    a slot is not "taken", it has a free bass and a taken drum kit.
-    """
-    taken = {}
-    if slot_id is not None:
-        for r in conn.execute(
-                "SELECT j.instrument, a.handle, a.name, j.attendee_id FROM jam_bookings j "
-                "JOIN attendees a ON a.id=j.attendee_id "
-                "WHERE j.slot_id=? AND j.status='confirmed'", (slot_id,)):
-            if r["instrument"]:
-                taken[r["instrument"]] = {"handle": r["handle"], "name": r["name"],
-                                          "attendee_id": r["attendee_id"]}
-    return [{"key": k, "label": label, "taken_by": taken.get(k)}
-            for k, label in config.INSTRUMENTS]
-
-
 def _instrument(raw):
     key = str(raw or "").strip().lower()
     if key not in config.INSTRUMENT_KEYS:

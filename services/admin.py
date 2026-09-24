@@ -47,13 +47,22 @@ def overview(conn, now):
     total = people["total"] or 0
     # Two different things, counted separately (23 Sep, STATE.md 135).
     # Opening the app is not being in the room: people link their Telegram
-    # account days early. "At the event" counts only check-ins made from the
-    # moment the doors open on the day, so a rehearsal check-in never counts.
-    doors = notify.event_local(s["doors_open"])
+    # account days early. "At the event" counts only from the moment the doors
+    # open on the day, so a rehearsal never counts.
+    #
+    # Since 24 Sep it counts **two** ways in, either of which is enough: the
+    # front desk scanned them, or they redeemed something on their pass. The
+    # desk is one person and the counters are three, so a scan was never going
+    # to see everybody. `claims.at_the_event` holds the definition.
+    doors = notify._iso(notify.event_local(s["doors_open"]))
     here = conn.execute(
-        "SELECT COUNT(*) FROM attendees WHERE status='active' AND is_test=0 AND checked_in_at >= ?",
-        (notify._iso(doors),)).fetchone()[0]
-    early = (people["inside"] or 0) - here
+        "SELECT COUNT(*) FROM attendees a WHERE a.status='active' AND a.is_test=0 "
+        f"AND {claims.at_the_event('a')}",  # noqa: S608 - fixed fragment, values bound
+        (doors, doors)).fetchone()[0]
+    seen = conn.execute(
+        "SELECT COUNT(*) FROM attendees a WHERE a.status='active' AND a.is_test=0 "
+        f"AND {claims.ever_seen('a')}").fetchone()[0]  # noqa: S608 - fixed fragment
+    early = seen - here
     pct = round(100 * here / total) if total else 0
     pct_linked = round(100 * (people["linked"] or 0) / total) if total else 0
     stats = [
@@ -63,7 +72,8 @@ def overview(conn, now):
         {"label": "Opened the app", "value": str(people["linked"] or 0),
          "sub": f"{pct_linked}% of the list, any time", "tone": "#3C4654"},
         {"label": "At the event", "value": str(here),
-         "sub": f"{pct}% of the list · checked in from {notify.hhmm_text(s['doors_open'])}"
+         "sub": f"{pct}% of the list · checked in or redeemed, "
+                f"from {notify.hhmm_text(s['doors_open'])}"
                 + (f" · {early} before that, not counted" if early else ""),
          "tone": "#3C4654"},
         # With the payment check off (STATE.md 138) these are still worth

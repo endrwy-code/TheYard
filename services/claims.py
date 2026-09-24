@@ -358,6 +358,47 @@ def void_claim(conn, *, attendee_id, item, reason, by):
     return {"id": first["id"], "voided_at": local_iso(now)}
 
 
+# ---------------------------------------------------------------------------
+# Being at the event
+# ---------------------------------------------------------------------------
+
+def at_the_event(alias="a"):
+    """The one definition of somebody being here, as an SQL condition.
+
+    Two ways to count, and either is enough (24 Sep): the front desk scanned
+    them in, or **they redeemed something on their pass**. The second was added
+    because the desk is one person and the counters are three, and somebody who
+    walks straight to the pastry table and takes a tart is plainly at the event
+    whether or not anyone got to scan them.
+
+    Both are measured **from the moment the doors open**, never before. People
+    link their Telegram account days early and the room is rehearsed the day
+    before, so an unbounded count would report a full house at breakfast.
+
+    A voided claim does not count. Voiding is what the console does when an
+    item was handed over by mistake, and a mistake is not attendance.
+
+    It takes the doors-open time bound twice. It lives here, once, because the
+    overview stat and the last-call message both ask the same question and an
+    event where those two disagree is one nobody can reason about.
+    """
+    return (f"({alias}.checked_in_at >= ? OR EXISTS ("
+            f"SELECT 1 FROM claims c WHERE c.attendee_id = {alias}.id "
+            f"AND c.voided_at IS NULL AND c.claimed_at >= ?))")
+
+
+def ever_seen(alias="a"):
+    """The same, with no clock on it — scanned in or redeemed at any time.
+
+    Only used to say how many fall outside the window, so the overview can
+    account for them ("N before that, not counted") instead of quietly
+    dropping them.
+    """
+    return (f"({alias}.checked_in_at IS NOT NULL OR EXISTS ("
+            f"SELECT 1 FROM claims c WHERE c.attendee_id = {alias}.id "
+            f"AND c.voided_at IS NULL))")
+
+
 def check_in(conn, *, actor, code=None, attendee_id=None, kind="event"):
     """Event check-in. Once: a second check-in reports the first one."""
     if kind != "event":

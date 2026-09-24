@@ -21,7 +21,6 @@ Your previous `index.html` is copied to `design\\index.html.bak` first.
 
 import re
 import shutil
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

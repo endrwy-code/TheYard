@@ -361,6 +361,16 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
 @media (max-width:1200px){ .people-grid{ grid-template-columns:1fr } .people-list{ max-height:320px } }
 .people-list{ border-right:1px solid #10101018; padding:20px; display:flex; flex-direction:column; gap:8px; max-height:760px; overflow-y:auto }
 .people-list .count{ font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#3C4654 }
+/* The pager sits at the bottom of the list and stays there while the rows
+   scroll, so "Next" is reachable without scrolling to the end first. */
+.people-list .pager{ position:sticky; bottom:0; margin-top:auto; padding-top:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:linear-gradient(180deg,#FFFFFF00,#FFFFFF 40%) }
+.people-list .pgbtn{ font:inherit; font-size:12px; font-weight:600; color:#101010;
+  background:#fff; border:0; box-shadow:inset 0 0 0 1px #10101022; border-radius:9px;
+  padding:7px 11px; cursor:pointer }
+.people-list .pgbtn:disabled{ color:#3C465455; cursor:default; box-shadow:inset 0 0 0 1px #10101012 }
+.people-list .pgnum{ font-size:11px; font-weight:600; color:#3C4654; white-space:nowrap }
 .prowbtn{
   background:transparent; color:#101010; box-shadow:inset 0 0 0 1px #10101022; border:0; border-radius:12px;
   padding:10px 12px; text-align:left; cursor:pointer; transition:background .2s, color .2s, transform .14s var(--ease);
@@ -880,7 +890,7 @@ const S = {
   slots:null, roster:null, settings:null, audit:null, denials:null,
   lookup:null, lookupCode:'',
   resetDone:loadResetDone(), gmSlot:null, gmPinned:false, gmAt:0, live:false,
-  selectedPerson:null, peopleQuery:'', focusSearch:false,
+  selectedPerson:null, peopleQuery:'', peoplePage:1, focusSearch:false,
   auditTab:'log',
   settingsDraft:{},
   lastCount:{},        // a stock number set back to Not counted, to bring back
@@ -1053,7 +1063,8 @@ async function load(){
   const s = S.screen;
   if (s === 'overview') S.overview = (await api('GET /admin/api/overview', { path:'/admin/api/overview' })).data;
   if (s === 'person'){
-    const pl = await api('GET /admin/api/people', { path:'/admin/api/people', filters:{ q:S.peopleQuery } });
+    const pl = await api('GET /admin/api/people', { path:'/admin/api/people',
+      filters:{ q:S.peopleQuery, page:S.peoplePage } });
     if (!pl.ok){ if (S.session) toast(pl.error.message || pl.error.code, 'bad'); return; }
     S.people = pl.data;
     const ids = S.people.people.map(x => x.id);
@@ -1401,9 +1412,13 @@ SCREENS.person = function(){
       <span class="n">${esc(x.name)}</span>
       <span class="s">${x.handle ? '@' + esc(String(x.handle).replace(/^@/, '')) : '—'} · ${esc(x.tag)}</span>
     </button>`).join('');
-  const shown = list.shown != null ? list.shown : list.people.length;
-  const count = (shown < list.total ? 'First ' + shown + ' of ' : '') + list.total
-    + (S.peopleQuery ? ' matching' : ' people');
+  /* "Showing 51-100 of 168 people" beats "First 50 of 168", which never said
+     which fifty you were looking at (24 Sep). */
+  const pages = list.pages || 1, page = list.page || 1;
+  const noun = S.peopleQuery ? ' matching' : ' people';
+  const count = pages > 1
+    ? 'Showing ' + list.first + '–' + list.last + ' of ' + list.total + noun
+    : list.total + noun;
   const top = `
     <div class="people-top">
       <div class="searchbox">
@@ -1416,6 +1431,12 @@ SCREENS.person = function(){
       <div class="people-list">
         <div class="count">${esc(count)}</div>
         ${rows || `<div style="font-size:13px;color:#3C4654">Nobody matches. Try part of the name, or the pass code.</div>`}
+        ${pages > 1 ? `
+        <div class="pager">
+          <button class="pgbtn" data-page="${page - 1}" ${list.has_prev ? '' : 'disabled'}>← Back</button>
+          <span class="pgnum">Page ${page} of ${pages}</span>
+          <button class="pgbtn" data-page="${page + 1}" ${list.has_next ? '' : 'disabled'}>Next →</button>
+        </div>` : ''}
       </div>`;
   if (!p){
     return `<div class="wide">${top}<div class="people-grid">${listCol}
@@ -2366,12 +2387,22 @@ function wire(){
     S.selectedPerson = id; S.person = p;
     render();
   });
+  // The pager. Opening a page keeps nobody selected from the page you left:
+  // `load()` opens the first person on the new page, which is what you want
+  // when you are walking a list rather than hunting one name.
+  root.querySelectorAll('[data-page]').forEach(b => b.onclick = () => {
+    if (b.disabled) return;
+    S.peoplePage = Number(b.dataset.page);
+    S.selectedPerson = null;
+    load();
+  });
   const ps = document.getElementById('psearch');
   if (ps){
     let t;
     ps.oninput = () => {
       clearTimeout(t);
-      t = setTimeout(() => { S.peopleQuery = ps.value.trim(); S.focusSearch = true; load(); }, 300);
+      t = setTimeout(() => { S.peopleQuery = ps.value.trim(); S.peoplePage = 1;
+        S.focusSearch = true; load(); }, 300);
     };
     // Keep typing across the re-render the results cause.
     if (S.focusSearch){
@@ -2739,7 +2770,7 @@ function endSession(message){
   try { sessionStorage.removeItem('yard_screen'); } catch (e){}
   S.slots = S.roster = S.settings = S.audit = S.denials = null;
   S.settingsDraft = {}; S.rosterPreview = null; S.lookup = null; S.lookupCode = '';
-  S.selectedPerson = null; S.peopleQuery = '';
+  S.selectedPerson = null; S.peopleQuery = ''; S.peoplePage = 1;
   S.signinErr = message || '';
   const f = document.getElementById('flash');
   f.className = '';

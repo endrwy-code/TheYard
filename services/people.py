@@ -25,7 +25,12 @@ from auth import normalise_handle
 from services import bookings, claims, receipts
 from services.claims import ClaimError
 
-SEARCH_LIMIT = 50
+# A page, not a ceiling. It used to be a hard limit: the list stopped at 50
+# and the other hundred-odd people on the roster could only be reached by
+# guessing enough of a name to search for (24 Sep). Same 50 a screenful, with
+# a way to walk to the next one.
+PAGE_SIZE = 50
+SEARCH_LIMIT = PAGE_SIZE          # kept: the old name, still the page size
 AUDIT_LIMIT = 25
 VERDICTS = ("verified", "rejected", "reopen")
 PAYMENT_ACTIONS = ("Payment verified", "Payment rejected", "Payment reopened")
@@ -68,8 +73,13 @@ def list_tag(row):
     return " · ".join(parts)
 
 
-def search(conn, q):
-    """Name, username, email, pass code or booking ref. Empty q lists everyone."""
+def search(conn, q, page=1):
+    """Name, username, email, pass code or booking ref. Empty q lists everyone.
+
+    `page` is 1-based and clamped into range, so a stale page number left over
+    from a wider search can never answer with an empty screen — it lands on the
+    last page instead.
+    """
     q = " ".join(str(q or "").split())[:80]
     where, args = "1=1", []
     if q:
@@ -92,15 +102,29 @@ def search(conn, q):
         args += [ref, ref]
         where = "(" + " OR ".join(terms) + ")"
     total = conn.execute(f"SELECT COUNT(*) FROM attendees WHERE {where}", args).fetchone()[0]  # noqa: S608
+    pages = max(1, -(-total // PAGE_SIZE))          # ceiling division
+    try:
+        page = int(page or 1)
+    except (TypeError, ValueError):
+        page = 1
+    page = min(max(page, 1), pages)
+    offset = (page - 1) * PAGE_SIZE
     rows = conn.execute(
         f"SELECT * FROM attendees WHERE {where} "  # noqa: S608 - fixed fragments, values bound
-        "ORDER BY status = 'active' DESC, name COLLATE NOCASE LIMIT ?",
-        args + [SEARCH_LIMIT],
+        "ORDER BY status = 'active' DESC, name COLLATE NOCASE LIMIT ? OFFSET ?",
+        args + [PAGE_SIZE, offset],
     ).fetchall()
     return {
         "query": q,
         "total": total,
         "shown": len(rows),
+        "page": page,
+        "pages": pages,
+        "page_size": PAGE_SIZE,
+        "first": offset + 1 if rows else 0,
+        "last": offset + len(rows),
+        "has_prev": page > 1,
+        "has_next": page < pages,
         "people": [{"id": r["id"], "name": r["name"], "handle": r["handle"],
                     "tag": list_tag(r)} for r in rows],
     }

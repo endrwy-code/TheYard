@@ -377,3 +377,58 @@ def test_the_live_stream_says_when_something_changed(world, monkeypatch):
 
 def test_the_live_stream_needs_a_sign_in(world, client):
     assert err(client.get("/admin/api/live"))["code"] == "SIGNED_OUT"
+
+
+# ---------------------------------------------------------------------------
+# Redeeming counts as being here (24 Sep)
+# ---------------------------------------------------------------------------
+
+def _claim(world, handle, item="pastry", when="2026-09-24T08:00:00+00:00"):
+    """A claim straight into the table, so the test is about counting and not
+    about the counter's own rules."""
+    aid = world.execute("SELECT id FROM attendees WHERE handle=?", (handle,)).fetchone()[0]
+    world.execute("INSERT INTO claims (attendee_id, item, claimed_at) VALUES (?,?,?)",
+                  (aid, item, when))
+    return aid
+
+
+def test_redeeming_something_counts_as_being_at_the_event(world):
+    """The front desk is one person and the counters are three. Somebody who
+    walks straight to the pastry table and takes a tart is at the event,
+    whether or not anybody got to scan them."""
+    overview = lambda: data(Console("admin").get("/admin/api/overview"))  # noqa: E731
+    assert stat(overview(), "At the event")["value"] == "0"
+    _claim(world, "heidily")                       # 4 PM Singapore, doors are 3 PM
+    assert stat(overview(), "At the event")["value"] == "1"
+    assert "checked in or redeemed" in stat(overview(), "At the event")["sub"]
+
+
+def test_one_person_is_counted_once_however_many_ways_they_are_here(world):
+    """Scanned in *and* redeemed twice is still one person in the room."""
+    overview = lambda: data(Console("admin").get("/admin/api/overview"))  # noqa: E731
+    world.execute("UPDATE attendees SET checked_in_at=? WHERE handle='heidily'",
+                  ("2026-09-24T07:30:00+00:00",))
+    _claim(world, "heidily", "pastry")
+    _claim(world, "heidily", "photo")
+    assert stat(overview(), "At the event")["value"] == "1"
+
+
+def test_a_claim_before_the_doors_does_not_count_either(world):
+    """The same rule the scan has always had. The room is rehearsed the day
+    before, and a rehearsal is not a turnout figure."""
+    overview = lambda: data(Console("admin").get("/admin/api/overview"))  # noqa: E731
+    _claim(world, "heidily", "pastry", "2026-09-23T10:00:00+00:00")
+    d = overview()
+    assert stat(d, "At the event")["value"] == "0"
+    assert "1 before that, not counted" in stat(d, "At the event")["sub"]
+
+
+def test_a_voided_claim_is_not_attendance(world):
+    """Voiding is what the console does when an item went out by mistake, and
+    a mistake is not somebody being in the building."""
+    overview = lambda: data(Console("admin").get("/admin/api/overview"))  # noqa: E731
+    aid = _claim(world, "heidily")
+    assert stat(overview(), "At the event")["value"] == "1"
+    world.execute("UPDATE claims SET voided_at=? WHERE attendee_id=?",
+                  ("2026-09-24T09:00:00+00:00", aid))
+    assert stat(overview(), "At the event")["value"] == "0"
