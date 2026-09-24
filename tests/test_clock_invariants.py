@@ -198,3 +198,32 @@ def test_the_reset_list_scrambles_the_lock_and_never_says_the_old_code():
     reset = " ".join(data["reset"])
     assert "1002" in reset and "scramble" in reset.lower()
     assert "1012" not in reset, "1012 was the old answer — it is not the code any more."
+
+
+# ---------------------------------------------------------------------------
+# The cause may be on the phone. The number may not. (24 Sep)
+# ---------------------------------------------------------------------------
+
+def test_the_phone_gives_the_cause_of_the_offset(phone_markup):
+    """Decision 2 in the changes file: players accept a cause, and without one
+    the twenty minutes is arbitrary and feels like a trick. Kai reset the
+    camera hub by hand after Sunday's power trip and did not get it right."""
+    assert "camera box" in phone_markup
+    assert "close enough" in phone_markup
+
+
+def test_the_phone_never_states_the_offset_itself(phone_markup):
+    """The cause is fair. The answer is not.
+
+    Saying how far out the clock is, or even which way, would let a team
+    subtract twenty without ever looking at the oven clock, Darren's exit or
+    the finder's arrival — and those three routes are the room. The phone may
+    say the clock was set by hand and might be wrong. It may never say more.
+    """
+    low = phone_markup.lower()
+    for giveaway in ("20 min", "twenty min", "minutes fast", "minutes ahead",
+                     "minutes behind", "minutes out", "20 mins", "clock is wrong",
+                     "cameras are wrong", "camera is wrong"):
+        assert giveaway not in low, (
+            f"{giveaway!r} is on the phone — it hands over the mechanic and the "
+            "three routes to it stop mattering.")

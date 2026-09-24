@@ -2326,3 +2326,28 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   `DEFAULT_SETTINGS`. **`app.py` is still 1,100 lines and `admin.html` still
   3,000** — splitting them is real work and it is not today's.
 - **Next step:** the nine printed photographs, and the notebook amounts.
+
+---
+
+## 2026-09-24 — The phone says why the camera clock is wrong
+
+- **Changed:** The group chat now opens on Sunday with the cause of the whole
+  mechanic. `CHANGES_FOR_CLAUDE_CODE.md` decision 2 asked for one — *"players
+  accept a cause; without one the offset is arbitrary and feels like a trick"*
+  — and it had never reached the phone, so the twenty minutes arrived from
+  nowhere. Four lines: the power tripped, Kai reset the camera box by hand
+  because it would not stop asking, Ethan asks whether he actually got it right
+  or guessed, and Kai says he put in what his watch said, **close enough**.
+- **Current state:** 595 tests pass, 1 skipped. Two are new and they are the
+  point of this entry. The first asserts the cause is on the phone. The second
+  asserts the **answer** is not: no "20 min", "twenty min", "minutes
+  fast/ahead/behind/out", nothing saying the clock or the cameras are wrong.
+  The phone may say the clock was set by hand and might be off. It may never
+  say by how much, or in which direction.
+- **Left unfinished on purpose:** No character reacts to Kai's "close enough",
+  and nobody says the cameras look wrong. A second voice agreeing would turn a
+  passing remark into a signpost, and the room's three routes to the number —
+  the oven clock, Darren's exit, the finder's arrival — are what a team is
+  supposed to spend those minutes on. The line has to be forgettable on the
+  first read and obvious on the second.
+- **Next step:** the nine printed photographs, and the notebook amounts.
