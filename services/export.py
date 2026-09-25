@@ -1,18 +1,33 @@
 """Exports (§9 r37, §17.11): the Registrations sheet in Paperform's own
 column order with our check-in and redeemed columns filled, bookings, claims,
-and a printable fallback list for when the laptop is down."""
+who has paid and who has not, and a printable fallback list for when the
+laptop is down."""
 
 import html
 import io
+import json
 from datetime import datetime
 
 import openpyxl
 
 import config
-from services import bookings, claims, roster
+from services import bookings, claims, people, roster
 
-KINDS = ("registrations", "bookings", "claims", "fallback")
+KINDS = ("registrations", "bookings", "claims", "payments", "fallback")
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+# The entrance payment, in the words the person page uses. A screenshot counts
+# on its own since 24 Sep (services/people.py), so "submitted" is paid; the
+# column beside it says which kind of paid, for anyone who wants the stricter
+# reading.
+PAID = {
+    "verified": ("Yes", "Marked paid"),
+    "submitted": ("Yes", "Screenshot at sign-up"),
+    "rejected": ("No", "Rejected"),
+    "missing": ("No", "No screenshot"),
+}
+PAYMENT_COLUMNS = ["Name", "Username", "Email", "Paid", "Payment", "Marked by", "Marked at",
+                   "Reason", "Signed up", "Checked in"]
 
 
 def _when(utc_iso):
@@ -111,6 +126,44 @@ def claims_sheet(conn):
     ])
 
 
+def _verdicts(conn):
+    """The newest payment verdict for each person: {attendee id: audit row}."""
+    out = {}
+    for r in conn.execute(
+            "SELECT * FROM audit_log WHERE entity='attendee' "
+            f"AND action IN ({','.join('?' * len(people.PAYMENT_ACTIONS))}) ORDER BY id",
+            people.PAYMENT_ACTIONS):
+        out[r["entity_id"]] = r
+    return out
+
+
+def payments_sheet(conn):
+    """Everyone on the list, then the same people split into paid and not.
+
+    The people the Overview counts as signed up: active, and not a test
+    account. Someone dropped from a later import is inactive, not unpaid.
+    """
+    verdicts = _verdicts(conn)
+    everyone = []
+    for p in conn.execute("SELECT * FROM attendees WHERE status='active' AND is_test=0 "
+                          "ORDER BY name COLLATE NOCASE, id"):
+        paid, how = PAID.get(p["payment_status"], ("No", p["payment_status"]))
+        # Only a verdict has somebody behind it. A screenshot, or the lack of
+        # one, is how the person signed up; a reopened verdict is not one.
+        v = verdicts.get(str(p["id"])) if p["payment_status"] in ("verified", "rejected") else None
+        reason = json.loads(v["details"] or "{}").get("reason", "") if v else ""
+        everyone.append((
+            p["name"], _handle(p), p["email"] or "", paid, how,
+            (v["actor_name"] or "") if v else "", _when(v["at"]) if v else "", reason,
+            "Walk-in" if p["source"] == "walk_in" else "Paperform", _when(p["checked_in_at"]),
+        ))
+    return _book([
+        ("Everyone", PAYMENT_COLUMNS, everyone),
+        ("Not paid", PAYMENT_COLUMNS, [r for r in everyone if r[3] == "No"]),
+        ("Paid", PAYMENT_COLUMNS, [r for r in everyone if r[3] == "Yes"]),
+    ])
+
+
 def fallback(conn):
     """One printable page: everyone, their pass code, and what they have."""
     got = _claims_by_person(conn)
@@ -153,6 +206,8 @@ def build(conn, kind):
         return bookings_sheet(conn), f"The_Yard_Bookings_{day}.xlsx", XLSX
     if kind == "claims":
         return claims_sheet(conn), f"The_Yard_Claims_{day}.xlsx", XLSX
+    if kind == "payments":
+        return payments_sheet(conn), f"The_Yard_Payments_{day}.xlsx", XLSX
     if kind == "fallback":
         return fallback(conn), "The_Yard_fallback.html", "text/html; charset=utf-8"
     raise ValueError(kind)

@@ -2686,3 +2686,22 @@ Each entry: **Changed** · **Current state** · **Left unfinished on purpose** �
   name, tap the other name, and confirm both halves stage and save together.
   Then the Jamming studio: move somebody whose instrument is taken where they
   are going, and confirm the free seats are what you tap.
+
+## 2026-09-25 — Export who has paid and who has not
+
+- **Changed:** a **Paid / not paid (.xlsx)** button at the top of People,
+  beside the search box, and the same download under Audit → Exports &
+  backups. New export kind `payments` (`services/export.py`), so the route,
+  the admin-only rule and the "Export downloaded" audit row are the ones the
+  other exports already use. The button is only drawn for a laptop sign-in;
+  a phone sign-in would be refused by the server anyway.
+- **The file:** `The_Yard_Payments_<date>.xlsx` — sheets **Everyone**, **Not
+  paid**, **Paid**. Columns: Name, Username, Email, Paid, Payment, Marked by,
+  Marked at, Reason, Signed up (Paperform or walk-in), Checked in. Active,
+  non-test people only, the same list the Overview counts. Paid is
+  `verified` or `submitted` (decision 158).
+- **Current state:** new `tests/test_payments_export.py`, six tests on
+  invented people, so they run without the organiser's real export. Each was
+  seen to fail with the rule it guards broken on purpose (a screenshot counted
+  as unpaid, a reopened verdict still credited, inactive people included).
+- **Next step:** none. Download it from People.

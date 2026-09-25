@@ -1082,6 +1082,9 @@ It asks which tunnel to use.
 
 **After**
 - Export the Registrations sheet, bookings and claims.
+- People → **Paid / not paid (.xlsx)** for who still owes the entry fee. The
+  **Not paid** sheet is the list to chase; the **Payment** column says whether
+  a "paid" is a screenshot or somebody marking it paid.
 - "Back up now", then copy `data\` somewhere off the laptop.
 - Stop all three windows.
 - Delete the receipts and anything personal you no longer need.
