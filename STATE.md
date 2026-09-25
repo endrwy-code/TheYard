@@ -1927,6 +1927,21 @@ organiser's next round of notes; built in a copy while `app.py` stayed up).
        On 24 Sep the 3 PM jam slot began reading back as "past" and the suite
        went red on the one morning the RUNBOOK has the organiser run it.
 
+158. **Who has paid, as a spreadsheet.** 25 Sep, after the night: "export the
+     people and who has paid and have not paid in the people tab".
+     - **One button on People** (admin sign-in only, like every export), also
+       listed under Audit → Exports & backups. `GET /admin/api/export/payments`
+       gives `The_Yard_Payments_<date>.xlsx` with three sheets: **Everyone**,
+       **Not paid**, **Paid**.
+     - **Paid means `verified` or `submitted`.** A screenshot counts on its own
+       since 24 Sep, so treating it as unpaid would contradict what the booth
+       was told on the night. The **Payment** column says which kind — *Marked
+       paid*, *Screenshot at sign-up*, *Rejected*, *No screenshot* — so the
+       stricter reading is one filter away. A verdict carries who made it,
+       when, and the reason; a reopened verdict is shown as no verdict.
+     - **The same people the Overview counts:** active, not a test account.
+       Someone an import marked inactive has left the list, not failed to pay.
+
 ### Endpoints added beyond §12
 
 Recorded here and in `BUILD_SPEC.md` §12.

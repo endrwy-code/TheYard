@@ -379,6 +379,8 @@ button.needrow:hover .w{ text-decoration:underline; text-underline-offset:3px }
   font-family:var(--num); font-stretch:112%; font-size:15px;
 }
 .searchbox .hint{ margin-left:auto; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#A8A29B }
+.people-top .pexport{ flex:none; min-height:46px; border-radius:14px; gap:14px; background:#16161A }
+@media (max-width:700px){ .people-top{ flex-wrap:wrap } .people-top .pexport{ flex:1 } }
 .people-grid{ display:grid; grid-template-columns:300px 1fr 360px }
 @media (max-width:1200px){ .people-grid{ grid-template-columns:1fr } .people-list{ max-height:320px } }
 .people-list{ border-right:1px solid #10101018; padding:20px; display:flex; flex-direction:column; gap:8px; max-height:760px; overflow-y:auto }
@@ -1886,6 +1888,7 @@ SCREENS.person = function(){
   const count = pages > 1
     ? 'Showing ' + list.first + '–' + list.last + ' of ' + list.total + noun
     : list.total + noun;
+  // Exports are admin-only on the server, so a phone sign-in is not offered one.
   const top = `
     <div class="people-top">
       <div class="searchbox">
@@ -1893,6 +1896,7 @@ SCREENS.person = function(){
         <input id="psearch" value="${esc(S.peopleQuery)}" placeholder="${esc(p ? p.handle : 'search')}" autocapitalize="off" autocorrect="off" spellcheck="false">
         <span class="hint">name · email · code · booking ref</span>
       </div>
+      ${S.session.role === 'admin' ? `<button class="dl pexport" data-export="payments" title="Everyone on the list, with who has paid and who has not"><span>Paid / not paid (.xlsx)</span><span>↓</span></button>` : ''}
     </div>`;
   const listCol = `
       <div class="people-list">
@@ -3064,6 +3068,7 @@ SCREENS.audit = function(){
         <button class="dl" data-export="registrations"><span>Registrations sheet (.xlsx)</span><span>↓</span></button>
         <button class="dl" data-export="bookings"><span>Bookings — escape and jam (.xlsx)</span><span>↓</span></button>
         <button class="dl" data-export="claims"><span>Claims and check-ins (.xlsx)</span><span>↓</span></button>
+        <button class="dl" data-export="payments"><span>Payments — paid and not paid (.xlsx)</span><span>↓</span></button>
         <button class="dl" data-export="fallback"><span>Offline fallback list (printable)</span><span>↓</span></button>
       </div>
       <div class="expcard">

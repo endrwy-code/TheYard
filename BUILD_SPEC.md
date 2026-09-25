@@ -1017,6 +1017,7 @@ Run before the event. The test clock is on for testing only.
 | `test_receipts.py` | §9 r29–r30 — sha256 exact match, dhash threshold on a re-saved copy, `DUPLICATE_TXN_REF`, non-image rejection, metadata stripping |
 | `test_roster_import.py` | §17.9 — idempotent re-import, float Paperform IDs, `@Name ` normalisation, blank-row skipping, inactive-on-missing |
 | `test_admin_screens.py` | §17.10 and §17.11 — every console screen, settings validation, the audit log, exports in Paperform's layout |
+| `test_payments_export.py` | The paid / not paid export — the split, why each row is what it is, a reopened verdict, admin-only. Invented people, so it runs without the real export |
 | `test_error_reporting.py` | Every failure answers in JSON, never an HTML error page |
 
 *Written 18 Sep: this table used to name `test_halves.py`, `test_phone_access.py`,
